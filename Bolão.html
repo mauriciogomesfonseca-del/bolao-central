@@ -1,0 +1,2497 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bolão Central — Sistema de Bolões e Sorteios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Source+Sans+3:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0D1117;
+  --bg-2:#161B22;
+  --bg-3:#1F2733;
+  --card:#161B22;
+  --card-hover:#1C2330;
+  --linha:#252D3A;
+  --texto:#E6EDF6;
+  --texto-2:#8B98A9;
+  --texto-3:#5C6B7E;
+  --azul:#3D7DD8;
+  --azul-2:#5B92E0;
+  --azul-bg:rgba(61,125,216,0.14);
+  --verde:#1ED760;
+  --verde-2:#17B852;
+  --verde-bg:rgba(30,215,96,0.13);
+  --vermelho:#FF4757;
+  --vermelho-bg:rgba(255,71,87,0.14);
+  --amarelo:#FFC857;
+  --radius:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Source Sans 3',sans-serif;
+  background:var(--bg);
+  color:var(--texto);
+  min-height:100vh;
+}
+.font-display{font-family:'Archivo Black',sans-serif;letter-spacing:-0.01em;}
+.font-mono{font-family:'Space Mono',monospace;}
+
+/* ---------- LAYOUT ---------- */
+#app{display:flex;flex-direction:column;min-height:100vh;}
+
+.ticker-bar{
+  background:var(--bg-2);
+  border-bottom:1px solid var(--linha);
+  display:flex;
+  align-items:center;
+  padding:0 20px;
+  height:42px;
+  flex-shrink:0;
+  gap:18px;
+  overflow-x:auto;
+  white-space:nowrap;
+}
+.ticker-bar .tk-brand{
+  font-family:'Archivo Black',sans-serif;
+  font-size:13px;color:var(--texto);
+  flex-shrink:0;
+  display:flex;align-items:center;gap:6px;
+}
+.ticker-bar .tk-brand .dot{width:7px;height:7px;border-radius:50%;background:var(--verde);box-shadow:0 0 8px var(--verde);}
+.ticker-bar .tk-brand span{color:var(--azul-2);}
+.ticker-bar .tk-sep{width:1px;height:16px;background:var(--linha);flex-shrink:0;}
+.ticker-bar .tk-item{
+  display:flex;align-items:center;gap:7px;
+  font-size:11.5px;
+  color:var(--texto-2);
+  flex-shrink:0;
+}
+.ticker-bar .tk-item .tk-val{
+  font-family:'Space Mono',monospace;
+  font-weight:700;font-size:12.5px;
+  color:var(--texto);
+}
+.live-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--vermelho-bg);
+  color:var(--vermelho);
+  font-size:9.5px;font-weight:700;letter-spacing:0.04em;
+  padding:2px 7px;border-radius:3px;
+  text-transform:uppercase;
+}
+.live-badge .pulse{
+  width:6px;height:6px;border-radius:50%;background:var(--vermelho);
+  animation:pulse 1.4s infinite;
+}
+@keyframes pulse{0%{opacity:1;transform:scale(1);}50%{opacity:0.4;transform:scale(0.7);}100%{opacity:1;transform:scale(1);}}
+
+.body-row{display:flex;flex:1;min-height:0;}
+.sidebar{
+  width:204px;
+  background:var(--bg-2);
+  border-right:1px solid var(--linha);
+  display:flex;
+  flex-direction:column;
+  flex-shrink:0;
+}
+.brand{padding:16px 18px 12px;}
+.brand .sub{
+  font-size:10px;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  color:var(--texto-3);
+  font-weight:700;
+}
+.nav{flex:1;padding:8px 0;overflow-y:auto;}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 18px;
+  font-size:13.5px;font-weight:600;
+  color:var(--texto-2);
+  cursor:pointer;
+  border-left:3px solid transparent;
+  transition:background .15s, color .15s;
+  user-select:none;
+}
+.nav-item:hover{background:rgba(255,255,255,0.03);color:var(--texto);}
+.nav-item.active{
+  background:var(--azul-bg);
+  color:var(--azul-2);
+  border-left-color:var(--azul);
+}
+.nav-icon{width:18px;text-align:center;font-size:14px;}
+.nav-section-label{
+  font-size:10px;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--texto-3);
+  padding:14px 18px 5px;
+}
+.sidebar-foot{
+  padding:14px 18px;
+  border-top:1px solid var(--linha);
+  font-size:12px;
+}
+.user-pill{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.avatar-mini{
+  width:27px;height:27px;border-radius:6px;
+  background:linear-gradient(135deg, var(--azul), var(--azul-2));
+  color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:11px;flex-shrink:0;
+}
+.btn-logout{
+  width:100%;
+  background:transparent;
+  border:1px solid var(--linha);
+  color:var(--texto-2);
+  padding:7px;border-radius:var(--radius);
+  font-size:12px;cursor:pointer;font-weight:600;
+}
+.btn-logout:hover{background:rgba(255,255,255,0.04);color:var(--texto);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{
+  background:var(--bg-2);
+  border-bottom:1px solid var(--linha);
+  padding:16px 28px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.page-title{font-family:'Archivo Black',sans-serif;font-size:20px;color:var(--texto);}
+.page-sub{font-size:12px;color:var(--texto-2);margin-top:2px;}
+.content{flex:1;padding:24px 28px;overflow-y:auto;}
+
+/* ---------- LOGIN SCREEN ---------- */
+.login-wrap{
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);
+  position:relative;
+  overflow:hidden;
+}
+.login-wrap::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 80% 10%, rgba(61,125,216,0.16), transparent 42%),
+    radial-gradient(circle at 15% 95%, rgba(30,215,96,0.08), transparent 38%);
+}
+.login-card{
+  position:relative;
+  z-index:1;
+  width:380px;
+  background:var(--bg-2);
+  border:1px solid var(--linha);
+  border-radius:12px;
+  box-shadow:0 24px 70px rgba(0,0,0,0.6);
+  padding:34px 32px;
+}
+.login-badge{text-align:center;margin-bottom:22px;}
+.login-badge .title{font-family:'Archivo Black',sans-serif;font-size:26px;color:var(--texto);line-height:1.1;}
+.login-badge .title span{color:var(--azul-2);}
+.login-badge .sub{
+  font-size:11px;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--verde);margin-top:6px;font-weight:700;
+}
+.field{margin-bottom:14px;}
+.field label{
+  display:block;font-size:11.5px;font-weight:700;
+  color:var(--texto-2);margin-bottom:5px;
+  text-transform:uppercase;letter-spacing:0.04em;
+}
+.field input, .field select, .field textarea{
+  width:100%;
+  border:1.5px solid var(--linha);
+  background:var(--bg-3);
+  border-radius:var(--radius);
+  padding:10px 12px;
+  font-size:14px;
+  font-family:'Source Sans 3',sans-serif;
+  color:var(--texto);
+}
+.field input::placeholder{color:var(--texto-3);}
+.field input:focus, .field select:focus, .field textarea:focus{
+  outline:2px solid var(--azul);
+  outline-offset:1px;
+  border-color:var(--azul);
+}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:none;border-radius:var(--radius);
+  padding:10px 18px;
+  font-size:13px;font-weight:700;
+  cursor:pointer;
+  transition:transform .08s, background .15s, box-shadow .15s;
+}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:var(--verde);color:#04140A;}
+.btn-primary:hover{background:var(--verde-2);box-shadow:0 0 0 3px var(--verde-bg);}
+.btn-block{width:100%;}
+.btn-secondary{background:var(--azul);color:#fff;}
+.btn-secondary:hover{background:var(--azul-2);}
+.btn-outline{background:transparent;border:1.5px solid var(--linha);color:var(--texto);}
+.btn-outline:hover{background:rgba(255,255,255,0.04);border-color:var(--texto-3);}
+.btn-danger{background:var(--vermelho);color:#fff;}
+.btn-danger:hover{background:#E63946;}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn:focus-visible{outline:3px solid var(--amarelo);outline-offset:2px;}
+
+.login-toggle{display:flex;background:var(--bg-3);border-radius:var(--radius);padding:3px;margin-bottom:18px;}
+.login-toggle button{
+  flex:1;background:transparent;border:none;padding:8px;
+  font-size:12px;font-weight:700;letter-spacing:0.04em;
+  border-radius:6px;cursor:pointer;color:var(--texto-2);
+  text-transform:uppercase;
+}
+.login-toggle button.active{background:var(--azul);color:#fff;}
+.login-error{
+  background:var(--vermelho-bg);color:var(--vermelho);
+  border:1px solid rgba(255,71,87,0.3);
+  font-size:12px;padding:8px 10px;border-radius:var(--radius);
+  margin-bottom:12px;
+}
+.login-hint{margin-top:16px;font-size:11px;color:var(--texto-3);text-align:center;line-height:1.6;}
+
+/* ---------- CARDS / GRID ---------- */
+.grid{display:grid;gap:14px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr);} .grid-3{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:720px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr;}}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--linha);
+  border-radius:var(--radius);
+  padding:18px;
+  transition:border-color .15s;
+}
+.card-flush{padding:0;overflow:hidden;}
+
+.stat-card{
+  background:var(--card);
+  border:1px solid var(--linha);
+  border-radius:var(--radius);
+  padding:16px 18px;
+  position:relative;
+  overflow:hidden;
+}
+.stat-card::before{
+  content:"";position:absolute;top:0;left:0;width:3px;height:100%;
+  background:var(--azul);
+}
+.stat-card.alert::before{background:var(--vermelho);}
+.stat-card.good::before{background:var(--verde);}
+.stat-label{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--texto-2);font-weight:700;margin-bottom:7px;}
+.stat-value{font-family:'Space Mono',monospace;font-size:26px;font-weight:700;color:var(--texto);}
+.stat-sub{font-size:11px;color:var(--texto-3);margin-top:4px;}
+
+.section-title{
+  font-family:'Archivo Black',sans-serif;
+  font-size:14px;
+  color:var(--texto);
+  margin-bottom:14px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.section-title .right{font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;}
+
+/* ---------- TABLE ---------- */
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{
+  text-align:left;
+  font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+  color:var(--texto-2);font-weight:700;
+  padding:10px 12px;
+  border-bottom:1px solid var(--linha);
+  background:var(--bg-3);
+}
+td{padding:10px 12px;border-bottom:1px solid var(--linha);vertical-align:middle;color:var(--texto);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+
+.badge-status{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:700;
+  padding:3px 9px;border-radius:4px;
+  text-transform:uppercase;letter-spacing:0.03em;
+}
+.badge-pago{background:var(--verde-bg);color:var(--verde);}
+.badge-pendente{background:rgba(255,200,87,0.14);color:var(--amarelo);}
+.badge-atrasado{background:var(--vermelho-bg);color:var(--vermelho);}
+.badge-isento{background:rgba(139,152,169,0.14);color:var(--texto-2);}
+.badge-ativo{background:var(--verde-bg);color:var(--verde);}
+.badge-inativo{background:rgba(139,152,169,0.14);color:var(--texto-2);}
+
+/* ---------- LINHA DE ODDS (signature element) ---------- */
+.sumula{
+  background:var(--card);
+  border:1px solid var(--linha);
+  border-radius:var(--radius);
+  overflow:hidden;
+  transition:border-color .15s, background .15s;
+}
+.sumula:hover{border-color:#34405A;background:var(--card-hover);}
+.sumula-head{
+  background:var(--bg-3);
+  color:var(--texto-2);
+  padding:8px 14px;
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:10.5px;
+  text-transform:uppercase;letter-spacing:0.05em;
+}
+.sumula-head .comp{color:var(--azul-2);font-weight:700;}
+.sumula-body{
+  padding:16px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;
+}
+.sumula-team{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;min-width:0;}
+.shield{
+  width:36px;height:36px;
+  background:var(--bg-3);
+  color:var(--texto);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Archivo Black',sans-serif;font-size:11px;
+  border-radius:50%;
+  border:1.5px solid var(--linha);
+}
+.sumula-team .name{font-size:11.5px;font-weight:600;color:var(--texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.placar-box{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.placar-input{
+  width:38px;height:38px;
+  text-align:center;
+  font-family:'Space Mono',monospace;
+  font-size:17px;font-weight:700;
+  border:1.5px solid var(--linha);
+  border-radius:6px;
+  background:var(--bg-3);
+  color:var(--verde);
+  transition:border-color .15s, background .15s;
+}
+.placar-input:focus{outline:none;border-color:var(--verde);background:var(--bg);}
+.placar-input:disabled{background:var(--bg-3);color:var(--texto-3);}
+.placar-sep{font-family:'Archivo Black',sans-serif;color:var(--texto-3);font-size:13px;}
+.sumula-foot{
+  padding:9px 14px;
+  border-top:1px solid var(--linha);
+  font-size:11px;color:var(--texto-2);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.pts-pill{
+  font-family:'Space Mono',monospace;
+  font-weight:700;color:var(--verde);
+  background:var(--verde-bg);
+  padding:2px 8px;border-radius:4px;
+  font-size:11.5px;
+}
+
+/* ---------- MODAL ---------- */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.7);
+  display:flex;align-items:center;justify-content:center;
+  z-index:100;padding:20px;
+}
+.modal{
+  background:var(--bg-2);
+  border:1px solid var(--linha);
+  border-radius:12px;
+  max-width:520px;width:100%;
+  max-height:88vh;overflow-y:auto;
+  box-shadow:0 24px 64px rgba(0,0,0,0.6);
+}
+.modal-head{
+  padding:18px 22px;
+  border-bottom:1px solid var(--linha);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.modal-head h3{font-family:'Archivo Black',sans-serif;font-size:16px;color:var(--texto);}
+.modal-close{background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--texto-2);line-height:1;}
+.modal-close:hover{color:var(--texto);}
+.modal-body{padding:20px 22px;}
+.modal-foot{padding:14px 22px;border-top:1px solid var(--linha);display:flex;justify-content:flex-end;gap:8px;}
+
+/* ---------- MISC ---------- */
+.empty-state{text-align:center;padding:50px 20px;color:var(--texto-2);}
+.empty-state .icon{font-size:34px;margin-bottom:10px;}
+.empty-state .msg{font-size:14px;font-weight:700;color:var(--texto);margin-bottom:4px;}
+.empty-state .hint{font-size:12px;}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap;}
+.search-box{
+  border:1.5px solid var(--linha);background:var(--bg-3);border-radius:var(--radius);
+  padding:8px 12px;font-size:13px;min-width:220px;color:var(--texto);
+}
+.search-box::placeholder{color:var(--texto-3);}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--linha);margin-bottom:18px;}
+.tab{
+  padding:9px 16px;font-size:13px;font-weight:700;color:var(--texto-2);
+  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+}
+.tab.active{color:var(--texto);border-bottom-color:var(--verde);}
+.toast{
+  position:fixed;bottom:24px;right:24px;
+  background:var(--bg-2);color:var(--texto);
+  border:1px solid var(--linha);
+  padding:12px 18px;border-radius:var(--radius);
+  font-size:13px;font-weight:600;
+  box-shadow:0 8px 24px rgba(0,0,0,0.5);
+  z-index:200;
+  display:flex;align-items:center;gap:8px;
+  border-left:3px solid var(--verde);
+  animation:slidein .25s ease;
+}
+.toast.error{border-left-color:var(--vermelho);}
+@keyframes slidein{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.flex-row{display:flex;gap:10px;align-items:center;}
+.text-muted{color:var(--texto-2);font-size:12px;}
+.divider{height:1px;background:var(--linha);margin:16px 0;}
+.progress-bar{height:6px;background:var(--bg-3);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--verde);}
+.pill-tag{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;
+  padding:2px 8px;border-radius:4px;background:var(--bg-3);color:var(--texto-2);
+}
+.rank-1 .pos-badge{background:var(--amarelo);color:#1B1404;}
+.rank-2 .pos-badge{background:#9FB0C7;color:#0D1117;}
+.rank-3 .pos-badge{background:#C97A40;color:#fff;}
+.pos-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:6px;
+  font-family:'Space Mono',monospace;font-weight:700;font-size:12px;
+  background:var(--bg-3);color:var(--texto-2);
+}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--linha);border-radius:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+a{color:var(--azul-2);}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important;}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+// =====================================================================
+// BOLÃO CENTRAL — núcleo de dados, Supabase e utilitários
+// =====================================================================
+
+// ---------------------------------------------------------------------
+// CONFIGURAÇÃO SUPABASE
+// ---------------------------------------------------------------------
+const SUPABASE_URL = 'https://vdbaqpnybaeojrcphztw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkYmFxcG55YmFlb2pyY3BoenR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNTIyOTUsImV4cCI6MjA5NzgyODI5NX0.GJn9QRLTQf0pJplVaBnIRQdD0iaw90Dbj5sqld8jIzQ';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ---------------------------------------------------------------------
+// UTILITÁRIOS GERAIS
+// ---------------------------------------------------------------------
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+function fmtMoney(v){
+  return (v||0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+}
+function fmtDate(iso){
+  if(!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+function escapeHtml(str){
+  if(str===undefined||str===null) return '';
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------------------------------------------------------------------
+// MAPEAMENTO — converte nomes de colunas do banco (snake_case) para o
+// formato camelCase que o resto do app já usa, e vice-versa.
+// ---------------------------------------------------------------------
+const Map_ = {
+  usuario(p){
+    if(!p) return null;
+    return {
+      id: p.id, nome: p.nome, email: p.email || '', telefone: p.telefone||'',
+      cpf: p.cpf||'', nascimento: p.data_nascimento||'', perfil: p.papel,
+      status: p.status, dataCadastro: p.criado_em ? p.criado_em.slice(0,10) : '',
+      foto:'',
+    };
+  },
+  bolao(b){
+    if(!b) return null;
+    return {
+      id:b.id, nome:b.nome, tipo:b.tipo, descricao:b.descricao||'',
+      valorInscricao: Number(b.valor_inscricao)||0, dataInicio:b.data_inicio, dataFim:b.data_fim,
+      premiacao:b.premiacao||'', status:b.status,
+      regras:{ vencedor:b.regra_vencedor, empate:b.regra_empate, placarExato:b.regra_placar_exato, bonus:0 }
+    };
+  },
+  jogo(j){
+    if(!j) return null;
+    return {
+      id:j.id, bolaoId:j.bolao_id, mandante:j.mandante, visitante:j.visitante,
+      mandanteSigla:j.mandante_sigla||'', visitanteSigla:j.visitante_sigla||'',
+      rodada:j.rodada||'', dataHora: j.data_hora ? j.data_hora.slice(0,16) : '',
+      placarMandante:j.placar_mandante, placarVisitante:j.placar_visitante, status:j.status,
+    };
+  },
+  palpite(p){
+    if(!p) return null;
+    return {
+      id:p.id, jogoId:p.jogo_id, usuarioId:p.usuario_id,
+      placarMandante:p.placar_mandante, placarVisitante:p.placar_visitante,
+      pontos:p.pontos||0, codigoVerificacao:p.codigo_verificacao,
+      criadoEm:p.criado_em, atualizadoEm:p.atualizado_em, travado:p.travado,
+    };
+  },
+  pagamento(p){
+    if(!p) return null;
+    return {
+      id:p.id, usuarioId:p.usuario_id, bolaoId:p.bolao_id,
+      valorInscricao:Number(p.valor_inscricao)||0, valorPago:Number(p.valor_pago)||0,
+      dataVencimento:p.data_vencimento, dataPagamento:p.data_pagamento,
+      formaPagamento:p.forma_pagamento||'', status:p.status,
+    };
+  },
+  sorteio(s, cotas){
+    if(!s) return null;
+    return {
+      id:s.id, nome:s.nome, descricao:s.descricao||'', valorCota:Number(s.valor_cota)||0,
+      totalCotas:s.total_cotas, dataSorteio:s.data_sorteio, status:s.status,
+      vencedor: s.numero_vencedor ? { numero:s.numero_vencedor, usuarioId:s.vencedor_usuario_id, data:s.sorteado_em } : null,
+      cotas: (cotas||[]).map(c=>({ numero:c.numero, usuarioId:c.usuario_id, status:c.status })),
+    };
+  },
+};
+
+// ---------------------------------------------------------------------
+// STORE — cache local em memória, sincronizado com o Supabase.
+// O resto do app lê Store.data.X de forma síncrona (igual antes);
+// as funções abaixo são responsáveis por buscar do Supabase e
+// preencher esse cache. Toda ESCRITA deve ir ao Supabase primeiro,
+// e só depois recarregar o cache correspondente.
+// ---------------------------------------------------------------------
+const Store = {
+  data: {
+    usuarios: [], boloes: [], jogos: [], palpites: [], pagamentos: [],
+    sorteios: [], notificacoes: [], auditLog: [],
+  },
+
+  async loadAll(){
+    await Promise.all([
+      this.reloadUsuarios(),
+      this.reloadBoloes(),
+      this.reloadJogos(),
+      this.reloadPalpites(),
+      this.reloadPagamentos(),
+      this.reloadSorteios(),
+    ]);
+  },
+
+  async reloadUsuarios(){
+    const { data, error } = await sb.from('perfis').select('*').order('criado_em');
+    if(error){ console.error('Erro ao carregar usuários:', error); return; }
+    this.data.usuarios = (data||[]).map(Map_.usuario);
+  },
+
+  async reloadBoloes(){
+    const { data, error } = await sb.from('boloes').select('*').order('criado_em');
+    if(error){ console.error('Erro ao carregar bolões:', error); return; }
+    this.data.boloes = (data||[]).map(Map_.bolao);
+  },
+
+  async reloadJogos(){
+    const { data, error } = await sb.from('jogos').select('*').order('data_hora');
+    if(error){ console.error('Erro ao carregar jogos:', error); return; }
+    this.data.jogos = (data||[]).map(Map_.jogo);
+  },
+
+  async reloadPalpites(){
+    const { data, error } = await sb.from('palpites').select('*');
+    if(error){ console.error('Erro ao carregar palpites:', error); return; }
+    this.data.palpites = (data||[]).map(Map_.palpite);
+  },
+
+  async reloadPagamentos(){
+    const { data, error } = await sb.from('pagamentos').select('*');
+    if(error){ console.error('Erro ao carregar pagamentos:', error); return; }
+    this.data.pagamentos = (data||[]).map(Map_.pagamento);
+  },
+
+  async reloadSorteios(){
+    const { data: sorteios, error } = await sb.from('sorteios').select('*').order('criado_em');
+    if(error){ console.error('Erro ao carregar sorteios:', error); return; }
+    const { data: cotas } = await sb.from('cotas').select('*');
+    this.data.sorteios = (sorteios||[]).map(s => Map_.sorteio(s, (cotas||[]).filter(c=>c.sorteio_id===s.id)));
+  },
+
+  // Mantido por compatibilidade com chamadas antigas no resto do app;
+  // agora é "fire and forget" para auditoria (não bloqueia a UI).
+  log(usuarioId, acao){
+    sb.from('auditoria').insert({ usuario_id: usuarioId, acao }).then(({error})=>{
+      if(error) console.error('Erro ao gravar auditoria:', error);
+    });
+  },
+
+  async reloadAuditoria(){
+    const { data, error } = await sb.from('auditoria').select('*').order('criado_em', { ascending:false }).limit(200);
+    if(error){ console.error('Erro ao carregar auditoria:', error); return; }
+    this.data.auditLog = (data||[]).map(l => ({ id:l.id, usuarioId:l.usuario_id, acao:l.acao, data:l.criado_em }));
+  },
+};
+
+// ---------------------------------------------------------------------
+// SESSION — agora espelha a sessão real do Supabase Auth
+// ---------------------------------------------------------------------
+const Session = {
+  _user: null, // perfil (Map_.usuario) da pessoa logada, cacheado em memória
+
+  async init(){
+    const { data } = await sb.auth.getSession();
+    if(data && data.session){
+      await this._loadProfile(data.session.user.id);
+    }
+    return this._user;
+  },
+
+  async _loadProfile(authUserId){
+    const { data, error } = await sb.from('perfis').select('*').eq('id', authUserId).maybeSingle();
+    if(error || !data){
+      this._user = null;
+      return null;
+    }
+    // garante e-mail no perfil em memória (vem do auth, não da tabela perfis)
+    const { data: authData } = await sb.auth.getUser();
+    const perfil = Map_.usuario(data);
+    perfil.email = authData && authData.user ? authData.user.email : '';
+    this._user = perfil;
+    return this._user;
+  },
+
+  currentUser(){ return this._user; },
+
+  async clear(){
+    await sb.auth.signOut();
+    this._user = null;
+  },
+};
+
+// ---------------------------------------------------------------------
+// TOAST (feedback)
+// ---------------------------------------------------------------------
+function toast(msg, type){
+  const el = document.createElement('div');
+  el.className = 'toast' + (type==='error' ? ' error' : '');
+  el.innerHTML = (type==='error' ? '⚠ ' : '✓ ') + escapeHtml(msg);
+  document.body.appendChild(el);
+  setTimeout(()=>{ el.remove(); }, 3200);
+}
+// =====================================================================
+// AUTENTICAÇÃO / LOGIN — agora via Supabase Auth real
+// =====================================================================
+const Auth = {
+  mode: 'login', // 'login' | 'cadastro'
+  error: '',
+  loading: false,
+
+  render(){
+    const root = document.getElementById('app');
+    root.innerHTML = `
+      <div class="login-wrap">
+        <div class="login-card">
+          <div class="login-badge">
+            <div class="title font-display">BOLÃO<span> CENTRAL</span></div>
+            <div class="sub">Sua casa de bolões &amp; sorteios</div>
+          </div>
+
+          <div class="login-toggle">
+            <button class="${this.mode==='login'?'active':''}" id="tab-login">Entrar</button>
+            <button class="${this.mode==='cadastro'?'active':''}" id="tab-cadastro">Criar conta</button>
+          </div>
+
+          ${this.error ? `<div class="login-error">${escapeHtml(this.error)}</div>` : ''}
+
+          <div id="login-form-area"></div>
+
+          <div class="login-hint">
+            Acesso restrito a colegas convidados.<br>Você vai precisar do código de convite para criar sua conta.
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('tab-login').onclick = () => { this.mode='login'; this.error=''; this.render(); };
+    document.getElementById('tab-cadastro').onclick = () => { this.mode='cadastro'; this.error=''; this.render(); };
+
+    if(this.mode==='login') this.renderLoginForm();
+    else this.renderCadastroForm();
+  },
+
+  renderLoginForm(){
+    const area = document.getElementById('login-form-area');
+    area.innerHTML = `
+      <form id="form-login">
+        <div class="field">
+          <label>E-mail</label>
+          <input type="email" id="li-email" required autocomplete="username">
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <input type="password" id="li-senha" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="li-submit">Entrar</button>
+      </form>
+    `;
+    document.getElementById('form-login').onsubmit = async (e) => {
+      e.preventDefault();
+      if(this.loading) return;
+      const email = document.getElementById('li-email').value.trim().toLowerCase();
+      const senha = document.getElementById('li-senha').value;
+
+      this.loading = true;
+      const btn = document.getElementById('li-submit');
+      btn.disabled = true; btn.textContent = 'Entrando...';
+
+      const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
+
+      if(error){
+        this.loading = false;
+        this.error = error.message.includes('Invalid login credentials')
+          ? 'E-mail ou senha incorretos.'
+          : 'Não foi possível entrar: ' + error.message;
+        this.render();
+        return;
+      }
+
+      const perfil = await Session._loadProfile(data.user.id);
+      if(!perfil){
+        await sb.auth.signOut();
+        this.loading = false;
+        this.error = 'Sua conta não tem um cadastro completo. Contate o administrador.';
+        this.render();
+        return;
+      }
+      if(perfil.status === 'inativo'){
+        await sb.auth.signOut();
+        this.loading = false;
+        this.error = 'Sua conta está inativa. Contate o administrador.';
+        this.render();
+        return;
+      }
+
+      Store.log(perfil.id, 'Login realizado.');
+      await App.boot();
+    };
+  },
+
+  renderCadastroForm(){
+    const area = document.getElementById('login-form-area');
+    area.innerHTML = `
+      <form id="form-cadastro">
+        <div class="field">
+          <label>Nome completo</label>
+          <input type="text" id="ca-nome" required>
+        </div>
+        <div class="field">
+          <label>E-mail</label>
+          <input type="email" id="ca-email" required>
+        </div>
+        <div class="field">
+          <label>Telefone</label>
+          <input type="text" id="ca-telefone" placeholder="(00) 00000-0000">
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <input type="password" id="ca-senha" required minlength="6" placeholder="mínimo 6 caracteres">
+        </div>
+        <div class="field">
+          <label>Código de convite</label>
+          <input type="text" id="ca-convite" required placeholder="ex: BOLAO2026" style="text-transform:uppercase;">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="ca-submit">Criar conta</button>
+      </form>
+    `;
+    document.getElementById('form-cadastro').onsubmit = async (e) => {
+      e.preventDefault();
+      if(this.loading) return;
+      const nome = document.getElementById('ca-nome').value.trim();
+      const email = document.getElementById('ca-email').value.trim().toLowerCase();
+      const telefone = document.getElementById('ca-telefone').value.trim();
+      const senha = document.getElementById('ca-senha').value;
+      const convite = document.getElementById('ca-convite').value.trim();
+
+      this.loading = true;
+      const btn = document.getElementById('ca-submit');
+      btn.disabled = true; btn.textContent = 'Criando conta...';
+
+      // 1. Cria o usuário no Supabase Auth
+      const { data, error } = await sb.auth.signUp({ email, password: senha });
+
+      if(error){
+        this.loading = false;
+        this.error = error.message.includes('already registered')
+          ? 'Já existe uma conta cadastrada com esse e-mail.'
+          : 'Não foi possível criar a conta: ' + error.message;
+        this.render();
+        return;
+      }
+
+      // Se a sessão não veio automaticamente (ex: confirmação de e-mail ligada), tenta logar.
+      if(!data.session){
+        const { error: loginErr } = await sb.auth.signInWithPassword({ email, password: senha });
+        if(loginErr){
+          this.loading = false;
+          this.error = 'Conta criada, mas não foi possível entrar automaticamente. Tente fazer login.';
+          this.mode = 'login';
+          this.render();
+          return;
+        }
+      }
+
+      // 2. Valida o código de convite e cria o perfil de negócio (RPC no banco)
+      const { error: rpcError } = await sb.rpc('cadastrar_com_convite', {
+        p_nome: nome,
+        p_telefone: telefone,
+        p_codigo_convite: convite,
+      });
+
+      if(rpcError){
+        this.loading = false;
+        // Desfaz a sessão para não deixar um "usuário fantasma" sem perfil logado
+        await sb.auth.signOut();
+        this.error = rpcError.message.includes('Código de convite')
+          ? rpcError.message
+          : 'Não foi possível concluir o cadastro: ' + rpcError.message;
+        this.render();
+        return;
+      }
+
+      const { data: userData } = await sb.auth.getUser();
+      await Session._loadProfile(userData.user.id);
+      toast('Conta criada com sucesso! Bem-vindo(a).');
+      await App.boot();
+    };
+  }
+};
+// =====================================================================
+// LÓGICA DE NEGÓCIO
+// =====================================================================
+const Logic = {
+  // Calcula pontos de um palpite dado o resultado oficial e as regras do bolão
+  calcularPontos(palpite, jogo, bolao){
+    if(jogo.placarMandante===null || jogo.placarVisitante===null) return 0;
+    const regras = bolao.regras || { vencedor:3, empate:3, placarExato:10, bonus:0 };
+    const pm = palpite.placarMandante, pv = palpite.placarVisitante;
+    const rm = jogo.placarMandante, rv = jogo.placarVisitante;
+
+    if(pm === rm && pv === rv) return regras.placarExato;
+
+    const palpiteResultado = pm > pv ? 'mandante' : (pm < pv ? 'visitante' : 'empate');
+    const realResultado = rm > rv ? 'mandante' : (rm < rv ? 'visitante' : 'empate');
+
+    if(palpiteResultado === realResultado){
+      return palpiteResultado === 'empate' ? regras.empate : regras.vencedor;
+    }
+    return 0;
+  },
+
+  // Recalcula pontos de todos os palpites vinculados a um jogo (chamado ao lançar resultado).
+  // O cálculo de fato acontece no banco (função recalcular_pontos_jogo), garantindo que
+  // o resultado seja sempre consistente com a regra oficial gravada no bolão.
+  async recalcularPontosDoJogo(jogoId){
+    const { error } = await sb.rpc('recalcular_pontos_jogo', { p_jogo_id: jogoId });
+    if(error){ console.error('Erro ao recalcular pontos:', error); return; }
+    await Store.reloadPalpites();
+  },
+
+  rankingDoBolao(bolaoId, periodo){
+    const db = Store.data;
+    const jogosDoBolao = db.jogos.filter(j => j.bolaoId === bolaoId).map(j=>j.id);
+    const participantes = db.usuarios.filter(u => u.perfil === 'participante');
+
+    let palpitesConsiderados = db.palpites.filter(p => jogosDoBolao.includes(p.jogoId));
+
+    if(periodo === 'mensal'){
+      const mesAtual = new Date().toISOString().slice(0,7);
+      const jogosDoMes = db.jogos.filter(j => j.bolaoId===bolaoId && j.dataHora && j.dataHora.slice(0,7)===mesAtual).map(j=>j.id);
+      palpitesConsiderados = palpitesConsiderados.filter(p => jogosDoMes.includes(p.jogoId));
+    }
+
+    const linhas = participantes.map(u => {
+      const meus = palpitesConsiderados.filter(p => p.usuarioId === u.id);
+      const jogosFinalizados = meus.filter(p => {
+        const j = db.jogos.find(jj=>jj.id===p.jogoId);
+        return j && j.status==='finalizado';
+      });
+      const acertos = jogosFinalizados.filter(p => p.pontos > 0).length;
+      const erros = jogosFinalizados.filter(p => p.pontos === 0).length;
+      const pontuacao = meus.reduce((s,p)=>s+(p.pontos||0),0);
+      const aproveitamento = jogosFinalizados.length ? Math.round((acertos/jogosFinalizados.length)*100) : 0;
+      return { usuario:u, pontuacao, acertos, erros, aproveitamento, jogosPalpitados: meus.length };
+    });
+
+    linhas.sort((a,b)=> b.pontuacao - a.pontuacao || b.aproveitamento - a.aproveitamento);
+    linhas.forEach((l,i)=> l.posicao = i+1);
+    return linhas;
+  },
+
+  // ---------- PAGAMENTOS / FINANCEIRO ----------
+  resumoFinanceiro(bolaoId){
+    const db = Store.data;
+    const pagtos = bolaoId ? db.pagamentos.filter(p=>p.bolaoId===bolaoId) : db.pagamentos;
+    const totalArrecadado = pagtos.reduce((s,p)=> s + (p.valorPago||0), 0);
+    const totalPendente = pagtos.filter(p=>p.status==='pendente'||p.status==='atrasado')
+      .reduce((s,p)=> s + (p.valorInscricao - (p.valorPago||0)), 0);
+    const pagantes = pagtos.filter(p=>p.status==='pago').length;
+    const inadimplentes = pagtos.filter(p=>p.status==='atrasado').length;
+    return { totalArrecadado, totalPendente, pagantes, inadimplentes, total: pagtos.length };
+  },
+
+  // Atualiza pagamentos vencidos em segundo plano (não bloqueia a UI).
+  // Chamada via "fire and forget" a partir do boot/navegação; o resultado
+  // só aparece após o próximo reload do cache de pagamentos.
+  async atualizarStatusPagamentosEmSegundoPlano(){
+    const db = Store.data;
+    const hoje = todayISO();
+    const atrasar = db.pagamentos.filter(p => p.status === 'pendente' && p.dataVencimento && p.dataVencimento < hoje);
+    if(atrasar.length === 0) return;
+    await Promise.all(atrasar.map(p =>
+      sb.from('pagamentos').update({ status:'atrasado' }).eq('id', p.id)
+    ));
+    atrasar.forEach(p => { p.status = 'atrasado'; }); // reflete no cache local já carregado
+  },
+
+  // ---------- DASHBOARD ----------
+  // Síncrona: lê só o cache já carregado em Store.data (não bate no Supabase).
+  // A checagem de pagamentos atrasados roda separadamente, em segundo plano.
+  dashboardStats(){
+    const db = Store.data;
+    const fin = this.resumoFinanceiro();
+    return {
+      participantesCadastrados: db.usuarios.filter(u=>u.perfil==='participante').length,
+      participantesAtivos: db.usuarios.filter(u=>u.perfil==='participante' && u.status==='ativo').length,
+      pagamentosRecebidos: fin.totalArrecadado,
+      pagamentosPendentes: fin.totalPendente,
+      jogosCadastrados: db.jogos.length,
+      jogosFinalizados: db.jogos.filter(j=>j.status==='finalizado').length,
+      boloesAtivos: db.boloes.filter(b=>b.status==='ativo').length,
+      sorteiosAbertos: db.sorteios.filter(s=>s.status==='aberto').length,
+    };
+  },
+
+  // ---------- SORTEIOS ----------
+  cotasDisponiveis(sorteio){
+    const ocupadas = new Set(sorteio.cotas.map(c=>c.numero));
+    const livres = [];
+    for(let i=1;i<=sorteio.totalCotas;i++){ if(!ocupadas.has(i)) livres.push(i); }
+    return livres;
+  },
+
+  async realizarSorteio(sorteioId){
+    const db = Store.data;
+    const sorteio = db.sorteios.find(s=>s.id===sorteioId);
+    if(!sorteio) return null;
+    const pagas = sorteio.cotas.filter(c=>c.status==='pago');
+    if(pagas.length===0) return null;
+    const vencedora = pagas[Math.floor(Math.random()*pagas.length)];
+    const agora = new Date().toISOString();
+
+    const { error } = await sb.from('sorteios').update({
+      numero_vencedor: vencedora.numero,
+      vencedor_usuario_id: vencedora.usuarioId,
+      sorteado_em: agora,
+      status: 'finalizado',
+    }).eq('id', sorteioId);
+
+    if(error){ console.error('Erro ao realizar sorteio:', error); return null; }
+
+    await Store.reloadSorteios();
+    return { numero: vencedora.numero, usuarioId: vencedora.usuarioId, data: agora };
+  },
+};
+// =====================================================================
+// APP SHELL — sidebar, navegação, boot
+// =====================================================================
+const App = {
+  route: 'dashboard',
+  modal: null, // {type, payload}
+
+  ADMIN_NAV: [
+    { section: 'Visão Geral' },
+    { key:'dashboard', label:'Dashboard', icon:'◆' },
+    { section: 'Gestão' },
+    { key:'boloes', label:'Bolões', icon:'⚽' },
+    { key:'jogos', label:'Jogos & Resultados', icon:'▣' },
+    { key:'participantes', label:'Participantes', icon:'☷' },
+    { key:'pagamentos', label:'Pagamentos', icon:'$' },
+    { key:'ranking', label:'Ranking', icon:'★' },
+    { key:'sorteios', label:'Sorteios & Rifas', icon:'⊙' },
+    { section: 'Sistema' },
+    { key:'relatorios', label:'Relatórios', icon:'▤' },
+    { key:'auditoria', label:'Auditoria', icon:'⌗' },
+  ],
+  PART_NAV: [
+    { section: 'Meu Bolão' },
+    { key:'dashboard', label:'Início', icon:'◆' },
+    { key:'palpites', label:'Meus Palpites', icon:'✎' },
+    { key:'ranking', label:'Ranking', icon:'★' },
+    { key:'pagamentos', label:'Meu Pagamento', icon:'$' },
+    { key:'sorteios', label:'Sorteios & Rifas', icon:'⊙' },
+    { section:'Conta' },
+    { key:'perfil', label:'Meu Perfil', icon:'☷' },
+  ],
+
+  async boot(){
+    const user = Session.currentUser();
+    if(!user){ Auth.render(); return; }
+    this.route = 'dashboard';
+    this.showLoading('Carregando seus dados...');
+    await Store.loadAll();
+    this.render();
+    // Não bloqueia a primeira renderização; quando terminar, re-renderiza
+    // a página atual para refletir eventuais pagamentos marcados como atrasados.
+    Logic.atualizarStatusPagamentosEmSegundoPlano().then(() => this.renderPage());
+  },
+
+  showLoading(msg){
+    document.getElementById('app').innerHTML = `
+      <div class="login-wrap">
+        <div style="text-align:center;color:var(--texto-2);">
+          <div class="font-display" style="font-size:20px;color:var(--texto);margin-bottom:8px;">BOLÃO CENTRAL</div>
+          <div>${escapeHtml(msg||'Carregando...')}</div>
+        </div>
+      </div>
+    `;
+  },
+
+  navigate(route){
+    this.route = route;
+    this.render();
+  },
+
+  closeModal(){ this.modal = null; this.renderModal(); },
+  openModal(type, payload){ this.modal = {type, payload}; this.renderModal(); },
+
+  async logout(){
+    const user = Session.currentUser();
+    if(user) Store.log(user.id, 'Logout realizado.');
+    await Session.clear();
+    Auth.render();
+  },
+
+  render(){
+    const user = Session.currentUser();
+    if(!user){ Auth.render(); return; }
+    const isAdmin = user.perfil === 'admin';
+    const nav = isAdmin ? this.ADMIN_NAV : this.PART_NAV;
+
+    const navHtml = nav.map(item => {
+      if(item.section) return `<div class="nav-section-label">${escapeHtml(item.section)}</div>`;
+      const active = this.route === item.key ? 'active' : '';
+      return `<div class="nav-item ${active}" data-route="${item.key}">
+        <span class="nav-icon">${item.icon}</span><span>${escapeHtml(item.label)}</span>
+      </div>`;
+    }).join('');
+
+    const initials = user.nome.split(' ').slice(0,2).map(s=>s[0]).join('').toUpperCase();
+    const s = Logic.dashboardStats();
+    const db = Store.data;
+    const proxJogo = db.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora))[0];
+
+    const root = document.getElementById('app');
+    root.innerHTML = `
+      <div class="ticker-bar">
+        <span class="tk-brand"><span class="dot"></span>BOLÃO <span>CENTRAL</span></span>
+        <div class="tk-sep"></div>
+        <span class="live-badge"><span class="pulse"></span>Live</span>
+        <div class="tk-item">${proxJogo ? `Próximo: ${escapeHtml(proxJogo.mandante)} x ${escapeHtml(proxJogo.visitante)}` : 'Sem jogos agendados'}</div>
+        <div class="tk-sep"></div>
+        <div class="tk-item">Participantes <span class="tk-val">${s.participantesAtivos}</span></div>
+        <div class="tk-sep"></div>
+        <div class="tk-item">Jogos finalizados <span class="tk-val">${s.jogosFinalizados}/${s.jogosCadastrados}</span></div>
+        <div class="tk-sep"></div>
+        <div class="tk-item">Arrecadado <span class="tk-val">${fmtMoney(s.pagamentosRecebidos)}</span></div>
+        <div class="tk-sep"></div>
+        <div class="tk-item">Sorteios abertos <span class="tk-val">${s.sorteiosAbertos}</span></div>
+      </div>
+      <div class="body-row">
+        <div class="sidebar">
+          <div class="brand">
+            <div class="sub">${isAdmin ? 'Painel Administrativo' : 'Área do Participante'}</div>
+          </div>
+          <div class="nav" id="nav">${navHtml}</div>
+          <div class="sidebar-foot">
+            <div class="user-pill">
+              <div class="avatar-mini">${initials}</div>
+              <div style="overflow:hidden;">
+                <div style="font-weight:700;color:var(--texto);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;">${escapeHtml(user.nome)}</div>
+                <div style="font-size:10.5px;color:var(--texto-2);">${isAdmin?'Administrador':'Participante'}</div>
+              </div>
+            </div>
+            <button class="btn-logout" id="btn-logout">Sair</button>
+          </div>
+        </div>
+        <div class="main">
+          <div class="topbar" id="topbar"></div>
+          <div class="content" id="content"></div>
+        </div>
+      </div>
+      <div id="modal-root"></div>
+    `;
+
+    document.querySelectorAll('.nav-item[data-route]').forEach(el=>{
+      el.onclick = () => this.navigate(el.getAttribute('data-route'));
+    });
+    document.getElementById('btn-logout').onclick = () => this.logout();
+
+    this.renderPage();
+  },
+
+  setTopbar(title, sub){
+    document.getElementById('topbar').innerHTML = `
+      <div>
+        <div class="page-title font-display">${escapeHtml(title)}</div>
+        ${sub ? `<div class="page-sub">${escapeHtml(sub)}</div>` : ''}
+      </div>
+      <div id="topbar-actions"></div>
+    `;
+  },
+
+  renderPage(){
+    const user = Session.currentUser();
+    if(!user) return;
+    const isAdmin = user.perfil === 'admin';
+
+    const routes = isAdmin ? {
+      dashboard: Pages.adminDashboard,
+      boloes: Pages.adminBoloes,
+      jogos: Pages.adminJogos,
+      participantes: Pages.adminParticipantes,
+      pagamentos: Pages.adminPagamentos,
+      ranking: Pages.ranking,
+      sorteios: Pages.sorteios,
+      relatorios: Pages.relatorios,
+      auditoria: Pages.auditoria,
+    } : {
+      dashboard: Pages.partDashboard,
+      palpites: Pages.partPalpites,
+      ranking: Pages.ranking,
+      pagamentos: Pages.partPagamentos,
+      sorteios: Pages.sorteios,
+      perfil: Pages.partPerfil,
+    };
+
+    const fn = routes[this.route] || routes.dashboard;
+    fn.call(Pages, user);
+  },
+
+  renderModal(){
+    const root = document.getElementById('modal-root');
+    if(!this.modal){ root.innerHTML=''; return; }
+    Modals.render(root, this.modal);
+  }
+};
+
+window.addEventListener('DOMContentLoaded', async () => {
+  App.showLoading('Conectando...');
+  await Session.init();
+  App.boot();
+});
+
+// Mantém a sessão sincronizada caso o token expire/renove em segundo plano,
+// ou caso a pessoa faça logout em outra aba.
+sb.auth.onAuthStateChange((event) => {
+  if(event === 'SIGNED_OUT'){
+    Session._user = null;
+    Auth.render();
+  }
+});
+// =====================================================================
+// PÁGINAS — ADMINISTRADOR
+// =====================================================================
+const Pages = {};
+
+// ---------------------- DASHBOARD ADMIN ----------------------
+Pages.adminDashboard = function(){
+  App.setTopbar('Dashboard', 'Visão geral do sistema em tempo real');
+  const s = Logic.dashboardStats();
+  const db = Store.data;
+  const proximosJogos = db.jogos.filter(j=>j.status==='agendado')
+    .sort((a,b)=> new Date(a.dataHora)-new Date(b.dataHora)).slice(0,3);
+  const ultimosPagtos = [...db.pagamentos].reverse().slice(0,5);
+
+  document.getElementById('content').innerHTML = `
+    <div class="grid grid-4" style="margin-bottom:22px;">
+      <div class="stat-card">
+        <div class="stat-label">Participantes ativos</div>
+        <div class="stat-value">${s.participantesAtivos}</div>
+        <div class="stat-sub">de ${s.participantesCadastrados} cadastrados</div>
+      </div>
+      <div class="stat-card good">
+        <div class="stat-label">Arrecadado</div>
+        <div class="stat-value" style="font-size:22px;">${fmtMoney(s.pagamentosRecebidos)}</div>
+        <div class="stat-sub">total recebido em todos os bolões</div>
+      </div>
+      <div class="stat-card alert">
+        <div class="stat-label">Pendente / atrasado</div>
+        <div class="stat-value" style="font-size:22px;">${fmtMoney(s.pagamentosPendentes)}</div>
+        <div class="stat-sub">a receber dos participantes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Jogos finalizados</div>
+        <div class="stat-value">${s.jogosFinalizados}<span style="font-size:16px;color:var(--texto-3);">/${s.jogosCadastrados}</span></div>
+        <div class="stat-sub">${s.boloesAtivos} bolão(ões) ativo(s) · ${s.sorteiosAbertos} sorteio(s) aberto(s)</div>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="section-title">Próximos jogos <span class="right"><a href="#" id="link-jogos">ver todos →</a></span></div>
+        ${proximosJogos.length ? proximosJogos.map(j=>Pages._sumulaMini(j)).join('') : `
+          <div class="empty-state"><div class="icon">⚽</div><div class="msg">Nenhum jogo agendado</div><div class="hint">Cadastre uma nova partida no módulo de Jogos.</div></div>
+        `}
+      </div>
+      <div class="card">
+        <div class="section-title">Últimos pagamentos <span class="right"><a href="#" id="link-pagtos">ver todos →</a></span></div>
+        ${ultimosPagtos.length ? `
+        <table>
+          <thead><tr><th>Participante</th><th>Valor</th><th>Status</th></tr></thead>
+          <tbody>
+            ${ultimosPagtos.map(p=>{
+              const u = db.usuarios.find(u=>u.id===p.usuarioId);
+              return `<tr><td>${escapeHtml(u?u.nome:'—')}</td><td class="font-mono">${fmtMoney(p.valorInscricao)}</td><td>${Pages._badgePagamento(p.status)}</td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>` : `<div class="empty-state"><div class="icon">$</div><div class="msg">Sem pagamentos registrados</div></div>`}
+      </div>
+    </div>
+  `;
+  const lj = document.getElementById('link-jogos'); if(lj) lj.onclick=(e)=>{e.preventDefault(); App.navigate('jogos');};
+  const lp = document.getElementById('link-pagtos'); if(lp) lp.onclick=(e)=>{e.preventDefault(); App.navigate('pagamentos');};
+};
+
+Pages._badgePagamento = function(status){
+  const map = { pago:['badge-pago','Pago'], pendente:['badge-pendente','Pendente'], atrasado:['badge-atrasado','Atrasado'], isento:['badge-isento','Isento'], em_analise:['badge-pendente','Em análise'] };
+  const [cls,label] = map[status] || ['badge-isento', status];
+  return `<span class="badge-status ${cls}">${label}</span>`;
+};
+
+Pages._sumulaMini = function(j){
+  const placarOn = j.status==='finalizado';
+  const isLive = !placarOn && j.dataHora && new Date(j.dataHora) <= new Date();
+  return `
+  <div class="sumula" style="margin-bottom:10px;">
+    <div class="sumula-head"><span class="comp">${escapeHtml(j.rodada||'')}</span>${isLive ? `<span class="live-badge"><span class="pulse"></span>Ao vivo</span>` : `<span>${j.dataHora ? new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}</span>`}</div>
+    <div class="sumula-body">
+      <div class="sumula-team"><div class="shield">${escapeHtml(j.mandanteSigla||j.mandante.slice(0,3).toUpperCase())}</div><div class="name">${escapeHtml(j.mandante)}</div></div>
+      <div class="placar-box font-mono">
+        <div class="placar-input" style="border:none;background:transparent;">${placarOn?j.placarMandante:'-'}</div>
+        <span class="placar-sep">×</span>
+        <div class="placar-input" style="border:none;background:transparent;">${placarOn?j.placarVisitante:'-'}</div>
+      </div>
+      <div class="sumula-team"><div class="shield">${escapeHtml(j.visitanteSigla||j.visitante.slice(0,3).toUpperCase())}</div><div class="name">${escapeHtml(j.visitante)}</div></div>
+    </div>
+  </div>`;
+};
+
+
+// ---------------------- BOLÕES ----------------------
+Pages.adminBoloes = function(){
+  App.setTopbar('Bolões', 'Crie e configure bolões de campeonatos e eventos');
+  const db = Store.data;
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" id="btn-novo-bolao">+ Novo bolão</button>`;
+  document.getElementById('btn-novo-bolao').onclick = () => App.openModal('bolao-form', null);
+
+  document.getElementById('content').innerHTML = `
+    <div class="grid grid-3">
+      ${db.boloes.length ? db.boloes.map(b=>{
+        const jogosB = db.jogos.filter(j=>j.bolaoId===b.id);
+        const fin = Logic.resumoFinanceiro(b.id);
+        return `
+        <div class="card">
+          <div class="flex-row" style="justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-weight:700;font-size:15px;color:var(--texto);">${escapeHtml(b.nome)}</div>
+              <div class="pill-tag" style="margin-top:5px;">${escapeHtml(b.tipo)}</div>
+            </div>
+            <span class="badge-status ${b.status==='ativo'?'badge-ativo':'badge-inativo'}">${b.status}</span>
+          </div>
+          <div class="text-muted" style="margin:10px 0;">${escapeHtml(b.descricao||'')}</div>
+          <div class="divider"></div>
+          <div style="font-size:12px;display:flex;justify-content:space-between;color:var(--texto-2);margin-bottom:4px;">
+            <span>Inscrição</span><span class="font-mono" style="color:var(--texto);">${fmtMoney(b.valorInscricao)}</span>
+          </div>
+          <div style="font-size:12px;display:flex;justify-content:space-between;color:var(--texto-2);margin-bottom:4px;">
+            <span>Período</span><span>${fmtDate(b.dataInicio)} – ${fmtDate(b.dataFim)}</span>
+          </div>
+          <div style="font-size:12px;display:flex;justify-content:space-between;color:var(--texto-2);margin-bottom:4px;">
+            <span>Jogos cadastrados</span><span class="font-mono" style="color:var(--texto);">${jogosB.length}</span>
+          </div>
+          <div style="font-size:12px;display:flex;justify-content:space-between;color:var(--texto-2);">
+            <span>Arrecadado</span><span class="font-mono" style="color:var(--azul);">${fmtMoney(fin.totalArrecadado)}</span>
+          </div>
+          <div class="divider"></div>
+          <div class="flex-row">
+            <button class="btn btn-outline btn-sm" data-edit="${b.id}">Editar</button>
+            <button class="btn btn-outline btn-sm" data-toggle="${b.id}">${b.status==='ativo'?'Encerrar':'Reativar'}</button>
+            <button class="btn btn-danger btn-sm" data-del="${b.id}">Excluir</button>
+          </div>
+        </div>`;
+      }).join('') : `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">⚽</div><div class="msg">Nenhum bolão cadastrado</div><div class="hint">Clique em "Novo bolão" para começar.</div></div>`}
+    </div>
+  `;
+
+  document.querySelectorAll('[data-edit]').forEach(el=> el.onclick = () => App.openModal('bolao-form', db.boloes.find(b=>b.id===el.dataset.edit)));
+  document.querySelectorAll('[data-toggle]').forEach(el=> el.onclick = async () => {
+    const b = db.boloes.find(x=>x.id===el.dataset.toggle);
+    const novoStatus = b.status==='ativo' ? 'encerrado' : 'ativo';
+    el.disabled = true;
+    const { error } = await sb.from('boloes').update({ status: novoStatus }).eq('id', b.id);
+    if(error){ toast('Erro ao atualizar bolão: ' + error.message, 'error'); el.disabled=false; return; }
+    Store.log(Session.currentUser().id, `Bolão "${b.nome}" marcado como ${novoStatus}.`);
+    toast(`Bolão ${novoStatus==='ativo'?'reativado':'encerrado'}.`);
+    await Store.reloadBoloes();
+    Pages.adminBoloes();
+  });
+  document.querySelectorAll('[data-del]').forEach(el=> el.onclick = async () => {
+    const b = db.boloes.find(x=>x.id===el.dataset.del);
+    if(!confirm(`Excluir o bolão "${b.nome}"? Jogos e palpites vinculados também serão removidos.`)) return;
+    el.disabled = true;
+    // ON DELETE CASCADE no banco já remove jogos/palpites/pagamentos vinculados.
+    const { error } = await sb.from('boloes').delete().eq('id', b.id);
+    if(error){ toast('Erro ao excluir bolão: ' + error.message, 'error'); el.disabled=false; return; }
+    Store.log(Session.currentUser().id, `Bolão "${b.nome}" excluído.`);
+    toast('Bolão excluído.');
+    await Store.loadAll();
+    Pages.adminBoloes();
+  });
+};
+
+// ---------------------- JOGOS & RESULTADOS ----------------------
+Pages.adminJogos = function(){
+  App.setTopbar('Jogos & Resultados', 'Cadastre partidas e lance os placares oficiais');
+  const db = Store.data;
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" id="btn-novo-jogo">+ Novo jogo</button>`;
+  document.getElementById('btn-novo-jogo').onclick = () => {
+    if(db.boloes.length===0){ toast('Cadastre um bolão antes de adicionar jogos.', 'error'); return; }
+    App.openModal('jogo-form', null);
+  };
+
+  const ordenados = [...db.jogos].sort((a,b)=> new Date(b.dataHora)-new Date(a.dataHora));
+
+  document.getElementById('content').innerHTML = `
+    <div class="grid grid-3" id="jogos-grid">
+      ${ordenados.length ? ordenados.map(j => Pages._sumulaEditavel(j)).join('') : `
+        <div class="empty-state" style="grid-column:1/-1;"><div class="icon">⚽</div><div class="msg">Nenhum jogo cadastrado</div></div>`}
+    </div>
+  `;
+  Pages._bindSumulaEvents();
+};
+
+Pages._sumulaEditavel = function(j){
+  const db = Store.data;
+  const bolao = db.boloes.find(b=>b.id===j.bolaoId);
+  const finalizado = j.status==='finalizado';
+  const isLive = !finalizado && j.dataHora && new Date(j.dataHora) <= new Date();
+  return `
+  <div class="sumula">
+    <div class="sumula-head">
+      <span class="comp">${escapeHtml(bolao?bolao.nome:'')}</span>
+      ${isLive ? `<span class="live-badge"><span class="pulse"></span>Ao vivo</span>` : `<span>${escapeHtml(j.rodada||'')}</span>`}
+    </div>
+    <div class="sumula-body">
+      <div class="sumula-team"><div class="shield">${escapeHtml(j.mandanteSigla||'')}</div><div class="name">${escapeHtml(j.mandante)}</div></div>
+      <div class="placar-box">
+        <input type="number" min="0" class="placar-input font-mono" data-jogo="${j.id}" data-lado="mandante" value="${j.placarMandante??''}" placeholder="-">
+        <span class="placar-sep">×</span>
+        <input type="number" min="0" class="placar-input font-mono" data-jogo="${j.id}" data-lado="visitante" value="${j.placarVisitante??''}" placeholder="-">
+      </div>
+      <div class="sumula-team"><div class="shield">${escapeHtml(j.visitanteSigla||'')}</div><div class="name">${escapeHtml(j.visitante)}</div></div>
+    </div>
+    <div class="sumula-foot">
+      <span>${j.dataHora ? new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Sem data'} · ${finalizado?'<strong style="color:var(--azul);">Finalizado</strong>':'Agendado'}</span>
+      <span class="flex-row" style="gap:6px;">
+        <button class="btn btn-sm btn-outline" data-edit-jogo="${j.id}">Editar</button>
+        <button class="btn btn-sm btn-primary" data-salvar-placar="${j.id}">Salvar resultado</button>
+        <button class="btn btn-sm btn-danger" data-del-jogo="${j.id}">×</button>
+      </span>
+    </div>
+  </div>`;
+};
+
+Pages._bindSumulaEvents = function(){
+  document.querySelectorAll('[data-salvar-placar]').forEach(btn=>{
+    btn.onclick = async () => {
+      const jogoId = btn.dataset.salvarPlacar;
+      const inM = document.querySelector(`[data-jogo="${jogoId}"][data-lado="mandante"]`);
+      const inV = document.querySelector(`[data-jogo="${jogoId}"][data-lado="visitante"]`);
+      if(inM.value==='' || inV.value===''){ toast('Informe os dois placares.', 'error'); return; }
+      const db = Store.data;
+      const jogo = db.jogos.find(j=>j.id===jogoId);
+      const placarMandante = parseInt(inM.value,10);
+      const placarVisitante = parseInt(inV.value,10);
+
+      btn.disabled = true; btn.textContent = 'Salvando...';
+
+      const { error } = await sb.from('jogos').update({
+        placar_mandante: placarMandante,
+        placar_visitante: placarVisitante,
+        status: 'finalizado',
+        resultado_lancado_por: Session.currentUser().id,
+        resultado_lancado_em: new Date().toISOString(),
+      }).eq('id', jogoId);
+
+      if(error){ toast('Erro ao salvar resultado: ' + error.message, 'error'); btn.disabled=false; btn.textContent='Salvar resultado'; return; }
+
+      await Store.reloadJogos();
+      await Logic.recalcularPontosDoJogo(jogoId);
+      Store.log(Session.currentUser().id, `Resultado lançado: ${jogo.mandante} ${placarMandante} x ${placarVisitante} ${jogo.visitante}.`);
+      toast('Resultado salvo e pontuações recalculadas!');
+      Pages.adminJogos();
+    };
+  });
+  document.querySelectorAll('[data-edit-jogo]').forEach(btn=>{
+    btn.onclick = () => App.openModal('jogo-form', Store.data.jogos.find(j=>j.id===btn.dataset.editJogo));
+  });
+  document.querySelectorAll('[data-del-jogo]').forEach(btn=>{
+    btn.onclick = async () => {
+      const jogo = Store.data.jogos.find(j=>j.id===btn.dataset.delJogo);
+      if(!confirm(`Excluir o jogo ${jogo.mandante} x ${jogo.visitante}?`)) return;
+      btn.disabled = true;
+      // ON DELETE CASCADE remove palpites vinculados automaticamente.
+      // Se o jogo já começou e existem palpites travados, o banco vai rejeitar a exclusão
+      // dos palpites (preserva o comprovante) e isso retorna erro aqui — esperado e correto.
+      const { error } = await sb.from('jogos').delete().eq('id', jogo.id);
+      if(error){
+        toast('Não foi possível excluir: ' + (error.message.includes('travado') ? 'já existem palpites travados para este jogo.' : error.message), 'error');
+        btn.disabled = false;
+        return;
+      }
+      Store.log(Session.currentUser().id, `Jogo "${jogo.mandante} x ${jogo.visitante}" excluído.`);
+      toast('Jogo excluído.');
+      await Store.loadAll();
+      Pages.adminJogos();
+    };
+  });
+};
+
+// ---------------------- PARTICIPANTES ----------------------
+Pages.adminParticipantes = function(){
+  App.setTopbar('Participantes', 'Gerencie cadastros e status dos participantes');
+  const db = Store.data;
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" id="btn-novo-part">+ Novo participante</button>`;
+  document.getElementById('btn-novo-part').onclick = () => App.openModal('usuario-form', null);
+
+  const participantes = db.usuarios.filter(u=>u.perfil==='participante');
+
+  document.getElementById('content').innerHTML = `
+    <div class="toolbar">
+      <input type="text" class="search-box" id="busca-part" placeholder="Buscar por nome ou e-mail...">
+      <div class="text-muted">${participantes.length} participante(s) cadastrado(s)</div>
+    </div>
+    <div class="card card-flush">
+      <table>
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Cadastro</th><th>Status</th><th></th></tr></thead>
+        <tbody id="tbody-part">
+          ${Pages._linhasParticipantes(participantes)}
+        </tbody>
+      </table>
+    </div>
+  `;
+  Pages._bindParticipantesEvents();
+
+  document.getElementById('busca-part').oninput = (e) => {
+    const q = e.target.value.toLowerCase();
+    const filtrados = participantes.filter(u => u.nome.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
+    document.getElementById('tbody-part').innerHTML = Pages._linhasParticipantes(filtrados);
+    Pages._bindParticipantesEvents();
+  };
+};
+
+Pages._linhasParticipantes = function(lista){
+  if(!lista.length) return `<tr><td colspan="6"><div class="empty-state"><div class="msg">Nenhum participante encontrado</div></div></td></tr>`;
+  return lista.map(u => `
+    <tr>
+      <td style="font-weight:600;">${escapeHtml(u.nome)}</td>
+      <td>${escapeHtml(u.email)}</td>
+      <td>${escapeHtml(u.telefone||'—')}</td>
+      <td>${fmtDate(u.dataCadastro)}</td>
+      <td><span class="badge-status ${u.status==='ativo'?'badge-ativo':'badge-inativo'}">${u.status}</span></td>
+      <td class="flex-row">
+        <button class="btn btn-outline btn-sm" data-edit-user="${u.id}">Editar</button>
+        <button class="btn btn-outline btn-sm" data-toggle-user="${u.id}">${u.status==='ativo'?'Inativar':'Ativar'}</button>
+      </td>
+    </tr>
+  `).join('');
+};
+
+Pages._bindParticipantesEvents = function(){
+  document.querySelectorAll('[data-edit-user]').forEach(el=> el.onclick = () => App.openModal('usuario-form', Store.data.usuarios.find(u=>u.id===el.dataset.editUser)));
+  document.querySelectorAll('[data-toggle-user]').forEach(el=> el.onclick = async () => {
+    const u = Store.data.usuarios.find(x=>x.id===el.dataset.toggleUser);
+    const novoStatus = u.status==='ativo' ? 'inativo' : 'ativo';
+    el.disabled = true;
+
+    const { error } = await sb.from('perfis').update({ status: novoStatus }).eq('id', u.id);
+    if(error){ toast('Erro ao atualizar status: ' + error.message, 'error'); el.disabled=false; return; }
+
+    u.status = novoStatus;
+    Store.log(Session.currentUser().id, `Participante "${u.nome}" marcado como ${u.status}.`);
+    toast('Status atualizado.');
+    await Store.reloadUsuarios();
+    Pages.adminParticipantes();
+  });
+};
+
+// ---------------------- PAGAMENTOS (ADMIN) ----------------------
+Pages.adminPagamentos = function(){
+  App.setTopbar('Pagamentos', 'Painel financeiro e controle de inscrições');
+  const db = Store.data;
+  const fin = Logic.resumoFinanceiro();
+
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" id="btn-novo-pagto">+ Registrar pagamento</button>`;
+  document.getElementById('btn-novo-pagto').onclick = () => App.openModal('pagamento-form', null);
+
+  document.getElementById('content').innerHTML = `
+    <div class="grid grid-4" style="margin-bottom:20px;">
+      <div class="stat-card good"><div class="stat-label">Total arrecadado</div><div class="stat-value" style="font-size:20px;">${fmtMoney(fin.totalArrecadado)}</div></div>
+      <div class="stat-card alert"><div class="stat-label">Total pendente</div><div class="stat-value" style="font-size:20px;">${fmtMoney(fin.totalPendente)}</div></div>
+      <div class="stat-card"><div class="stat-label">Pagantes</div><div class="stat-value">${fin.pagantes}</div></div>
+      <div class="stat-card alert"><div class="stat-label">Inadimplentes</div><div class="stat-value">${fin.inadimplentes}</div></div>
+    </div>
+    <div class="card card-flush">
+      <table>
+        <thead><tr><th>Participante</th><th>Bolão</th><th>Valor</th><th>Vencimento</th><th>Pago</th><th>Forma</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          ${db.pagamentos.length ? db.pagamentos.map(p=>{
+            const u = db.usuarios.find(x=>x.id===p.usuarioId);
+            const b = db.boloes.find(x=>x.id===p.bolaoId);
+            return `<tr>
+              <td style="font-weight:600;">${escapeHtml(u?u.nome:'—')}</td>
+              <td>${escapeHtml(b?b.nome:'—')}</td>
+              <td class="font-mono">${fmtMoney(p.valorInscricao)}</td>
+              <td>${fmtDate(p.dataVencimento)}</td>
+              <td class="font-mono">${p.valorPago ? fmtMoney(p.valorPago) : '—'}</td>
+              <td>${escapeHtml(p.formaPagamento||'—')}</td>
+              <td>${Pages._badgePagamento(p.status)}</td>
+              <td class="flex-row">
+                <button class="btn btn-outline btn-sm" data-edit-pagto="${p.id}">Editar</button>
+                ${p.status!=='pago' ? `<button class="btn btn-secondary btn-sm" data-marcar-pago="${p.id}">Marcar pago</button>` : ''}
+              </td>
+            </tr>`;
+          }).join('') : `<tr><td colspan="8"><div class="empty-state"><div class="msg">Nenhum pagamento registrado</div></div></td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  document.querySelectorAll('[data-edit-pagto]').forEach(el=> el.onclick = () => App.openModal('pagamento-form', db.pagamentos.find(p=>p.id===el.dataset.editPagto)));
+  document.querySelectorAll('[data-marcar-pago]').forEach(el=> el.onclick = async () => {
+    const p = db.pagamentos.find(x=>x.id===el.dataset.marcarPago);
+    el.disabled = true; el.textContent = 'Confirmando...';
+
+    const { error } = await sb.from('pagamentos').update({
+      status: 'pago',
+      valor_pago: p.valorInscricao,
+      data_pagamento: todayISO(),
+      forma_pagamento: p.formaPagamento || 'PIX',
+    }).eq('id', p.id);
+
+    if(error){ toast('Erro ao confirmar pagamento: ' + error.message, 'error'); el.disabled=false; el.textContent='Marcar pago'; return; }
+
+    Store.log(Session.currentUser().id, `Pagamento de participante marcado como pago.`);
+    toast('Pagamento confirmado.');
+    await Store.reloadPagamentos();
+    Pages.adminPagamentos();
+  });
+};
+
+// ---------------------- RELATÓRIOS ----------------------
+Pages.relatorios = function(){
+  App.setTopbar('Relatórios', 'Exporte dados do sistema em CSV');
+  const db = Store.data;
+  document.getElementById('content').innerHTML = `
+    <div class="grid grid-3">
+      ${Pages._cardRelatorio('Participantes', `${db.usuarios.filter(u=>u.perfil==='participante').length} registros`, 'participantes')}
+      ${Pages._cardRelatorio('Pagamentos', `${db.pagamentos.length} registros`, 'pagamentos')}
+      ${Pages._cardRelatorio('Ranking geral', `Pontuação consolidada`, 'ranking')}
+      ${Pages._cardRelatorio('Jogos', `${db.jogos.length} partidas cadastradas`, 'jogos')}
+      ${Pages._cardRelatorio('Sorteios', `${db.sorteios.length} sorteio(s)`, 'sorteios')}
+      ${Pages._cardRelatorio('Premiações', `Vencedores de sorteios`, 'premiacoes')}
+    </div>
+    <div class="text-muted" style="margin-top:16px;">Os relatórios são exportados em formato CSV, compatível com Excel e Google Sheets.</div>
+  `;
+  document.querySelectorAll('[data-export]').forEach(btn=>{
+    btn.onclick = () => Pages._exportarCSV(btn.dataset.export);
+  });
+};
+
+Pages._cardRelatorio = function(titulo, sub, key){
+  return `
+  <div class="card">
+    <div style="font-weight:700;color:var(--texto);margin-bottom:4px;">${escapeHtml(titulo)}</div>
+    <div class="text-muted" style="margin-bottom:14px;">${escapeHtml(sub)}</div>
+    <button class="btn btn-outline btn-sm" data-export="${key}">Exportar CSV</button>
+  </div>`;
+};
+
+Pages._exportarCSV = function(tipo){
+  const db = Store.data;
+  let rows = [], filename = `${tipo}.csv`;
+  if(tipo==='participantes'){
+    rows = [['Nome','E-mail','Telefone','Status','Data de cadastro']];
+    db.usuarios.filter(u=>u.perfil==='participante').forEach(u=> rows.push([u.nome,u.email,u.telefone,u.status,u.dataCadastro]));
+  } else if(tipo==='pagamentos'){
+    rows = [['Participante','Bolão','Valor inscrição','Valor pago','Vencimento','Status']];
+    db.pagamentos.forEach(p=>{
+      const u = db.usuarios.find(x=>x.id===p.usuarioId), b = db.boloes.find(x=>x.id===p.bolaoId);
+      rows.push([u?u.nome:'', b?b.nome:'', p.valorInscricao, p.valorPago, p.dataVencimento, p.status]);
+    });
+  } else if(tipo==='ranking'){
+    rows = [['Posição','Nome','Pontuação','Acertos','Erros','Aproveitamento %']];
+    const bolao = db.boloes[0];
+    if(bolao) Logic.rankingDoBolao(bolao.id,'geral').forEach(l=> rows.push([l.posicao,l.usuario.nome,l.pontuacao,l.acertos,l.erros,l.aproveitamento]));
+  } else if(tipo==='jogos'){
+    rows = [['Mandante','Visitante','Placar mandante','Placar visitante','Data','Status']];
+    db.jogos.forEach(j=> rows.push([j.mandante,j.visitante,j.placarMandante,j.placarVisitante,j.dataHora,j.status]));
+  } else if(tipo==='sorteios'){
+    rows = [['Nome','Valor cota','Total cotas','Cotas vendidas','Status','Vencedor (número)']];
+    db.sorteios.forEach(s=> rows.push([s.nome,s.valorCota,s.totalCotas,s.cotas.length,s.status, s.vencedor?s.vencedor.numero:'']));
+  } else if(tipo==='premiacoes'){
+    rows = [['Sorteio','Número vencedor','Participante','Data']];
+    db.sorteios.filter(s=>s.vencedor).forEach(s=>{
+      const u = db.usuarios.find(x=>x.id===s.vencedor.usuarioId);
+      rows.push([s.nome, s.vencedor.numero, u?u.nome:'', s.vencedor.data]);
+    });
+  }
+  const csv = rows.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(["\uFEFF"+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  toast('Relatório exportado.');
+};
+
+// ---------------------- AUDITORIA ----------------------
+Pages.auditoria = function(){
+  App.setTopbar('Logs de Auditoria', 'Histórico de ações realizadas no sistema');
+  const db = Store.data;
+  document.getElementById('content').innerHTML = `
+    <div class="card card-flush">
+      <table>
+        <thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th></tr></thead>
+        <tbody>
+          ${db.auditLog.length ? db.auditLog.map(l=>{
+            const u = db.usuarios.find(x=>x.id===l.usuarioId);
+            return `<tr><td class="font-mono">${new Date(l.data).toLocaleString('pt-BR')}</td><td>${escapeHtml(u?u.nome:'Sistema')}</td><td>${escapeHtml(l.acao)}</td></tr>`;
+          }).join('') : `<tr><td colspan="3"><div class="empty-state"><div class="msg">Sem registros</div></div></td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  `;
+};
+// =====================================================================
+// PÁGINAS — PARTICIPANTE
+// =====================================================================
+
+Pages.partDashboard = function(user){
+  App.setTopbar(`Olá, ${user.nome.split(' ')[0]}!`, 'Acompanhe seus palpites, pontuação e pagamentos');
+  const db = Store.data;
+  const bolao = db.boloes.find(b=>b.status==='ativo') || db.boloes[0];
+  const ranking = bolao ? Logic.rankingDoBolao(bolao.id,'geral') : [];
+  const minhaLinha = ranking.find(r=>r.usuario.id===user.id);
+  const meuPagamento = db.pagamentos.find(p=>p.usuarioId===user.id && (!bolao || p.bolaoId===bolao.id));
+  const proximosJogos = db.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora)).slice(0,3);
+  const minhasNotifs = db.notificacoes.filter(n=>n.usuarioId===user.id).slice(0,4);
+
+  document.getElementById('content').innerHTML = `
+    <div class="grid grid-4" style="margin-bottom:22px;">
+      <div class="stat-card">
+        <div class="stat-label">Minha posição</div>
+        <div class="stat-value">${minhaLinha ? '#'+minhaLinha.posicao : '—'}</div>
+        <div class="stat-sub">${bolao?bolao.nome:'Nenhum bolão ativo'}</div>
+      </div>
+      <div class="stat-card good">
+        <div class="stat-label">Pontuação</div>
+        <div class="stat-value">${minhaLinha ? minhaLinha.pontuacao : 0}</div>
+        <div class="stat-sub">${minhaLinha?minhaLinha.acertos+' acerto(s)':''}</div>
+      </div>
+      <div class="stat-card ${meuPagamento && meuPagamento.status!=='pago' ? 'alert':''}">
+        <div class="stat-label">Minha inscrição</div>
+        <div class="stat-value" style="font-size:18px;">${meuPagamento ? Pages._badgePagamento(meuPagamento.status) : '—'}</div>
+        <div class="stat-sub">${meuPagamento? fmtMoney(meuPagamento.valorInscricao):''}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Aproveitamento</div>
+        <div class="stat-value">${minhaLinha?minhaLinha.aproveitamento:0}%</div>
+        <div class="stat-sub">${minhaLinha?minhaLinha.jogosPalpitados+' palpite(s) enviados':''}</div>
+      </div>
+    </div>
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="section-title">Próximos jogos para palpitar <span class="right"><a href="#" id="link-palpitar">palpitar →</a></span></div>
+        ${proximosJogos.length ? proximosJogos.map(j=>Pages._sumulaMini(j)).join('') : `<div class="empty-state"><div class="icon">⚽</div><div class="msg">Nenhum jogo agendado</div></div>`}
+      </div>
+      <div class="card">
+        <div class="section-title">Notificações</div>
+        ${minhasNotifs.length ? minhasNotifs.map(n=>`
+          <div style="padding:10px 0;border-bottom:1px solid var(--linha);">
+            <div style="font-weight:600;font-size:13px;">${escapeHtml(n.titulo)}</div>
+            <div class="text-muted">${escapeHtml(n.mensagem)}</div>
+          </div>
+        `).join('') : `<div class="empty-state"><div class="icon">🔔</div><div class="msg">Sem notificações</div></div>`}
+      </div>
+    </div>
+  `;
+  const lk = document.getElementById('link-palpitar'); if(lk) lk.onclick=(e)=>{e.preventDefault(); App.navigate('palpites');};
+};
+
+Pages.partPalpites = function(user){
+  App.setTopbar('Meus Palpites', 'Informe o placar antes do início de cada partida');
+  const db = Store.data;
+  const jogosAgendados = db.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora));
+  const jogosFinalizados = db.jogos.filter(j=>j.status==='finalizado').sort((a,b)=>new Date(b.dataHora)-new Date(a.dataHora));
+
+  document.getElementById('content').innerHTML = `
+    <div class="tabs">
+      <div class="tab active" data-tab="abertos">Abertos para palpite</div>
+      <div class="tab" data-tab="finalizados">Resultados &amp; meus pontos</div>
+    </div>
+    <div id="tab-content"></div>
+  `;
+  const renderAbertos = () => {
+    document.getElementById('tab-content').innerHTML = `
+      <div class="grid grid-3">
+        ${jogosAgendados.length ? jogosAgendados.map(j=>{
+          const meuPalpite = db.palpites.find(p=>p.jogoId===j.id && p.usuarioId===user.id);
+          return `
+          <div class="sumula">
+            <div class="sumula-head"><span class="comp">${escapeHtml(j.rodada||'')}</span><span>${new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span></div>
+            <div class="sumula-body">
+              <div class="sumula-team"><div class="shield">${escapeHtml(j.mandanteSigla||'')}</div><div class="name">${escapeHtml(j.mandante)}</div></div>
+              <div class="placar-box">
+                <input type="number" min="0" class="placar-input font-mono" id="pm-${j.id}" value="${meuPalpite?meuPalpite.placarMandante:''}" placeholder="-">
+                <span class="placar-sep">×</span>
+                <input type="number" min="0" class="placar-input font-mono" id="pv-${j.id}" value="${meuPalpite?meuPalpite.placarVisitante:''}" placeholder="-">
+              </div>
+              <div class="sumula-team"><div class="shield">${escapeHtml(j.visitanteSigla||'')}</div><div class="name">${escapeHtml(j.visitante)}</div></div>
+            </div>
+            <div class="sumula-foot">
+              <span>${meuPalpite?`✓ ${escapeHtml(meuPalpite.codigoVerificacao||'')}`:'Sem palpite ainda'}</span>
+              <button class="btn btn-primary btn-sm" data-enviar="${j.id}">${meuPalpite?'Atualizar':'Enviar palpite'}</button>
+            </div>
+          </div>`;
+        }).join('') : `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">⚽</div><div class="msg">Nenhum jogo aberto para palpite no momento</div></div>`}
+      </div>
+    `;
+    document.querySelectorAll('[data-enviar]').forEach(btn=>{
+      btn.onclick = async () => {
+        const jogoId = btn.dataset.enviar;
+        const jogo = db.jogos.find(j=>j.id===jogoId);
+        const pm = document.getElementById(`pm-${jogoId}`).value;
+        const pv = document.getElementById(`pv-${jogoId}`).value;
+        if(pm==='' || pv===''){ toast('Informe o placar completo.', 'error'); return; }
+
+        if(jogo && jogo.dataHora && new Date() >= new Date(jogo.dataHora)){
+          toast('Este jogo já começou — o palpite não pode mais ser enviado ou alterado.', 'error');
+          return;
+        }
+
+        btn.disabled = true; btn.textContent = 'Enviando...';
+
+        const linha = {
+          jogo_id: jogoId,
+          usuario_id: user.id,
+          placar_mandante: parseInt(pm,10),
+          placar_visitante: parseInt(pv,10),
+        };
+
+        // upsert: cria se não existir, atualiza se já existir (respeitando unique(jogo_id, usuario_id))
+        const { data, error } = await sb.from('palpites')
+          .upsert(linha, { onConflict: 'jogo_id,usuario_id' })
+          .select()
+          .single();
+
+        if(error){
+          const msg = error.message && error.message.includes('travado')
+            ? 'Este jogo já começou — o palpite não pode mais ser alterado.'
+            : 'Erro ao enviar palpite: ' + error.message;
+          toast(msg, 'error');
+          btn.disabled = false; btn.textContent = 'Enviar palpite';
+          return;
+        }
+
+        await Store.reloadPalpites();
+        const palpiteSalvo = Map_.palpite(data);
+        Modals.comprovantePalpite(jogo, palpiteSalvo);
+        renderAbertos();
+      };
+    });
+  };
+  const renderFinalizados = () => {
+    document.getElementById('tab-content').innerHTML = `
+      <div class="card card-flush">
+        <table>
+          <thead><tr><th>Jogo</th><th>Resultado</th><th>Meu palpite</th><th>Pontos</th></tr></thead>
+          <tbody>
+            ${jogosFinalizados.length ? jogosFinalizados.map(j=>{
+              const p = db.palpites.find(pp=>pp.jogoId===j.id && pp.usuarioId===user.id);
+              return `<tr>
+                <td>${escapeHtml(j.mandante)} x ${escapeHtml(j.visitante)}</td>
+                <td class="font-mono">${j.placarMandante} x ${j.placarVisitante}</td>
+                <td class="font-mono">${p? p.placarMandante+' x '+p.placarVisitante : 'não enviado'}</td>
+                <td><span class="pts-pill">${p?p.pontos:0} pts</span></td>
+              </tr>`;
+            }).join('') : `<tr><td colspan="4"><div class="empty-state"><div class="msg">Nenhum resultado ainda</div></div></td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    `;
+  };
+  renderAbertos();
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.onclick = () => {
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      if(t.dataset.tab==='abertos') renderAbertos(); else renderFinalizados();
+    };
+  });
+};
+
+Pages.partPagamentos = function(user){
+  App.setTopbar('Meu Pagamento', 'Status da sua inscrição nos bolões');
+  const db = Store.data;
+  const meus = db.pagamentos.filter(p=>p.usuarioId===user.id);
+
+  document.getElementById('content').innerHTML = `
+    <div class="grid grid-3">
+      ${meus.length ? meus.map(p=>{
+        const b = db.boloes.find(x=>x.id===p.bolaoId);
+        return `
+        <div class="card">
+          <div class="flex-row" style="justify-content:space-between;">
+            <div style="font-weight:700;color:var(--texto);">${escapeHtml(b?b.nome:'—')}</div>
+            ${Pages._badgePagamento(p.status)}
+          </div>
+          <div class="divider"></div>
+          <div style="font-size:13px;display:flex;justify-content:space-between;margin-bottom:6px;"><span class="text-muted">Valor</span><span class="font-mono">${fmtMoney(p.valorInscricao)}</span></div>
+          <div style="font-size:13px;display:flex;justify-content:space-between;margin-bottom:6px;"><span class="text-muted">Vencimento</span><span>${fmtDate(p.dataVencimento)}</span></div>
+          <div style="font-size:13px;display:flex;justify-content:space-between;"><span class="text-muted">Forma</span><span>${escapeHtml(p.formaPagamento||'—')}</span></div>
+          ${p.status==='pendente' || p.status==='atrasado' ? `<div class="divider"></div><button class="btn btn-primary btn-block btn-sm" data-pagar="${p.id}">Avisar que paguei</button>` : ''}
+          ${p.status==='em_analise' ? `<div class="divider"></div><div class="text-muted" style="text-align:center;">Aguardando confirmação do administrador.</div>` : ''}
+        </div>`;
+      }).join('') : `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">$</div><div class="msg">Nenhuma inscrição encontrada</div></div>`}
+    </div>
+  `;
+  document.querySelectorAll('[data-pagar]').forEach(btn=>{
+    btn.onclick = () => App.openModal('confirmar-pagamento-participante', meus.find(p=>p.id===btn.dataset.pagar));
+  });
+};
+
+Pages.partPerfil = function(user){
+  App.setTopbar('Meu Perfil', 'Atualize seus dados pessoais');
+  document.getElementById('content').innerHTML = `
+    <div class="card" style="max-width:480px;">
+      <form id="form-perfil">
+        <div class="field"><label>Nome completo</label><input type="text" id="pf-nome" value="${escapeHtml(user.nome)}" required></div>
+        <div class="field"><label>E-mail</label><input type="email" id="pf-email" value="${escapeHtml(user.email)}" required></div>
+        <div class="field"><label>Telefone</label><input type="text" id="pf-telefone" value="${escapeHtml(user.telefone||'')}"></div>
+        <div class="field"><label>Data de nascimento</label><input type="date" id="pf-nascimento" value="${user.nascimento||''}"></div>
+        <div class="field"><label>Nova senha (deixe em branco para manter)</label><input type="password" id="pf-senha" placeholder="mínimo 6 caracteres" minlength="6"></div>
+        <button type="submit" class="btn btn-primary" id="pf-submit">Salvar alterações</button>
+      </form>
+    </div>
+  `;
+  document.getElementById('form-perfil').onsubmit = async (e) => {
+    e.preventDefault();
+    const novoNome = document.getElementById('pf-nome').value.trim();
+    const novoEmail = document.getElementById('pf-email').value.trim();
+    const novoTelefone = document.getElementById('pf-telefone').value.trim();
+    const novaNascimento = document.getElementById('pf-nascimento').value;
+    const novaSenha = document.getElementById('pf-senha').value;
+
+    const btn = document.getElementById('pf-submit');
+    btn.disabled = true; btn.textContent = 'Salvando...';
+
+    // 1. Dados de negócio (tabela perfis)
+    const { error: perfilError } = await sb.from('perfis').update({
+      nome: novoNome,
+      telefone: novoTelefone,
+      data_nascimento: novaNascimento || null,
+    }).eq('id', user.id);
+
+    if(perfilError){ toast('Erro ao salvar perfil: ' + perfilError.message, 'error'); btn.disabled=false; btn.textContent='Salvar alterações'; return; }
+
+    // 2. E-mail e senha (Supabase Auth) — só envia o que mudou
+    const authUpdate = {};
+    if(novoEmail && novoEmail.toLowerCase() !== user.email.toLowerCase()) authUpdate.email = novoEmail;
+    if(novaSenha) authUpdate.password = novaSenha;
+
+    if(Object.keys(authUpdate).length > 0){
+      const { error: authError } = await sb.auth.updateUser(authUpdate);
+      if(authError){
+        toast('Dados salvos, mas houve um erro ao atualizar e-mail/senha: ' + authError.message, 'error');
+        btn.disabled=false; btn.textContent='Salvar alterações';
+        await Session._loadProfile(user.id);
+        return;
+      }
+      if(authUpdate.email) toast('Verifique seu e-mail para confirmar a alteração.', 'error');
+    }
+
+    await Session._loadProfile(user.id);
+    toast('Perfil atualizado!');
+    App.render();
+  };
+};
+
+// =====================================================================
+// PÁGINAS COMPARTILHADAS — RANKING e SORTEIOS
+// =====================================================================
+Pages.ranking = function(user){
+  App.setTopbar('Ranking', 'Classificação geral dos participantes');
+  const db = Store.data;
+  const bolao = db.boloes.find(b=>b.status==='ativo') || db.boloes[0];
+  if(!bolao){
+    document.getElementById('content').innerHTML = `<div class="empty-state"><div class="icon">★</div><div class="msg">Nenhum bolão cadastrado ainda</div></div>`;
+    return;
+  }
+  let periodo = 'geral';
+  const draw = () => {
+    const linhas = Logic.rankingDoBolao(bolao.id, periodo);
+    document.getElementById('content').innerHTML = `
+      <div class="tabs">
+        <div class="tab ${periodo==='geral'?'active':''}" data-p="geral">Geral</div>
+        <div class="tab ${periodo==='mensal'?'active':''}" data-p="mensal">Mensal</div>
+      </div>
+      <div class="card card-flush">
+        <table>
+          <thead><tr><th>#</th><th>Participante</th><th>Pontuação</th><th>Acertos</th><th>Erros</th><th>Aproveitamento</th></tr></thead>
+          <tbody>
+            ${linhas.length ? linhas.map(l=>`
+              <tr class="${l.posicao<=3?'rank-'+l.posicao:''}">
+                <td><span class="pos-badge">${l.posicao}</span></td>
+                <td style="font-weight:600;${user && l.usuario.id===user.id?'color:var(--amarelo);':''}">${escapeHtml(l.usuario.nome)}${user && l.usuario.id===user.id ? ' (você)' : ''}</td>
+                <td><span class="pts-pill">${l.pontuacao}</span></td>
+                <td class="font-mono">${l.acertos}</td>
+                <td class="font-mono">${l.erros}</td>
+                <td>
+                  <div class="flex-row" style="gap:8px;">
+                    <div class="progress-bar" style="width:70px;"><div class="progress-fill" style="width:${l.aproveitamento}%;"></div></div>
+                    <span class="font-mono" style="font-size:12px;">${l.aproveitamento}%</span>
+                  </div>
+                </td>
+              </tr>
+            `).join('') : `<tr><td colspan="6"><div class="empty-state"><div class="msg">Sem dados de ranking ainda</div></div></td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    `;
+    document.querySelectorAll('[data-p]').forEach(t=> t.onclick = () => { periodo = t.dataset.p; draw(); });
+  };
+  draw();
+};
+
+Pages.sorteios = function(user){
+  App.setTopbar('Sorteios & Rifas', 'Cotas, reservas e resultados de sorteios');
+  const db = Store.data;
+  const isAdmin = user.perfil === 'admin';
+
+  if(isAdmin){
+    document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" id="btn-novo-sorteio">+ Novo sorteio</button>`;
+    document.getElementById('btn-novo-sorteio').onclick = () => App.openModal('sorteio-form', null);
+  }
+
+  document.getElementById('content').innerHTML = `
+    <div class="grid grid-2">
+      ${db.sorteios.length ? db.sorteios.map(s=>{
+        const vendidas = s.cotas.filter(c=>c.status==='pago').length;
+        const pct = Math.round((vendidas/s.totalCotas)*100);
+        const vencedor = s.vencedor ? db.usuarios.find(u=>u.id===s.vencedor.usuarioId) : null;
+        return `
+        <div class="card">
+          <div class="flex-row" style="justify-content:space-between;align-items:flex-start;">
+            <div><div style="font-weight:700;color:var(--texto);">${escapeHtml(s.nome)}</div><div class="text-muted">${escapeHtml(s.descricao||'')}</div></div>
+            <span class="badge-status ${s.status==='aberto'?'badge-ativo':'badge-inativo'}">${s.status}</span>
+          </div>
+          <div class="divider"></div>
+          <div style="font-size:13px;display:flex;justify-content:space-between;margin-bottom:6px;"><span class="text-muted">Valor da cota</span><span class="font-mono">${fmtMoney(s.valorCota)}</span></div>
+          <div style="font-size:13px;display:flex;justify-content:space-between;margin-bottom:8px;"><span class="text-muted">Sorteio em</span><span>${fmtDate(s.dataSorteio)}</span></div>
+          <div class="progress-bar" style="margin-bottom:6px;"><div class="progress-fill" style="width:${pct}%;"></div></div>
+          <div class="text-muted">${vendidas}/${s.totalCotas} cotas vendidas (${pct}%)</div>
+          ${vencedor ? `<div class="divider"></div><div style="font-size:13px;background:rgba(212,165,55,0.12);padding:8px 10px;border-radius:6px;"><strong>🏆 Vencedor:</strong> cota nº ${s.vencedor.numero} — ${escapeHtml(vencedor.nome)}</div>` : ''}
+          <div class="divider"></div>
+          <div class="flex-row">
+            <button class="btn btn-outline btn-sm" data-ver-cotas="${s.id}">Ver cotas</button>
+            ${isAdmin && s.status==='aberto' ? `<button class="btn btn-secondary btn-sm" data-sortear="${s.id}">Realizar sorteio</button>` : ''}
+            ${!isAdmin && s.status==='aberto' ? `<button class="btn btn-primary btn-sm" data-reservar="${s.id}">Reservar cota</button>` : ''}
+          </div>
+        </div>`;
+      }).join('') : `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">⊙</div><div class="msg">Nenhum sorteio cadastrado</div></div>`}
+    </div>
+  `;
+
+  document.querySelectorAll('[data-ver-cotas]').forEach(btn=> btn.onclick = () => App.openModal('cotas-view', db.sorteios.find(s=>s.id===btn.dataset.verCotas)));
+  document.querySelectorAll('[data-reservar]').forEach(btn=> btn.onclick = () => App.openModal('reservar-cota', db.sorteios.find(s=>s.id===btn.dataset.reservar)));
+  document.querySelectorAll('[data-sortear]').forEach(btn=> btn.onclick = async () => {
+    const s = db.sorteios.find(x=>x.id===btn.dataset.sortear);
+    const pagas = s.cotas.filter(c=>c.status==='pago');
+    if(pagas.length===0){ toast('Não há cotas pagas para sortear.', 'error'); return; }
+    if(!confirm(`Realizar o sorteio "${s.nome}" agora? Esta ação é definitiva.`)) return;
+    btn.disabled = true; btn.textContent = 'Sorteando...';
+    const vencedor = await Logic.realizarSorteio(s.id);
+    if(!vencedor){ toast('Não foi possível realizar o sorteio.', 'error'); btn.disabled=false; btn.textContent='Realizar sorteio'; return; }
+    const u = Store.data.usuarios.find(x=>x.id===vencedor.usuarioId);
+    Store.log(Session.currentUser().id, `Sorteio "${s.nome}" realizado. Vencedor: cota ${vencedor.numero} (${u?u.nome:'—'}).`);
+    toast(`Sorteio realizado! Vencedor: cota nº ${vencedor.numero} (${u?u.nome:'—'})`);
+    Pages.sorteios(user);
+  });
+};
+// =====================================================================
+// MODAIS — formulários reutilizáveis
+// =====================================================================
+const Modals = {
+  render(root, modal){
+    const handlers = {
+      'bolao-form': this.bolaoForm,
+      'jogo-form': this.jogoForm,
+      'usuario-form': this.usuarioForm,
+      'pagamento-form': this.pagamentoForm,
+      'sorteio-form': this.sorteioForm,
+      'reservar-cota': this.reservarCota,
+      'cotas-view': this.cotasView,
+      'confirmar-pagamento-participante': this.confirmarPagamentoParticipante,
+    };
+    const fn = handlers[modal.type];
+    if(!fn){ root.innerHTML=''; return; }
+    fn.call(this, root, modal.payload);
+  },
+
+  _shell(root, title, bodyHtml, footHtml){
+    root.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+          <div class="modal-head"><h3>${escapeHtml(title)}</h3><button class="modal-close" id="modal-close">×</button></div>
+          <div class="modal-body">${bodyHtml}</div>
+          ${footHtml ? `<div class="modal-foot">${footHtml}</div>` : ''}
+        </div>
+      </div>
+    `;
+    document.getElementById('modal-overlay').onclick = (e) => { if(e.target.id==='modal-overlay') App.closeModal(); };
+    document.getElementById('modal-close').onclick = () => App.closeModal();
+  },
+
+  // ---------------- COMPROVANTE DE PALPITE ----------------
+  // Chamado diretamente (não via App.openModal) logo após o palpite ser
+  // salvo com sucesso no Supabase. Mostra o código de verificação e o
+  // timestamp do servidor — o registro que resolve "eu disse que apostei X".
+  comprovantePalpite(jogo, palpite){
+    const root = document.getElementById('modal-root');
+    const dataFormatada = palpite.atualizadoEm
+      ? new Date(palpite.atualizadoEm).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'medium' })
+      : new Date().toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'medium' });
+
+    this._shell(root, 'Palpite Confirmado', `
+      <div style="text-align:center;padding:6px 0 4px;">
+        <div style="font-size:13px;color:var(--texto-2);margin-bottom:14px;">
+          ${escapeHtml(jogo.mandante)} <span class="font-mono">${palpite.placarMandante}</span> × <span class="font-mono">${palpite.placarVisitante}</span> ${escapeHtml(jogo.visitante)}
+        </div>
+        <div style="background:var(--bg-3);border:1.5px dashed var(--linha);border-radius:8px;padding:18px;margin-bottom:14px;">
+          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em;color:var(--texto-2);margin-bottom:6px;">Código de verificação</div>
+          <div class="font-mono" style="font-size:24px;font-weight:700;color:var(--verde);letter-spacing:0.04em;">${escapeHtml(palpite.codigoVerificacao||'—')}</div>
+        </div>
+        <div style="font-size:12px;color:var(--texto-2);">Registrado em ${escapeHtml(dataFormatada)}</div>
+        <div style="font-size:11.5px;color:var(--texto-3);margin-top:10px;line-height:1.5;">
+          Guarde este código. Ele e o administrador consultam o mesmo registro —
+          é a prova de qual placar você apostou e quando.
+        </div>
+      </div>
+    `, `<button class="btn btn-primary btn-block" id="modal-cancel">Entendi</button>`);
+    document.getElementById('modal-cancel').onclick = () => App.closeModal();
+  },
+
+  // ---------------- BOLÃO ----------------
+  bolaoForm(root, bolao){
+    const editing = !!bolao;
+    this._shell(root, editing ? 'Editar Bolão' : 'Novo Bolão', `
+      <form id="f-bolao">
+        <div class="field"><label>Nome do bolão</label><input type="text" id="b-nome" value="${editing?escapeHtml(bolao.nome):''}" required></div>
+        <div class="field"><label>Tipo</label>
+          <select id="b-tipo">
+            ${['Copa do Mundo','Campeonato Brasileiro','Libertadores','Champions League','Fórmula 1','NBA','Outro'].map(t=>`<option ${editing&&bolao.tipo===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Descrição</label><textarea id="b-desc" rows="2">${editing?escapeHtml(bolao.descricao||''):''}</textarea></div>
+        <div class="grid grid-2">
+          <div class="field"><label>Valor da inscrição (R$)</label><input type="number" min="0" step="0.01" id="b-valor" value="${editing?bolao.valorInscricao:''}" required></div>
+          <div class="field"><label>Status</label>
+            <select id="b-status"><option value="ativo" ${editing&&bolao.status==='ativo'?'selected':''}>Ativo</option><option value="encerrado" ${editing&&bolao.status==='encerrado'?'selected':''}>Encerrado</option></select>
+          </div>
+        </div>
+        <div class="grid grid-2">
+          <div class="field"><label>Data de início</label><input type="date" id="b-inicio" value="${editing?bolao.dataInicio:''}"></div>
+          <div class="field"><label>Data de encerramento</label><input type="date" id="b-fim" value="${editing?bolao.dataFim:''}"></div>
+        </div>
+        <div class="field"><label>Premiação</label><textarea id="b-premio" rows="2">${editing?escapeHtml(bolao.premiacao||''):''}</textarea></div>
+        <div class="section-title" style="font-size:14px;margin-top:6px;">Regras de pontuação</div>
+        <div class="grid grid-3">
+          <div class="field"><label>Acertar vencedor</label><input type="number" min="0" id="b-r-venc" value="${editing?bolao.regras.vencedor:3}"></div>
+          <div class="field"><label>Acertar empate</label><input type="number" min="0" id="b-r-emp" value="${editing?bolao.regras.empate:3}"></div>
+          <div class="field"><label>Placar exato</label><input type="number" min="0" id="b-r-exato" value="${editing?bolao.regras.placarExato:10}"></div>
+        </div>
+      </form>
+    `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">${editing?'Salvar alterações':'Criar bolão'}</button>`);
+
+    document.getElementById('modal-cancel').onclick = () => App.closeModal();
+    document.getElementById('modal-save').onclick = async () => {
+      const nome = document.getElementById('b-nome').value.trim();
+      if(!nome){ toast('Informe o nome do bolão.', 'error'); return; }
+      const valor = parseFloat(document.getElementById('b-valor').value || 0);
+      const linha = {
+        nome, tipo: document.getElementById('b-tipo').value,
+        descricao: document.getElementById('b-desc').value.trim(),
+        valor_inscricao: valor,
+        status: document.getElementById('b-status').value,
+        data_inicio: document.getElementById('b-inicio').value || null,
+        data_fim: document.getElementById('b-fim').value || null,
+        premiacao: document.getElementById('b-premio').value.trim(),
+        regra_vencedor: parseInt(document.getElementById('b-r-venc').value||0,10),
+        regra_empate: parseInt(document.getElementById('b-r-emp').value||0,10),
+        regra_placar_exato: parseInt(document.getElementById('b-r-exato').value||0,10),
+      };
+      const btn = document.getElementById('modal-save');
+      btn.disabled = true; btn.textContent = 'Salvando...';
+
+      let error;
+      if(editing){
+        ({ error } = await sb.from('boloes').update(linha).eq('id', bolao.id));
+      } else {
+        ({ error } = await sb.from('boloes').insert(linha));
+      }
+      if(error){ toast('Erro ao salvar bolão: ' + error.message, 'error'); btn.disabled=false; btn.textContent=editing?'Salvar alterações':'Criar bolão'; return; }
+
+      Store.log(Session.currentUser().id, editing ? `Bolão "${nome}" editado.` : `Bolão "${nome}" criado.`);
+      toast(editing ? 'Bolão atualizado!' : 'Bolão criado!');
+      await Store.reloadBoloes();
+      App.closeModal();
+      Pages.adminBoloes();
+    };
+  },
+
+  // ---------------- JOGO ----------------
+  jogoForm(root, jogo){
+    const editing = !!jogo;
+    const boloes = Store.data.boloes;
+    this._shell(root, editing?'Editar Jogo':'Novo Jogo', `
+      <form id="f-jogo">
+        <div class="field"><label>Bolão</label>
+          <select id="j-bolao">${boloes.map(b=>`<option value="${b.id}" ${editing&&jogo.bolaoId===b.id?'selected':''}>${escapeHtml(b.nome)}</option>`).join('')}</select>
+        </div>
+        <div class="grid grid-2">
+          <div class="field"><label>Time mandante</label><input type="text" id="j-mandante" value="${editing?escapeHtml(jogo.mandante):''}" required></div>
+          <div class="field"><label>Sigla mandante</label><input type="text" id="j-mandante-sigla" maxlength="4" value="${editing?escapeHtml(jogo.mandanteSigla||''):''}" placeholder="ex: FLA"></div>
+        </div>
+        <div class="grid grid-2">
+          <div class="field"><label>Time visitante</label><input type="text" id="j-visitante" value="${editing?escapeHtml(jogo.visitante):''}" required></div>
+          <div class="field"><label>Sigla visitante</label><input type="text" id="j-visitante-sigla" maxlength="4" value="${editing?escapeHtml(jogo.visitanteSigla||''):''}" placeholder="ex: PAL"></div>
+        </div>
+        <div class="grid grid-2">
+          <div class="field"><label>Data e hora</label><input type="datetime-local" id="j-data" value="${editing?jogo.dataHora:''}" required></div>
+          <div class="field"><label>Rodada / fase</label><input type="text" id="j-rodada" value="${editing?escapeHtml(jogo.rodada||''):''}" placeholder="ex: Rodada 12"></div>
+        </div>
+      </form>
+    `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">${editing?'Salvar':'Criar jogo'}</button>`);
+
+    document.getElementById('modal-cancel').onclick = () => App.closeModal();
+    document.getElementById('modal-save').onclick = async () => {
+      const mandante = document.getElementById('j-mandante').value.trim();
+      const visitante = document.getElementById('j-visitante').value.trim();
+      const dataHora = document.getElementById('j-data').value;
+      if(!mandante || !visitante || !dataHora){ toast('Preencha os times e a data do jogo.', 'error'); return; }
+      const linha = {
+        bolao_id: document.getElementById('j-bolao').value,
+        mandante, visitante,
+        mandante_sigla: document.getElementById('j-mandante-sigla').value.trim().toUpperCase(),
+        visitante_sigla: document.getElementById('j-visitante-sigla').value.trim().toUpperCase(),
+        data_hora: dataHora, rodada: document.getElementById('j-rodada').value.trim(),
+      };
+      const btn = document.getElementById('modal-save');
+      btn.disabled = true; btn.textContent = 'Salvando...';
+
+      let error;
+      if(editing){
+        ({ error } = await sb.from('jogos').update(linha).eq('id', jogo.id));
+      } else {
+        ({ error } = await sb.from('jogos').insert(linha));
+      }
+      if(error){ toast('Erro ao salvar jogo: ' + error.message, 'error'); btn.disabled=false; btn.textContent=editing?'Salvar':'Criar jogo'; return; }
+
+      Store.log(Session.currentUser().id, editing ? `Jogo "${mandante} x ${visitante}" editado.` : `Jogo "${mandante} x ${visitante}" criado.`);
+      toast(editing ? 'Jogo atualizado!' : 'Jogo criado!');
+      await Store.reloadJogos();
+      App.closeModal();
+      Pages.adminJogos();
+    };
+  },
+
+  // ---------------- USUÁRIO ----------------
+  usuarioForm(root, usuario){
+    // Criação de conta nova é sempre feita pela própria pessoa via tela de cadastro
+    // (com código de convite). Este modal serve apenas para o admin EDITAR
+    // dados e status de um participante já existente.
+    if(!usuario){
+      this._shell(root, 'Novo Participante', `
+        <p style="font-size:13px;color:var(--texto-2);line-height:1.6;">
+          Participantes criam a própria conta pela tela de cadastro, usando o código de convite.
+          Compartilhe o link do sistema e o código com seus colegas — assim que eles se cadastrarem,
+          vão aparecer automaticamente nesta lista.
+        </p>
+      `, `<button class="btn btn-primary" id="modal-cancel">Entendi</button>`);
+      document.getElementById('modal-cancel').onclick = () => App.closeModal();
+      return;
+    }
+
+    this._shell(root, 'Editar Participante', `
+      <form id="f-usuario">
+        <div class="field"><label>Nome completo</label><input type="text" id="u-nome" value="${escapeHtml(usuario.nome)}" required></div>
+        <div class="field"><label>E-mail</label><input type="email" value="${escapeHtml(usuario.email)}" disabled style="opacity:0.6;"></div>
+        <div class="grid grid-2">
+          <div class="field"><label>CPF (opcional)</label><input type="text" id="u-cpf" value="${escapeHtml(usuario.cpf||'')}"></div>
+          <div class="field"><label>Telefone</label><input type="text" id="u-telefone" value="${escapeHtml(usuario.telefone||'')}"></div>
+        </div>
+        <div class="field"><label>Data de nascimento</label><input type="date" id="u-nasc" value="${usuario.nascimento||''}"></div>
+        <div class="field"><label>Status</label>
+          <select id="u-status"><option value="ativo" ${usuario.status==='ativo'?'selected':''}>Ativo</option><option value="inativo" ${usuario.status==='inativo'?'selected':''}>Inativo</option></select>
+        </div>
+      </form>
+    `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">Salvar</button>`);
+
+    document.getElementById('modal-cancel').onclick = () => App.closeModal();
+    document.getElementById('modal-save').onclick = async () => {
+      const nome = document.getElementById('u-nome').value.trim();
+      if(!nome){ toast('Informe o nome.', 'error'); return; }
+      const linha = {
+        nome,
+        cpf: document.getElementById('u-cpf').value.trim(),
+        telefone: document.getElementById('u-telefone').value.trim(),
+        data_nascimento: document.getElementById('u-nasc').value || null,
+        status: document.getElementById('u-status').value,
+      };
+      const btn = document.getElementById('modal-save');
+      btn.disabled = true; btn.textContent = 'Salvando...';
+
+      const { error } = await sb.from('perfis').update(linha).eq('id', usuario.id);
+      if(error){ toast('Erro ao salvar participante: ' + error.message, 'error'); btn.disabled=false; btn.textContent='Salvar'; return; }
+
+      Store.log(Session.currentUser().id, `Participante "${nome}" editado.`);
+      toast('Participante atualizado!');
+      await Store.reloadUsuarios();
+      App.closeModal();
+      Pages.adminParticipantes();
+    };
+  },
+
+  // ---------------- PAGAMENTO (ADMIN) ----------------
+  pagamentoForm(root, pagamento){
+    const editing = !!pagamento;
+    const participantes = Store.data.usuarios.filter(u=>u.perfil==='participante');
+    const boloes = Store.data.boloes;
+    this._shell(root, editing?'Editar Pagamento':'Registrar Pagamento', `
+      <form id="f-pagamento">
+        <div class="field"><label>Participante</label>
+          <select id="p-user">${participantes.map(u=>`<option value="${u.id}" ${editing&&pagamento.usuarioId===u.id?'selected':''}>${escapeHtml(u.nome)}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label>Bolão</label>
+          <select id="p-bolao">${boloes.map(b=>`<option value="${b.id}" ${editing&&pagamento.bolaoId===b.id?'selected':''}>${escapeHtml(b.nome)}</option>`).join('')}</select>
+        </div>
+        <div class="grid grid-2">
+          <div class="field"><label>Valor da inscrição</label><input type="number" min="0" step="0.01" id="p-valor" value="${editing?pagamento.valorInscricao:(boloes[0]?boloes[0].valorInscricao:0)}"></div>
+          <div class="field"><label>Valor pago</label><input type="number" min="0" step="0.01" id="p-pago" value="${editing?pagamento.valorPago:0}"></div>
+        </div>
+        <div class="grid grid-2">
+          <div class="field"><label>Vencimento</label><input type="date" id="p-venc" value="${editing?pagamento.dataVencimento:todayISO()}"></div>
+          <div class="field"><label>Forma de pagamento</label>
+            <select id="p-forma"><option value="">—</option>${['PIX','Transferência','Dinheiro','Cartão'].map(f=>`<option ${editing&&pagamento.formaPagamento===f?'selected':''}>${f}</option>`).join('')}</select>
+          </div>
+        </div>
+        <div class="field"><label>Status</label>
+          <select id="p-status">${['pendente','pago','atrasado','isento'].map(s=>`<option value="${s}" ${editing&&pagamento.status===s?'selected':''}>${s}</option>`).join('')}</select>
+        </div>
+      </form>
+    `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">${editing?'Salvar':'Registrar'}</button>`);
+
+    document.getElementById('modal-cancel').onclick = () => App.closeModal();
+    document.getElementById('modal-save').onclick = async () => {
+      const status = document.getElementById('p-status').value;
+      const linha = {
+        usuario_id: document.getElementById('p-user').value,
+        bolao_id: document.getElementById('p-bolao').value,
+        valor_inscricao: parseFloat(document.getElementById('p-valor').value||0),
+        valor_pago: parseFloat(document.getElementById('p-pago').value||0),
+        data_vencimento: document.getElementById('p-venc').value || null,
+        forma_pagamento: document.getElementById('p-forma').value,
+        status,
+        data_pagamento: status === 'pago' ? todayISO() : null,
+      };
+      const btn = document.getElementById('modal-save');
+      btn.disabled = true; btn.textContent = 'Salvando...';
+
+      let error;
+      if(editing){
+        ({ error } = await sb.from('pagamentos').update(linha).eq('id', pagamento.id));
+      } else {
+        ({ error } = await sb.from('pagamentos').insert(linha));
+      }
+      if(error){ toast('Erro ao salvar pagamento: ' + error.message, 'error'); btn.disabled=false; btn.textContent=editing?'Salvar':'Registrar'; return; }
+
+      Store.log(Session.currentUser().id, editing ? 'Pagamento editado.' : 'Pagamento registrado.');
+      toast(editing ? 'Pagamento atualizado!' : 'Pagamento registrado!');
+      await Store.reloadPagamentos();
+      App.closeModal();
+      Pages.adminPagamentos();
+    };
+  },
+
+  // ---------------- CONFIRMAR PAGAMENTO (PARTICIPANTE) ----------------
+  confirmarPagamentoParticipante(root, pagamento){
+    this._shell(root, 'Avisar Pagamento', `
+      <p style="font-size:13px;color:var(--texto-2);margin-bottom:14px;">Informe a forma de pagamento utilizada. O administrador vai confirmar o recebimento em seguida.</p>
+      <div class="field"><label>Forma de pagamento</label>
+        <select id="cp-forma"><option value="PIX">PIX</option><option value="Transferência">Transferência</option><option value="Dinheiro">Dinheiro</option><option value="Cartão">Cartão</option></select>
+      </div>
+      <div class="text-muted">Valor da inscrição: <strong class="font-mono">${fmtMoney(pagamento.valorInscricao)}</strong></div>
+    `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">Avisar que paguei</button>`);
+    document.getElementById('modal-cancel').onclick = () => App.closeModal();
+    document.getElementById('modal-save').onclick = async () => {
+      const btn = document.getElementById('modal-save');
+      btn.disabled = true; btn.textContent = 'Enviando...';
+
+      const { error } = await sb.from('pagamentos').update({
+        forma_pagamento: document.getElementById('cp-forma').value,
+        status: 'em_analise',
+      }).eq('id', pagamento.id);
+
+      if(error){ toast('Erro ao avisar pagamento: ' + error.message, 'error'); btn.disabled=false; btn.textContent='Avisar que paguei'; return; }
+
+      Store.log(Session.currentUser().id, 'Participante avisou pagamento da inscrição (aguardando confirmação do admin).');
+      toast('Aviso enviado! Aguarde a confirmação do administrador.');
+      await Store.reloadPagamentos();
+      App.closeModal();
+      Pages.partPagamentos(Session.currentUser());
+    };
+  },
+
+  // ---------------- SORTEIO ----------------
+  sorteioForm(root){
+    this._shell(root, 'Novo Sorteio / Rifa', `
+      <form id="f-sorteio">
+        <div class="field"><label>Nome do sorteio</label><input type="text" id="s-nome" required></div>
+        <div class="field"><label>Descrição</label><textarea id="s-desc" rows="2"></textarea></div>
+        <div class="grid grid-2">
+          <div class="field"><label>Valor da cota (R$)</label><input type="number" min="0" step="0.01" id="s-valor" required></div>
+          <div class="field"><label>Total de cotas</label><input type="number" min="1" id="s-total" value="50" required></div>
+        </div>
+        <div class="field"><label>Data do sorteio</label><input type="date" id="s-data"></div>
+      </form>
+    `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">Criar sorteio</button>`);
+    document.getElementById('modal-cancel').onclick = () => App.closeModal();
+    document.getElementById('modal-save').onclick = async () => {
+      const nome = document.getElementById('s-nome').value.trim();
+      if(!nome){ toast('Informe o nome do sorteio.', 'error'); return; }
+      const linha = {
+        nome,
+        descricao: document.getElementById('s-desc').value.trim(),
+        valor_cota: parseFloat(document.getElementById('s-valor').value||0),
+        total_cotas: parseInt(document.getElementById('s-total').value||1,10),
+        data_sorteio: document.getElementById('s-data').value || null,
+        status: 'aberto',
+      };
+      const btn = document.getElementById('modal-save');
+      btn.disabled = true; btn.textContent = 'Criando...';
+
+      const { error } = await sb.from('sorteios').insert(linha);
+      if(error){ toast('Erro ao criar sorteio: ' + error.message, 'error'); btn.disabled=false; btn.textContent='Criar sorteio'; return; }
+
+      Store.log(Session.currentUser().id, `Sorteio "${nome}" criado.`);
+      toast('Sorteio criado!');
+      await Store.reloadSorteios();
+      App.closeModal();
+      Pages.sorteios(Session.currentUser());
+    };
+  },
+
+  // ---------------- VER COTAS ----------------
+  cotasView(root, sorteio){
+    const db = Store.data;
+    const grid = [];
+    for(let i=1;i<=sorteio.totalCotas;i++){
+      const cota = sorteio.cotas.find(c=>c.numero===i);
+      grid.push({ numero:i, cota });
+    }
+    this._shell(root, `Cotas — ${sorteio.nome}`, `
+      <div class="flex-row" style="margin-bottom:12px;gap:14px;font-size:12px;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--azul);border-radius:2px;margin-right:4px;"></span>Pago</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--amarelo);border-radius:2px;margin-right:4px;"></span>Reservado</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--bg-3);border:1px solid var(--linha);border-radius:2px;margin-right:4px;"></span>Livre</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;">
+        ${grid.map(g=>{
+          let bg='var(--bg-3)', tip='Livre';
+          if(g.cota){
+            const u = db.usuarios.find(x=>x.id===g.cota.usuarioId);
+            tip = (u?u.nome:'—') + ' — ' + g.cota.status;
+            bg = g.cota.status==='pago' ? 'var(--azul)' : 'var(--amarelo)';
+          }
+          const color = g.cota ? '#fff' : 'var(--texto-2)';
+          return `<div title="${escapeHtml(tip)}" class="font-mono" style="background:${bg};color:${color};border-radius:4px;text-align:center;padding:6px 0;font-size:11px;font-weight:700;${!g.cota?'border:1px solid var(--linha);':''}">${g.numero}</div>`;
+        }).join('')}
+      </div>
+    `, `<button class="btn btn-outline" id="modal-cancel">Fechar</button>`);
+    document.getElementById('modal-cancel').onclick = () => App.closeModal();
+  },
+
+  // ---------------- RESERVAR COTA (PARTICIPANTE) ----------------
+  reservarCota(root, sorteio){
+    const livres = Logic.cotasDisponiveis(sorteio);
+    this._shell(root, `Reservar cota — ${sorteio.nome}`, `
+      ${livres.length ? `
+      <div class="field"><label>Número da cota</label>
+        <select id="r-numero">${livres.map(n=>`<option value="${n}">Cota nº ${n}</option>`).join('')}</select>
+      </div>
+      <div class="text-muted">Valor: <strong class="font-mono">${fmtMoney(sorteio.valorCota)}</strong>. A cota ficará reservada até a confirmação do pagamento pelo administrador.</div>
+      ` : `<div class="empty-state"><div class="msg">Todas as cotas já foram reservadas ou vendidas</div></div>`}
+    `, livres.length ? `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">Reservar</button>` : `<button class="btn btn-outline" id="modal-cancel">Fechar</button>`);
+    document.getElementById('modal-cancel').onclick = () => App.closeModal();
+    const saveBtn = document.getElementById('modal-save');
+    if(saveBtn) saveBtn.onclick = async () => {
+      const numero = parseInt(document.getElementById('r-numero').value,10);
+      const user = Session.currentUser();
+      saveBtn.disabled = true; saveBtn.textContent = 'Reservando...';
+
+      const { error } = await sb.from('cotas').insert({
+        sorteio_id: sorteio.id,
+        numero,
+        usuario_id: user.id,
+        status: 'reservado',
+      });
+
+      if(error){
+        const msg = error.message && error.message.includes('duplicate')
+          ? 'Essa cota já foi reservada por outra pessoa — escolha outra.'
+          : 'Erro ao reservar cota: ' + error.message;
+        toast(msg, 'error');
+        saveBtn.disabled = false; saveBtn.textContent = 'Reservar';
+        return;
+      }
+
+      Store.log(user.id, `Reservou a cota nº ${numero} do sorteio "${sorteio.nome}".`);
+      toast(`Cota nº ${numero} reservada! Aguarde confirmação de pagamento.`);
+      await Store.reloadSorteios();
+      App.closeModal();
+      Pages.sorteios(user);
+    };
+  },
+};
+
+
+</script>
+</body>
+</html>
