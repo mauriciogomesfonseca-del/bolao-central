@@ -990,11 +990,10 @@ const Auth = {
       };
 
       // 1. Valida o convite ANTES de criar qualquer conta
-      //    Consulta direta na tabela — sem precisar de RPC separada.
       const codigoNorm = convite.trim().toUpperCase();
       const { data: conviteData, error: conviteErr } = await sb
         .from('convites')
-        .select('id, usado, ativo')
+        .select('id, usos_atuais, usos_maximos')
         .eq('codigo', codigoNorm)
         .maybeSingle();
 
@@ -1004,8 +1003,8 @@ const Auth = {
       if(!conviteData){
         return erroUI('Código de convite inválido. Verifique e tente novamente.');
       }
-      if(conviteData.usado || conviteData.ativo === false){
-        return erroUI('Este código de convite já foi utilizado ou está inativo.');
+      if(conviteData.usos_atuais >= conviteData.usos_maximos){
+        return erroUI('Este código de convite já atingiu o limite de usos.');
       }
 
       // 2. Cria o usuário no Supabase Auth
