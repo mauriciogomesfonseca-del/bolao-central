@@ -2345,6 +2345,55 @@ const Modals = {
   // ---------------- BOLÃO ----------------
   bolaoForm(root, bolao){
     const editing = !!bolao;
+    const cfg = Store.data.configuracao;
+    // Estado local de jogos a adicionar (somente na criação)
+    let jogosTemp = [];
+
+    const renderJogosTemp = () => {
+      const container = document.getElementById('jogos-temp-list');
+      if(!container) return;
+      if(jogosTemp.length === 0){
+        container.innerHTML = `<div style="text-align:center;color:var(--texto-3);font-size:12px;padding:10px 0;">Nenhum jogo adicionado ainda.</div>`;
+        return;
+      }
+      container.innerHTML = jogosTemp.map((j,i) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg-3);border-radius:6px;margin-bottom:6px;font-size:12.5px;">
+          <div>
+            <strong>${escapeHtml(j.mandante)}</strong> <span style="color:var(--texto-3);">×</span> <strong>${escapeHtml(j.visitante)}</strong>
+            <span style="color:var(--texto-2);margin-left:8px;">${j.data_hora ? new Date(j.data_hora).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}) : ''}</span>
+            ${j.rodada ? `<span style="color:var(--azul-2);margin-left:6px;">${escapeHtml(j.rodada)}</span>` : ''}
+            ${j.valor_aposta > 0 ? `<span class="font-mono" style="color:var(--verde);margin-left:6px;">${fmtMoney(j.valor_aposta)}</span>` : ''}
+          </div>
+          <button type="button" style="background:none;border:none;color:var(--vermelho);cursor:pointer;font-size:16px;line-height:1;" data-rm-jogo="${i}">×</button>
+        </div>
+      `).join('');
+      container.querySelectorAll('[data-rm-jogo]').forEach(btn => {
+        btn.onclick = () => { jogosTemp.splice(parseInt(btn.dataset.rmJogo),1); renderJogosTemp(); };
+      });
+    };
+
+    const addJogoRow = () => {
+      const mandante = document.getElementById('jt-mandante').value.trim();
+      const visitante = document.getElementById('jt-visitante').value.trim();
+      const dataHora = document.getElementById('jt-data').value;
+      if(!mandante || !visitante || !dataHora){ toast('Preencha times e data/hora do jogo.', 'error'); return; }
+      jogosTemp.push({
+        mandante, visitante,
+        mandante_sigla: document.getElementById('jt-mandante-sigla').value.trim().toUpperCase(),
+        visitante_sigla: document.getElementById('jt-visitante-sigla').value.trim().toUpperCase(),
+        data_hora: dataHora,
+        rodada: document.getElementById('jt-rodada').value.trim(),
+        valor_aposta: parseFloat(document.getElementById('jt-valor-aposta').value||0),
+        status: 'agendado',
+      });
+      // Limpa os campos de jogo
+      ['jt-mandante','jt-mandante-sigla','jt-visitante','jt-visitante-sigla','jt-data','jt-rodada','jt-valor-aposta'].forEach(id => {
+        const el = document.getElementById(id); if(el) el.value='';
+      });
+      renderJogosTemp();
+      toast('Jogo adicionado à lista!');
+    };
+
     this._shell(root, editing ? 'Editar Bolão' : 'Novo Bolão', `
       <form id="f-bolao">
         <div class="field"><label for="b-nome">Nome do bolão</label><input type="text" id="b-nome" value="${editing?escapeHtml(bolao.nome):''}" required></div>
@@ -2371,10 +2420,51 @@ const Modals = {
           <div class="field"><label for="b-r-emp">Acertar empate</label><input type="number" min="0" id="b-r-emp" value="${editing?bolao.regras.empate:3}"></div>
           <div class="field"><label for="b-r-exato">Placar exato</label><input type="number" min="0" id="b-r-exato" value="${editing?bolao.regras.placarExato:10}"></div>
         </div>
+
+        <!-- ======== PAGAMENTO PIX ======== -->
+        <div class="section-title" style="font-size:14px;margin-top:10px;">Pagamento via PIX</div>
+        <div class="grid grid-2">
+          <div class="field"><label for="b-pix-chave">Chave PIX</label><input type="text" id="b-pix-chave" value="${escapeHtml(cfg.chavePix||'')}" placeholder="e-mail, CPF, telefone ou aleatória"></div>
+          <div class="field"><label for="b-pix-nome">Nome do recebedor</label><input type="text" id="b-pix-nome" value="${escapeHtml(cfg.nomeRecebedor||'')}" placeholder="Nome que aparece para o pagador"></div>
+        </div>
+        <div style="font-size:11.5px;color:var(--texto-3);margin-bottom:10px;line-height:1.5;">A chave PIX e o nome ficam salvos nas configurações globais e aparecem automaticamente para os participantes na hora de pagar.</div>
+
+        ${!editing ? `
+        <!-- ======== JOGOS ======== -->
+        <div class="section-title" style="font-size:14px;margin-top:6px;">
+          Jogos do bolão
+          <span style="font-family:'Source Sans 3',sans-serif;font-size:11px;color:var(--texto-3);font-weight:400;">Você pode adicionar mais depois</span>
+        </div>
+        <div id="jogos-temp-list" style="margin-bottom:12px;"></div>
+        <div style="background:var(--bg-3);border:1px solid var(--linha);border-radius:8px;padding:14px;margin-bottom:4px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--texto-2);margin-bottom:10px;font-weight:700;">Adicionar jogo</div>
+          <div class="grid grid-2">
+            <div class="field"><label for="jt-mandante">Time mandante</label><input type="text" id="jt-mandante" placeholder="ex: Flamengo"></div>
+            <div class="field"><label for="jt-mandante-sigla">Sigla</label><input type="text" id="jt-mandante-sigla" maxlength="4" placeholder="FLA"></div>
+          </div>
+          <div class="grid grid-2">
+            <div class="field"><label for="jt-visitante">Time visitante</label><input type="text" id="jt-visitante" placeholder="ex: Palmeiras"></div>
+            <div class="field"><label for="jt-visitante-sigla">Sigla</label><input type="text" id="jt-visitante-sigla" maxlength="4" placeholder="PAL"></div>
+          </div>
+          <div class="grid grid-2">
+            <div class="field"><label for="jt-data">Data e hora</label><input type="datetime-local" id="jt-data"></div>
+            <div class="field"><label for="jt-rodada">Rodada / fase</label><input type="text" id="jt-rodada" placeholder="ex: Rodada 1"></div>
+          </div>
+          <div class="field"><label for="jt-valor-aposta">Valor da aposta por jogo (PIX)</label><input type="number" min="0" step="0.01" id="jt-valor-aposta" placeholder="ex: 5.00"></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-add-jogo">+ Adicionar jogo à lista</button>
+        </div>
+        ` : ''}
       </form>
     `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">${editing?'Salvar alterações':'Criar bolão'}</button>`);
 
+    // Inicializa lista de jogos
+    if(!editing) renderJogosTemp();
+
     document.getElementById('modal-cancel').onclick = () => App.closeModal();
+
+    const btnAddJogo = document.getElementById('btn-add-jogo');
+    if(btnAddJogo) btnAddJogo.onclick = addJogoRow;
+
     document.getElementById('modal-save').onclick = async () => {
       const nome = document.getElementById('b-nome').value.trim();
       if(!nome){ toast('Informe o nome do bolão.', 'error'); return; }
@@ -2394,17 +2484,38 @@ const Modals = {
       const btn = document.getElementById('modal-save');
       btn.disabled = true; btn.textContent = 'Salvando...';
 
+      // Salva/atualiza chave PIX nas configurações globais
+      const pixChave = document.getElementById('b-pix-chave').value.trim();
+      const pixNome = document.getElementById('b-pix-nome').value.trim();
+      if(pixChave || pixNome){
+        await sb.from('configuracoes').upsert({ id:1, chave_pix: pixChave, nome_recebedor: pixNome });
+        await Store.reloadConfiguracao();
+      }
+
       let error;
+      let bolaoId = editing ? bolao.id : null;
       if(editing){
         ({ error } = await sb.from('boloes').update(linha).eq('id', bolao.id));
       } else {
-        ({ error } = await sb.from('boloes').insert(linha));
+        const { data: inserted, error: insErr } = await sb.from('boloes').insert(linha).select().single();
+        error = insErr;
+        if(!insErr && inserted) bolaoId = inserted.id;
       }
       if(error){ toast('Erro ao salvar bolão: ' + error.message, 'error'); btn.disabled=false; btn.textContent=editing?'Salvar alterações':'Criar bolão'; return; }
 
-      Store.log(Session.currentUser().id, editing ? `Bolão "${nome}" editado.` : `Bolão "${nome}" criado.`);
-      toast(editing ? 'Bolão atualizado!' : 'Bolão criado!');
+      // Insere jogos em lote (somente na criação)
+      if(!editing && jogosTemp.length > 0 && bolaoId){
+        const jogosComBolao = jogosTemp.map(j => ({ ...j, bolao_id: bolaoId }));
+        const { error: jogoErr } = await sb.from('jogos').insert(jogosComBolao);
+        if(jogoErr){ toast('Bolão criado, mas erro ao salvar jogos: ' + jogoErr.message, 'error'); }
+        else { toast(`Bolão criado com ${jogosTemp.length} jogo(s)!`); }
+      } else {
+        toast(editing ? 'Bolão atualizado!' : 'Bolão criado!');
+      }
+
+      Store.log(Session.currentUser().id, editing ? `Bolão "${nome}" editado.` : `Bolão "${nome}" criado com ${jogosTemp.length} jogo(s).`);
       await Store.reloadBoloes();
+      await Store.reloadJogos();
       App.closeModal();
       Pages.adminBoloes();
     };
