@@ -973,48 +973,75 @@ const Auth = {
 
       this.loading = true;
       const btn = document.getElementById('ca-submit');
-      btn.disabled = true; btn.textContent = 'Criando conta...';
+      btn.disabled = true; btn.textContent = 'Verificando convite...';
 
-      // 1. Cria o usuário no Supabase Auth
+      const erroUI = (msg) => {
+        this.loading = false;
+        this.error = msg;
+        this.render();
+      };
+
+      // 1. Valida o convite ANTES de criar qualquer conta
+      //    Consulta direta na tabela — sem precisar de RPC separada.
+      const codigoNorm = convite.trim().toUpperCase();
+      const { data: conviteData, error: conviteErr } = await sb
+        .from('convites')
+        .select('id, usado, ativo')
+        .eq('codigo', codigoNorm)
+        .maybeSingle();
+
+      if(conviteErr){
+        return erroUI('Erro ao verificar o convite. Tente novamente.');
+      }
+      if(!conviteData){
+        return erroUI('Código de convite inválido. Verifique e tente novamente.');
+      }
+      if(conviteData.usado || conviteData.ativo === false){
+        return erroUI('Este código de convite já foi utilizado ou está inativo.');
+      }
+
+      // 2. Cria o usuário no Supabase Auth
+      btn.textContent = 'Criando conta...';
       const { data, error } = await sb.auth.signUp({ email, password: senha });
 
       if(error){
-        this.loading = false;
-        this.error = error.message.includes('already registered')
+        const jaExiste =
+          error.message.includes('already registered') ||
+          error.message.includes('já cadastrado') ||
+          error.message.includes('already exists') ||
+          error.status === 422;
+        return erroUI(jaExiste
           ? 'Já existe uma conta cadastrada com esse e-mail.'
-          : 'Não foi possível criar a conta: ' + error.message;
-        this.render();
-        return;
+          : 'Não foi possível criar a conta: ' + error.message);
       }
 
-      // Se a sessão não veio automaticamente (ex: confirmação de e-mail ligada), tenta logar.
+      // Supabase às vezes retorna sucesso mas com identities vazio = e-mail já existe
+      if(data.user && data.user.identities && data.user.identities.length === 0){
+        return erroUI('Já existe uma conta cadastrada com esse e-mail.');
+      }
+
+      // 3. Garante sessão ativa
       if(!data.session){
         const { error: loginErr } = await sb.auth.signInWithPassword({ email, password: senha });
         if(loginErr){
-          this.loading = false;
-          this.error = 'Conta criada, mas não foi possível entrar automaticamente. Tente fazer login.';
-          this.mode = 'login';
-          this.render();
-          return;
+          return erroUI('Conta criada, mas não foi possível entrar automaticamente. Tente fazer login.');
         }
       }
 
-      // 2. Valida o código de convite e cria o perfil de negócio (RPC no banco)
+      // 4. Cria o perfil via RPC (convite já validado no passo 1)
+      btn.textContent = 'Finalizando cadastro...';
       const { error: rpcError } = await sb.rpc('cadastrar_com_convite', {
         p_nome: nome,
         p_telefone: telefone,
-        p_codigo_convite: convite,
+        p_codigo_convite: codigoNorm,
       });
 
       if(rpcError){
-        this.loading = false;
-        // Desfaz a sessão para não deixar um "usuário fantasma" sem perfil logado
+        // Desfaz auth para não deixar usuário fantasma
         await sb.auth.signOut();
-        this.error = rpcError.message.includes('Código de convite')
+        return erroUI(rpcError.message.includes('Código de convite')
           ? rpcError.message
-          : 'Não foi possível concluir o cadastro: ' + rpcError.message;
-        this.render();
-        return;
+          : 'Não foi possível concluir o cadastro: ' + rpcError.message);
       }
 
       const { data: userData } = await sb.auth.getUser();
