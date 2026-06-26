@@ -1938,6 +1938,12 @@ Pages.partDashboard = function(user){
         <div class="stat-sub">${minhaLinha?minhaLinha.jogosPalpitados+' palpite(s) enviados':''}</div>
       </div>
     </div>
+    ${bolao && bolao.descricao ? `
+    <div class="card" style="margin-bottom:18px;border-left:3px solid var(--azul);">
+      <div class="section-title" style="margin-bottom:10px;">📋 Regulamento — ${escapeHtml(bolao.nome)}</div>
+      <div style="font-size:13px;color:var(--texto-2);line-height:1.8;white-space:pre-wrap;">${escapeHtml(bolao.descricao)}</div>
+    </div>` : ''}
+
     <div class="grid grid-2">
       <div class="card">
         <div class="section-title">Próximos jogos para palpitar <span class="right"><a href="#" id="link-palpitar">palpitar →</a></span></div>
