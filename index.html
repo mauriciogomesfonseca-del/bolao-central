@@ -2027,40 +2027,50 @@ Pages.partPalpites = function(user){
       </div>
     `;
 
+    // Flag global por jogo para evitar envio duplo mesmo com cliques rápidos
+    const _enviando = {};
+
     document.querySelectorAll('[data-enviar]').forEach(btn=>{
       btn.onclick = async () => {
         const jogoId = btn.dataset.enviar;
+
+        // Trava imediata antes de qualquer await — impede race condition
+        if(_enviando[jogoId]) return;
+        _enviando[jogoId] = true;
+
         const jogo = db.jogos.find(j=>j.id===jogoId);
         const pm = document.getElementById(`pm-${jogoId}`).value;
         const pv = document.getElementById(`pv-${jogoId}`).value;
-        if(pm==='' || pv===''){ toast('Informe o placar dos dois times.', 'error'); return; }
+
+        const liberar = () => {
+          _enviando[jogoId] = false;
+          btn.disabled = false; btn.textContent = '+ Apostar';
+        };
+
+        if(pm==='' || pv===''){ toast('Informe o placar dos dois times.', 'error'); liberar(); return; }
 
         if(jogo && jogo.dataHora && Date.now() >= new Date(jogo.dataHora).getTime()){
-          toast('Este jogo já começou — não é possível mais apostar.', 'error');
-          return;
+          toast('Este jogo já começou — não é possível mais apostar.', 'error'); liberar(); return;
         }
 
         // Verifica limite no cliente antes de ir ao banco
         const jaFeitos = db.palpites.filter(p=>p.jogoId===jogoId && p.usuarioId===user.id).length;
         if(jaFeitos >= LIMITE_PALPITES){
-          toast(`Limite de ${LIMITE_PALPITES} palpites por jogo atingido.`, 'error');
-          return;
+          toast(`Limite de ${LIMITE_PALPITES} palpites por jogo atingido.`, 'error'); liberar(); return;
         }
 
         btn.disabled = true; btn.textContent = 'Enviando...';
 
-        // Revalida no banco antes de inserir para evitar duplicata de clique duplo
-        const { data: jaExistem, error: errCount } = await sb.from('palpites')
+        // Busca contagem real no banco (fonte da verdade)
+        const { data: jaExistem } = await sb.from('palpites')
           .select('id')
           .eq('jogo_id', jogoId)
           .eq('usuario_id', user.id);
 
-        const totalNoBanco = errCount ? jaFeitos : (jaExistem ? jaExistem.length : jaFeitos);
+        const totalNoBanco = jaExistem ? jaExistem.length : jaFeitos;
 
         if(totalNoBanco >= LIMITE_PALPITES){
-          toast(`Limite de ${LIMITE_PALPITES} palpites por jogo atingido.`, 'error');
-          btn.disabled = false; btn.textContent = '+ Apostar';
-          return;
+          toast(`Limite de ${LIMITE_PALPITES} palpites por jogo atingido.`, 'error'); liberar(); return;
         }
 
         const { data, error } = await sb.from('palpites')
@@ -2080,13 +2090,12 @@ Pages.partPalpites = function(user){
             : error.message.includes('max_palpites')
             ? `Limite de ${LIMITE_PALPITES} palpites por jogo atingido.`
             : (error.message.includes('duplicate') || error.message.includes('unique') || error.message.includes('palpite_unico'))
-            ? `Você já enviou este palpite. Tente um placar diferente ou aguarde um instante.`
+            ? `Palpite duplicado detectado. Aguarde um instante e tente novamente.`
             : 'Erro ao enviar palpite: ' + error.message;
-          toast(msg, 'error');
-          btn.disabled = false; btn.textContent = '+ Apostar';
-          return;
+          toast(msg, 'error'); liberar(); return;
         }
 
+        _enviando[jogoId] = false; // libera a flag (não reabilita btn pois renderAbertos recria tudo)
         await Promise.all([Store.reloadPalpites(), Store.reloadPagamentos()]);
         const palpiteSalvo = Map_.palpite(data);
         const pagamentoVinculado = Store.data.pagamentos.find(p=>p.palpiteId===palpiteSalvo.id);
