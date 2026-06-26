@@ -599,6 +599,7 @@ const Map_ = {
       mandanteSigla:j.mandante_sigla||'', visitanteSigla:j.visitante_sigla||'',
       rodada:j.rodada||'', dataHora: j.data_hora ? j.data_hora.slice(0,16) : '',
       placarMandante:j.placar_mandante, placarVisitante:j.placar_visitante, status:j.status,
+      valorAposta: Number(j.valor_aposta)||0,
     };
   },
   palpite(p){
@@ -613,11 +614,15 @@ const Map_ = {
   pagamento(p){
     if(!p) return null;
     return {
-      id:p.id, usuarioId:p.usuario_id, bolaoId:p.bolao_id,
+      id:p.id, usuarioId:p.usuario_id, bolaoId:p.bolao_id, palpiteId:p.palpite_id||null,
       valorInscricao:Number(p.valor_inscricao)||0, valorPago:Number(p.valor_pago)||0,
       dataVencimento:p.data_vencimento, dataPagamento:p.data_pagamento,
       formaPagamento:p.forma_pagamento||'', status:p.status,
     };
+  },
+  configuracao(c){
+    if(!c) return { chavePix:'', nomeRecebedor:'' };
+    return { chavePix:c.chave_pix||'', nomeRecebedor:c.nome_recebedor||'' };
   },
   sorteio(s, cotas){
     if(!s) return null;
@@ -640,10 +645,13 @@ const Map_ = {
 const Store = {
   data: {
     usuarios: [], boloes: [], jogos: [], palpites: [], pagamentos: [],
-    sorteios: [], notificacoes: [], auditLog: [],
+    sorteios: [], notificacoes: [], auditLog: [], configuracao: { chavePix:'', nomeRecebedor:'' },
   },
 
   async loadAll(){
+    // Limpa primeiro os palpites não pagos de jogos já iniciados, antes de
+    // carregar os dados — assim ninguém vê uma aposta "fantasma" que já devia ter sido removida.
+    await this.limparPalpitesVencidos();
     await Promise.all([
       this.reloadUsuarios(),
       this.reloadBoloes(),
@@ -651,7 +659,13 @@ const Store = {
       this.reloadPalpites(),
       this.reloadPagamentos(),
       this.reloadSorteios(),
+      this.reloadConfiguracao(),
     ]);
+  },
+
+  async limparPalpitesVencidos(){
+    const { error } = await sb.rpc('limpar_palpites_nao_pagos_vencidos');
+    if(error) console.error('Erro ao limpar palpites vencidos não pagos:', error);
   },
 
   async reloadUsuarios(){
@@ -689,6 +703,12 @@ const Store = {
     if(error){ console.error('Erro ao carregar sorteios:', error); return; }
     const { data: cotas } = await sb.from('cotas').select('*');
     this.data.sorteios = (sorteios||[]).map(s => Map_.sorteio(s, (cotas||[]).filter(c=>c.sorteio_id===s.id)));
+  },
+
+  async reloadConfiguracao(){
+    const { data, error } = await sb.from('configuracoes').select('*').eq('id', 1).maybeSingle();
+    if(error){ console.error('Erro ao carregar configurações:', error); return; }
+    this.data.configuracao = Map_.configuracao(data);
   },
 
   // Mantido por compatibilidade com chamadas antigas no resto do app;
@@ -1094,6 +1114,7 @@ const App = {
     { section: 'Sistema' },
     { key:'relatorios', label:'Relatórios', icon:'▤' },
     { key:'auditoria', label:'Auditoria', icon:'⌗' },
+    { key:'configuracoes', label:'Configurações', icon:'⚙' },
   ],
   PART_NAV: [
     { section: 'Meu Bolão' },
@@ -1252,6 +1273,7 @@ const App = {
       sorteios: Pages.sorteios,
       relatorios: Pages.relatorios,
       auditoria: Pages.auditoria,
+      configuracoes: Pages.configuracoes,
     } : {
       dashboard: Pages.partDashboard,
       palpites: Pages.partPalpites,
@@ -1625,12 +1647,9 @@ Pages._bindParticipantesEvents = function(){
 
 // ---------------------- PAGAMENTOS (ADMIN) ----------------------
 Pages.adminPagamentos = function(){
-  App.setTopbar('Pagamentos', 'Painel financeiro e controle de inscrições');
+  App.setTopbar('Pagamentos', 'Confirme os pagamentos PIX de cada aposta enviada');
   const db = Store.data;
   const fin = Logic.resumoFinanceiro();
-
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary" id="btn-novo-pagto">+ Registrar pagamento</button>`;
-  document.getElementById('btn-novo-pagto').onclick = () => App.openModal('pagamento-form', null);
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-4" style="margin-bottom:20px;">
@@ -1641,31 +1660,31 @@ Pages.adminPagamentos = function(){
     </div>
     <div class="card card-flush">
       <table>
-        <thead><tr><th>Participante</th><th>Bolão</th><th>Valor</th><th>Vencimento</th><th>Pago</th><th>Forma</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Participante</th><th>Jogo</th><th>Palpite</th><th>Valor</th><th>Status</th><th></th></tr></thead>
         <tbody>
-          ${db.pagamentos.length ? db.pagamentos.map(p=>{
+          ${db.pagamentos.length ? [...db.pagamentos].sort((a,b)=>{
+              const ordem = { em_analise:0, pendente:1, atrasado:1, pago:2, isento:2 };
+              return (ordem[a.status]??9) - (ordem[b.status]??9);
+            }).map(p=>{
             const u = db.usuarios.find(x=>x.id===p.usuarioId);
-            const b = db.boloes.find(x=>x.id===p.bolaoId);
+            const palpite = p.palpiteId ? db.palpites.find(pl=>pl.id===p.palpiteId) : null;
+            const jogo = palpite ? db.jogos.find(j=>j.id===palpite.jogoId) : null;
             return `<tr>
               <td style="font-weight:600;">${escapeHtml(u?u.nome:'—')}</td>
-              <td>${escapeHtml(b?b.nome:'—')}</td>
+              <td>${jogo ? escapeHtml(jogo.mandante)+' x '+escapeHtml(jogo.visitante) : '<span class="text-muted">sem vínculo</span>'}</td>
+              <td class="font-mono" style="font-size:11px;">${palpite ? palpite.placarMandante+'x'+palpite.placarVisitante+' · '+escapeHtml(palpite.codigoVerificacao||'') : '—'}</td>
               <td class="font-mono">${fmtMoney(p.valorInscricao)}</td>
-              <td>${fmtDate(p.dataVencimento)}</td>
-              <td class="font-mono">${p.valorPago ? fmtMoney(p.valorPago) : '—'}</td>
-              <td>${escapeHtml(p.formaPagamento||'—')}</td>
               <td>${Pages._badgePagamento(p.status)}</td>
               <td class="flex-row">
-                <button class="btn btn-outline btn-sm" data-edit-pagto="${p.id}">Editar</button>
-                ${p.status!=='pago' ? `<button class="btn btn-secondary btn-sm" data-marcar-pago="${p.id}">Marcar pago</button>` : ''}
+                ${p.status!=='pago' ? `<button class="btn btn-secondary btn-sm" data-marcar-pago="${p.id}">Confirmar</button>` : ''}
               </td>
             </tr>`;
-          }).join('') : `<tr><td colspan="8"><div class="empty-state"><div class="msg">Nenhum pagamento registrado</div></div></td></tr>`}
+          }).join('') : `<tr><td colspan="6"><div class="empty-state"><div class="msg">Nenhum pagamento registrado</div></div></td></tr>`}
         </tbody>
       </table>
     </div>
   `;
 
-  document.querySelectorAll('[data-edit-pagto]').forEach(el=> el.onclick = () => App.openModal('pagamento-form', db.pagamentos.find(p=>p.id===el.dataset.editPagto)));
   document.querySelectorAll('[data-marcar-pago]').forEach(el=> el.onclick = async () => {
     const p = db.pagamentos.find(x=>x.id===el.dataset.marcarPago);
     el.disabled = true; el.textContent = 'Confirmando...';
@@ -1771,6 +1790,43 @@ Pages.auditoria = function(){
     </div>
   `;
 };
+
+// ---------------------- CONFIGURAÇÕES (CHAVE PIX) ----------------------
+Pages.configuracoes = function(){
+  App.setTopbar('Configurações', 'Chave PIX usada para receber os pagamentos das apostas');
+  const cfg = Store.data.configuracao;
+  document.getElementById('content').innerHTML = `
+    <div class="card" style="max-width:480px;">
+      <form id="f-config">
+        <div class="field"><label>Chave PIX</label><input type="text" id="cfg-chave" value="${escapeHtml(cfg.chavePix)}" placeholder="CPF, e-mail, telefone ou chave aleatória" required></div>
+        <div class="field"><label>Nome do recebedor (exibido para os participantes)</label><input type="text" id="cfg-nome" value="${escapeHtml(cfg.nomeRecebedor)}" placeholder="ex: Mauricio Gomes"></div>
+        <button type="submit" class="btn btn-primary" id="cfg-submit">Salvar configuração</button>
+      </form>
+      <div class="divider"></div>
+      <div class="text-muted">Esta chave aparece automaticamente para os participantes assim que eles enviam um palpite, junto com o valor a pagar daquele jogo.</div>
+    </div>
+  `;
+  document.getElementById('f-config').onsubmit = async (e) => {
+    e.preventDefault();
+    const chave = document.getElementById('cfg-chave').value.trim();
+    const nome = document.getElementById('cfg-nome').value.trim();
+    const btn = document.getElementById('cfg-submit');
+    btn.disabled = true; btn.textContent = 'Salvando...';
+
+    const { error } = await sb.from('configuracoes').update({
+      chave_pix: chave, nome_recebedor: nome,
+      atualizado_por: Session.currentUser().id,
+    }).eq('id', 1);
+
+    if(error){ toast('Erro ao salvar: ' + error.message, 'error'); btn.disabled=false; btn.textContent='Salvar configuração'; return; }
+
+    Store.log(Session.currentUser().id, 'Atualizou a chave PIX de recebimento.');
+    toast('Configuração salva!');
+    await Store.reloadConfiguracao();
+    btn.disabled = false; btn.textContent = 'Salvar configuração';
+  };
+};
+
 // =====================================================================
 // PÁGINAS — PARTICIPANTE
 // =====================================================================
@@ -1845,9 +1901,11 @@ Pages.partPalpites = function(user){
       <div class="grid grid-3">
         ${jogosAgendados.length ? jogosAgendados.map(j=>{
           const meuPalpite = db.palpites.find(p=>p.jogoId===j.id && p.usuarioId===user.id);
+          const meuPagamento = meuPalpite ? db.pagamentos.find(p=>p.palpiteId===meuPalpite.id) : null;
           return `
           <div class="sumula">
             <div class="sumula-head"><span class="comp">${escapeHtml(j.rodada||'')}</span><span>${new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span></div>
+            ${j.valorAposta > 0 ? `<div style="padding:6px 14px;background:var(--bg-3);font-size:11px;color:var(--texto-2);display:flex;justify-content:space-between;"><span>Valor da aposta</span><span class="font-mono" style="color:var(--verde);font-weight:700;">${fmtMoney(j.valorAposta)}</span></div>` : ''}
             <div class="sumula-body">
               <div class="sumula-team"><div class="shield">${escapeHtml(j.mandanteSigla||'')}</div><div class="name">${escapeHtml(j.mandante)}</div></div>
               <div class="placar-box">
@@ -1858,7 +1916,7 @@ Pages.partPalpites = function(user){
               <div class="sumula-team"><div class="shield">${escapeHtml(j.visitanteSigla||'')}</div><div class="name">${escapeHtml(j.visitante)}</div></div>
             </div>
             <div class="sumula-foot">
-              <span>${meuPalpite?`✓ ${escapeHtml(meuPalpite.codigoVerificacao||'')}`:'Sem palpite ainda'}</span>
+              <span>${meuPalpite?`✓ ${escapeHtml(meuPalpite.codigoVerificacao||'')}${meuPagamento?' · '+Pages._badgePagamento(meuPagamento.status):''}`:'Sem palpite ainda'}</span>
               <button class="btn btn-primary btn-sm" data-enviar="${j.id}">${meuPalpite?'Atualizar':'Enviar palpite'}</button>
             </div>
           </div>`;
@@ -1902,9 +1960,10 @@ Pages.partPalpites = function(user){
           return;
         }
 
-        await Store.reloadPalpites();
+        await Promise.all([Store.reloadPalpites(), Store.reloadPagamentos()]);
         const palpiteSalvo = Map_.palpite(data);
-        Modals.comprovantePalpite(jogo, palpiteSalvo);
+        const pagamentoVinculado = Store.data.pagamentos.find(p => p.palpiteId === palpiteSalvo.id);
+        Modals.comprovantePalpite(jogo, palpiteSalvo, pagamentoVinculado);
         renderAbertos();
       };
     });
@@ -1940,28 +1999,34 @@ Pages.partPalpites = function(user){
 };
 
 Pages.partPagamentos = function(user){
-  App.setTopbar('Meu Pagamento', 'Status da sua inscrição nos bolões');
+  App.setTopbar('Meus Pagamentos', 'Cada aposta enviada gera um pagamento PIX individual');
   const db = Store.data;
-  const meus = db.pagamentos.filter(p=>p.usuarioId===user.id);
+  const meus = db.pagamentos.filter(p=>p.usuarioId===user.id && p.palpiteId);
+
+  // Ordena: pendentes/em análise primeiro, depois pagos, mais recentes primeiro dentro de cada grupo
+  const ordem = { pendente:0, atrasado:0, em_analise:1, pago:2, isento:2 };
+  const ordenados = [...meus].sort((a,b)=> (ordem[a.status]??9) - (ordem[b.status]??9));
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-3">
-      ${meus.length ? meus.map(p=>{
-        const b = db.boloes.find(x=>x.id===p.bolaoId);
+      ${ordenados.length ? ordenados.map(p=>{
+        const palpite = db.palpites.find(pl=>pl.id===p.palpiteId);
+        const jogo = palpite ? db.jogos.find(j=>j.id===palpite.jogoId) : null;
         return `
         <div class="card">
           <div class="flex-row" style="justify-content:space-between;">
-            <div style="font-weight:700;color:var(--texto);">${escapeHtml(b?b.nome:'—')}</div>
+            <div style="font-weight:700;color:var(--texto);font-size:13px;">${jogo ? escapeHtml(jogo.mandante)+' x '+escapeHtml(jogo.visitante) : 'Jogo removido'}</div>
             ${Pages._badgePagamento(p.status)}
           </div>
+          ${palpite ? `<div class="text-muted" style="margin-top:2px;">Seu palpite: <span class="font-mono">${palpite.placarMandante} x ${palpite.placarVisitante}</span></div>` : ''}
           <div class="divider"></div>
           <div style="font-size:13px;display:flex;justify-content:space-between;margin-bottom:6px;"><span class="text-muted">Valor</span><span class="font-mono">${fmtMoney(p.valorInscricao)}</span></div>
-          <div style="font-size:13px;display:flex;justify-content:space-between;margin-bottom:6px;"><span class="text-muted">Vencimento</span><span>${fmtDate(p.dataVencimento)}</span></div>
-          <div style="font-size:13px;display:flex;justify-content:space-between;"><span class="text-muted">Forma</span><span>${escapeHtml(p.formaPagamento||'—')}</span></div>
-          ${p.status==='pendente' || p.status==='atrasado' ? `<div class="divider"></div><button class="btn btn-primary btn-block btn-sm" data-pagar="${p.id}">Avisar que paguei</button>` : ''}
+          <div style="font-size:13px;display:flex;justify-content:space-between;"><span class="text-muted">Código do palpite</span><span class="font-mono" style="font-size:11px;">${escapeHtml(palpite?palpite.codigoVerificacao:'—')}</span></div>
+          ${p.status==='pendente' || p.status==='atrasado' ? `<div class="divider"></div><button class="btn btn-primary btn-block btn-sm" data-pagar="${p.id}">Ver PIX e avisar que paguei</button>` : ''}
           ${p.status==='em_analise' ? `<div class="divider"></div><div class="text-muted" style="text-align:center;">Aguardando confirmação do administrador.</div>` : ''}
+          ${jogo && jogo.status==='agendado' && (p.status==='pendente'||p.status==='atrasado'||p.status==='em_analise') ? `<div class="text-muted" style="margin-top:8px;font-size:11px;">⚠ Pague antes de ${new Date(jogo.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} ou a aposta será cancelada.</div>` : ''}
         </div>`;
-      }).join('') : `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">$</div><div class="msg">Nenhuma inscrição encontrada</div></div>`}
+      }).join('') : `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">$</div><div class="msg">Nenhum pagamento ainda</div><div class="hint">Envie um palpite em "Meus Palpites" para gerar seu primeiro pagamento.</div></div>`}
     </div>
   `;
   document.querySelectorAll('[data-pagar]').forEach(btn=>{
@@ -2165,11 +2230,15 @@ const Modals = {
   // Chamado diretamente (não via App.openModal) logo após o palpite ser
   // salvo com sucesso no Supabase. Mostra o código de verificação e o
   // timestamp do servidor — o registro que resolve "eu disse que apostei X".
-  comprovantePalpite(jogo, palpite){
+  comprovantePalpite(jogo, palpite, pagamento){
     const root = document.getElementById('modal-root');
     const dataFormatada = palpite.atualizadoEm
       ? new Date(palpite.atualizadoEm).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'medium' })
       : new Date().toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'medium' });
+
+    const cfg = Store.data.configuracao;
+    const jaPago = pagamento && pagamento.status === 'pago';
+    const temValor = pagamento && pagamento.valorInscricao > 0;
 
     this._shell(root, 'Palpite Confirmado', `
       <div style="text-align:center;padding:6px 0 4px;">
@@ -2181,13 +2250,46 @@ const Modals = {
           <div class="font-mono" style="font-size:24px;font-weight:700;color:var(--verde);letter-spacing:0.04em;">${escapeHtml(palpite.codigoVerificacao||'—')}</div>
         </div>
         <div style="font-size:12px;color:var(--texto-2);">Registrado em ${escapeHtml(dataFormatada)}</div>
-        <div style="font-size:11.5px;color:var(--texto-3);margin-top:10px;line-height:1.5;">
-          Guarde este código. Ele e o administrador consultam o mesmo registro —
-          é a prova de qual placar você apostou e quando.
+      </div>
+
+      ${temValor && !jaPago ? `
+        <div class="divider"></div>
+        <div style="background:var(--verde-bg);border-radius:8px;padding:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:12px;color:var(--texto-2);">Valor da aposta</span>
+            <span class="font-mono" style="font-size:18px;font-weight:700;color:var(--verde);">${fmtMoney(pagamento.valorInscricao)}</span>
+          </div>
+          ${cfg.chavePix ? `
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--texto-2);margin-bottom:4px;">Chave PIX${cfg.nomeRecebedor ? ' — '+escapeHtml(cfg.nomeRecebedor) : ''}</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <div class="font-mono" id="pix-key-text" style="flex:1;background:var(--bg);border:1px solid var(--linha);border-radius:6px;padding:8px 10px;font-size:13px;word-break:break-all;">${escapeHtml(cfg.chavePix)}</div>
+              <button class="btn btn-secondary btn-sm" id="btn-copy-pix" type="button">Copiar</button>
+            </div>
+          ` : `<div class="text-muted">O administrador ainda não cadastrou a chave PIX. Combine o pagamento diretamente com ele.</div>`}
+          <div style="font-size:11px;color:var(--texto-2);margin-top:10px;line-height:1.5;">
+            Pague até o início do jogo. Se o pagamento não for confirmado pelo administrador antes do jogo começar, esta aposta será removida automaticamente.
+          </div>
         </div>
+      ` : ''}
+
+      <div style="font-size:11.5px;color:var(--texto-3);margin-top:12px;line-height:1.5;text-align:center;">
+        Guarde o código de verificação. Ele e o administrador consultam o mesmo registro —
+        é a prova de qual placar você apostou e quando.
       </div>
     `, `<button class="btn btn-primary btn-block" id="modal-cancel">Entendi</button>`);
     document.getElementById('modal-cancel').onclick = () => App.closeModal();
+
+    const copyBtn = document.getElementById('btn-copy-pix');
+    if(copyBtn){
+      copyBtn.onclick = () => {
+        const text = document.getElementById('pix-key-text').textContent;
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(text).then(()=> toast('Chave PIX copiada!')).catch(()=> toast('Não foi possível copiar. Copie manualmente.', 'error'));
+        } else {
+          toast('Copie a chave manualmente: ' + text, 'error');
+        }
+      };
+    }
   },
 
   // ---------------- BOLÃO ----------------
@@ -2279,6 +2381,8 @@ const Modals = {
           <div class="field"><label>Data e hora</label><input type="datetime-local" id="j-data" value="${editing?jogo.dataHora:''}" required></div>
           <div class="field"><label>Rodada / fase</label><input type="text" id="j-rodada" value="${editing?escapeHtml(jogo.rodada||''):''}" placeholder="ex: Rodada 12"></div>
         </div>
+        <div class="field"><label>Valor da aposta neste jogo (PIX)</label><input type="number" min="0" step="0.01" id="j-valor-aposta" value="${editing?jogo.valorAposta:''}" placeholder="ex: 5.00" required></div>
+        <div class="text-muted">Cada palpite enviado para este jogo vai gerar um pagamento individual com esse valor. Se ninguém pagar até o início do jogo, o palpite é removido automaticamente.</div>
       </form>
     `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">${editing?'Salvar':'Criar jogo'}</button>`);
 
@@ -2287,6 +2391,7 @@ const Modals = {
       const mandante = document.getElementById('j-mandante').value.trim();
       const visitante = document.getElementById('j-visitante').value.trim();
       const dataHora = document.getElementById('j-data').value;
+      const valorAposta = parseFloat(document.getElementById('j-valor-aposta').value || 0);
       if(!mandante || !visitante || !dataHora){ toast('Preencha os times e a data do jogo.', 'error'); return; }
       const linha = {
         bolao_id: document.getElementById('j-bolao').value,
@@ -2294,6 +2399,7 @@ const Modals = {
         mandante_sigla: document.getElementById('j-mandante-sigla').value.trim().toUpperCase(),
         visitante_sigla: document.getElementById('j-visitante-sigla').value.trim().toUpperCase(),
         data_hora: dataHora, rodada: document.getElementById('j-rodada').value.trim(),
+        valor_aposta: valorAposta,
       };
       const btn = document.getElementById('modal-save');
       btn.disabled = true; btn.textContent = 'Salvando...';
@@ -2429,14 +2535,35 @@ const Modals = {
 
   // ---------------- CONFIRMAR PAGAMENTO (PARTICIPANTE) ----------------
   confirmarPagamentoParticipante(root, pagamento){
-    this._shell(root, 'Avisar Pagamento', `
-      <p style="font-size:13px;color:var(--texto-2);margin-bottom:14px;">Confirma que você pagou via PIX o valor da inscrição abaixo? O administrador vai validar o recebimento em seguida.</p>
-      <div style="background:var(--bg-3);border-radius:8px;padding:14px;text-align:center;margin-bottom:6px;">
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--texto-2);margin-bottom:4px;">Valor da inscrição (PIX)</div>
+    const cfg = Store.data.configuracao;
+    this._shell(root, 'Pagar via PIX', `
+      <div style="background:var(--bg-3);border-radius:8px;padding:14px;text-align:center;margin-bottom:14px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--texto-2);margin-bottom:4px;">Valor da aposta</div>
         <div class="font-mono" style="font-size:22px;font-weight:700;color:var(--verde);">${fmtMoney(pagamento.valorInscricao)}</div>
       </div>
+      ${cfg.chavePix ? `
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--texto-2);margin-bottom:4px;">Chave PIX${cfg.nomeRecebedor ? ' — '+escapeHtml(cfg.nomeRecebedor) : ''}</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:14px;">
+          <div class="font-mono" id="pix-key-text-2" style="flex:1;background:var(--bg);border:1px solid var(--linha);border-radius:6px;padding:8px 10px;font-size:13px;word-break:break-all;">${escapeHtml(cfg.chavePix)}</div>
+          <button class="btn btn-secondary btn-sm" id="btn-copy-pix-2" type="button">Copiar</button>
+        </div>
+      ` : `<p class="text-muted" style="margin-bottom:14px;">O administrador ainda não cadastrou a chave PIX. Combine o pagamento diretamente com ele.</p>`}
+      <p style="font-size:12.5px;color:var(--texto-2);">Depois de pagar, clica em "Avisar que paguei" para o administrador confirmar o recebimento.</p>
     `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">Avisar que paguei</button>`);
     document.getElementById('modal-cancel').onclick = () => App.closeModal();
+
+    const copyBtn = document.getElementById('btn-copy-pix-2');
+    if(copyBtn){
+      copyBtn.onclick = () => {
+        const text = document.getElementById('pix-key-text-2').textContent;
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(text).then(()=> toast('Chave PIX copiada!')).catch(()=> toast('Não foi possível copiar. Copie manualmente.', 'error'));
+        } else {
+          toast('Copie a chave manualmente: ' + text, 'error');
+        }
+      };
+    }
+
     document.getElementById('modal-save').onclick = async () => {
       const btn = document.getElementById('modal-save');
       btn.disabled = true; btn.textContent = 'Enviando...';
