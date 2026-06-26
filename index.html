@@ -1534,6 +1534,7 @@ Pages.adminBoloes = function(){
           </div>
           <div class="divider"></div>
           <div class="flex-row">
+            <button class="btn btn-primary btn-sm" data-ver-bolao="${b.id}">📊 Palpites</button>
             <button class="btn btn-outline btn-sm" data-edit="${b.id}">Editar</button>
             <button class="btn btn-outline btn-sm" data-toggle="${b.id}">${b.status==='ativo'?'Encerrar':'Reativar'}</button>
             <button class="btn btn-danger btn-sm" data-del="${b.id}">Excluir</button>
@@ -1543,6 +1544,10 @@ Pages.adminBoloes = function(){
     </div>
   `;
 
+  document.querySelectorAll('[data-ver-bolao]').forEach(el=> el.onclick = () => {
+    const bolao = db.boloes.find(b=>b.id===el.dataset.verBolao);
+    Pages.palpitesBolao(bolao);
+  });
   document.querySelectorAll('[data-edit]').forEach(el=> el.onclick = () => App.openModal('bolao-form', db.boloes.find(b=>b.id===el.dataset.edit)));
   document.querySelectorAll('[data-toggle]').forEach(el=> el.onclick = async () => {
     const b = db.boloes.find(x=>x.id===el.dataset.toggle);
@@ -1567,6 +1572,77 @@ Pages.adminBoloes = function(){
     await Store.loadAll();
     Pages.adminBoloes();
   });
+};
+
+// ---------------------- PALPITES DO BOLÃO ----------------------
+Pages.palpitesBolao = function(bolao){
+  App.setTopbar(`Palpites — ${bolao.nome}`, 'Acompanhe os palpites de cada participante por jogo');
+  document.getElementById('topbar-actions').innerHTML =
+    `<button class="btn btn-outline" id="btn-voltar-boloes">← Voltar</button>`;
+  document.getElementById('btn-voltar-boloes').onclick = () => Pages.adminBoloes();
+
+  const db = Store.data;
+  const jogos = db.jogos.filter(j=>j.bolaoId===bolao.id)
+    .sort((a,b)=> new Date(a.dataHora)-new Date(b.dataHora));
+  const participantes = db.usuarios.filter(u=>u.perfil==='participante');
+
+  if(!jogos.length){
+    document.getElementById('content').innerHTML = `
+      <div class="empty-state"><div class="icon">⚽</div><div class="msg">Nenhum jogo cadastrado neste bolão</div></div>`;
+    return;
+  }
+
+  const html = jogos.map(j=>{
+    const finalizado = j.status === 'finalizado';
+    const temResultado = j.placarMandante !== null && j.placarVisitante !== null;
+    const palpitesDoJogo = db.palpites.filter(p=>p.jogoId===j.id);
+
+    const statusJogo = finalizado
+      ? `<span style="color:var(--azul-2);font-weight:700;">Finalizado · ${j.placarMandante} × ${j.placarVisitante}</span>`
+      : j.dataHora && new Date(j.dataHora) <= new Date()
+      ? `<span class="live-badge"><span class="pulse"></span>Ao vivo</span>`
+      : `<span style="color:var(--texto-3);">Agendado · ${j.dataHora ? new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'sem data'}</span>`;
+
+    // Uma linha por participante
+    const linhas = participantes.map(u=>{
+      const meus = palpitesDoJogo.filter(p=>p.usuarioId===u.id)
+        .sort((a,b)=>a.numeroPalpite-b.numeroPalpite);
+
+      if(!meus.length) return `<tr>
+        <td style="font-weight:600;">${escapeHtml(u.nome)}</td>
+        <td colspan="3" style="color:var(--texto-3);font-size:12px;">— não apostou</td>
+      </tr>`;
+
+      return meus.map((p, i)=>{
+        const pts = p.pontos || 0;
+        const corPts = pts > 0 ? 'var(--verde)' : 'var(--texto-3)';
+        const pag = db.pagamentos.find(x=>x.palpiteId===p.id);
+        const statusPag = pag ? Pages._badgePagamento(pag.status) : '';
+        return `<tr>
+          <td style="font-weight:600;${i>0?'color:var(--texto-3);font-size:12px;':''}">${i===0?escapeHtml(u.nome):'↳ aposta '+(i+1)}</td>
+          <td class="font-mono" style="color:var(--verde);font-weight:700;">${p.placarMandante} × ${p.placarVisitante}</td>
+          <td>${temResultado ? `<span class="font-mono" style="color:${corPts};font-weight:700;">${pts} pts</span>` : statusPag}</td>
+          <td style="font-size:10.5px;color:var(--texto-3);">${escapeHtml(p.codigoVerificacao||'')}</td>
+        </tr>`;
+      }).join('');
+    }).join('');
+
+    return `
+    <div class="card card-flush" style="margin-bottom:16px;">
+      <div style="padding:10px 16px;background:var(--bg-3);border-bottom:1px solid var(--linha);display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:700;">${escapeHtml(j.mandante)} × ${escapeHtml(j.visitante)}</span>
+        <span>${statusJogo}</span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Participante</th><th>Palpite</th><th>${finalizado?'Pontos':'Pagamento'}</th><th>Código</th></tr></thead>
+          <tbody>${linhas}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('content').innerHTML = html;
 };
 
 // ---------------------- JOGOS & RESULTADOS ----------------------
