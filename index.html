@@ -2049,13 +2049,15 @@ Pages.partPalpites = function(user){
 
         btn.disabled = true; btn.textContent = 'Enviando...';
 
-        // Revalida no banco antes de inserir para evitar duplicata
-        const { count } = await sb.from('palpites')
-          .select('*', { count: 'exact', head: true })
+        // Revalida no banco antes de inserir para evitar duplicata de clique duplo
+        const { data: jaExistem, error: errCount } = await sb.from('palpites')
+          .select('id')
           .eq('jogo_id', jogoId)
           .eq('usuario_id', user.id);
 
-        if(count !== null && count >= LIMITE_PALPITES){
+        const totalNoBanco = errCount ? jaFeitos : (jaExistem ? jaExistem.length : jaFeitos);
+
+        if(totalNoBanco >= LIMITE_PALPITES){
           toast(`Limite de ${LIMITE_PALPITES} palpites por jogo atingido.`, 'error');
           btn.disabled = false; btn.textContent = '+ Apostar';
           return;
@@ -2067,7 +2069,7 @@ Pages.partPalpites = function(user){
             usuario_id: user.id,
             placar_mandante: parseInt(pm,10),
             placar_visitante: parseInt(pv,10),
-            numero_palpite: (count ?? jaFeitos) + 1,
+            numero_palpite: totalNoBanco + 1,
           })
           .select()
           .single();
