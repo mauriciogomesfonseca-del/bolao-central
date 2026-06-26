@@ -273,6 +273,8 @@ body{
   transition:border-color .15s;
 }
 .card-flush{padding:0;overflow:hidden;}
+.card-flush.table-scroll{overflow-x:auto;}
+@media (max-width:860px){.card-flush.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}}
 
 .stat-card{
   background:var(--card);
@@ -549,6 +551,12 @@ a{color:var(--azul-2);}
   .sumula-team .name{font-size:9.5px;}
   .shield{width:26px;height:26px;font-size:8.5px;}
   .placar-input{width:28px;height:28px;font-size:13px;}
+}
+
+/* Tabela de pagamentos — esconde colunas secundárias no mobile */
+@media (max-width:860px){
+  .col-hide-mobile{display:none;}
+  table{min-width:360px;}
 }
 </style>
 </head>
@@ -1751,9 +1759,9 @@ Pages.adminPagamentos = function(){
       <div class="stat-card"><div class="stat-label">Pagantes</div><div class="stat-value">${fin.pagantes}</div></div>
       <div class="stat-card alert"><div class="stat-label">Inadimplentes</div><div class="stat-value">${fin.inadimplentes}</div></div>
     </div>
-    <div class="card card-flush">
+    <div class="card card-flush table-scroll">
       <table>
-        <thead><tr><th>Participante</th><th>Jogo</th><th>Palpite</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Participante</th><th class="col-hide-mobile">Jogo</th><th class="col-hide-mobile">Palpite</th><th>Valor</th><th>Status</th><th></th></tr></thead>
         <tbody>
           ${db.pagamentos.length ? [...db.pagamentos].sort((a,b)=>{
               const ordem = { em_analise:0, pendente:1, atrasado:1, pago:2, isento:2 };
@@ -1764,8 +1772,8 @@ Pages.adminPagamentos = function(){
             const jogo = palpite ? db.jogos.find(j=>j.id===palpite.jogoId) : null;
             return `<tr>
               <td style="font-weight:600;">${escapeHtml(u?u.nome:'—')}</td>
-              <td>${jogo ? escapeHtml(jogo.mandante)+' x '+escapeHtml(jogo.visitante) : '<span class="text-muted">sem vínculo</span>'}</td>
-              <td class="font-mono" style="font-size:11px;">${palpite ? palpite.placarMandante+'x'+palpite.placarVisitante+' · '+escapeHtml(palpite.codigoVerificacao||'') : '—'}</td>
+              <td class="col-hide-mobile">${jogo ? escapeHtml(jogo.mandante)+' x '+escapeHtml(jogo.visitante) : '<span class="text-muted">sem vínculo</span>'}</td>
+              <td class="col-hide-mobile font-mono" style="font-size:11px;">${palpite ? palpite.placarMandante+'x'+palpite.placarVisitante+' · '+escapeHtml(palpite.codigoVerificacao||'') : '—'}</td>
               <td class="font-mono">${fmtMoney(p.valorInscricao)}</td>
               <td>${Pages._badgePagamento(p.status)}</td>
               <td class="flex-row">
