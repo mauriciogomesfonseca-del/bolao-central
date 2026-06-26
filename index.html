@@ -667,6 +667,7 @@ const Map_ = {
       valorInscricao:Number(p.valor_inscricao)||0, valorPago:Number(p.valor_pago)||0,
       dataVencimento:p.data_vencimento, dataPagamento:p.data_pagamento,
       formaPagamento:p.forma_pagamento||'', status:p.status,
+      comprovanteUrl: p.comprovante_url||null,
     };
   },
   configuracao(c){
@@ -1736,6 +1737,7 @@ Pages.adminPagamentos = function(){
               <td class="font-mono">${fmtMoney(p.valorInscricao)}</td>
               <td>${Pages._badgePagamento(p.status)}</td>
               <td class="flex-row">
+                ${p.comprovanteUrl ? `<button class="btn btn-outline btn-sm" data-ver-comp="${p.id}">Ver comprovante</button>` : ''}
                 ${p.status!=='pago' ? `<button class="btn btn-secondary btn-sm" data-marcar-pago="${p.id}">Confirmar</button>` : ''}
               </td>
             </tr>`;
@@ -1744,6 +1746,17 @@ Pages.adminPagamentos = function(){
       </table>
     </div>
   `;
+
+  document.querySelectorAll('[data-ver-comp]').forEach(el=> el.onclick = async () => {
+    const p = db.pagamentos.find(x=>x.id===el.dataset.verComp);
+    if(!p || !p.comprovanteUrl) return;
+    el.disabled = true; el.textContent = 'Carregando...';
+    const { data, error } = await sb.storage.from('comprovantes').createSignedUrl(p.comprovanteUrl, 60);
+    el.disabled = false; el.textContent = 'Ver comprovante';
+    if(error){ toast('Erro ao abrir comprovante: ' + error.message, 'error'); return; }
+    const u = db.usuarios.find(x=>x.id===p.usuarioId);
+    App.openModal('ver-comprovante', { url: data.signedUrl, nome: u ? u.nome : '—', valor: p.valorInscricao });
+  });
 
   document.querySelectorAll('[data-marcar-pago]').forEach(el=> el.onclick = async () => {
     const p = db.pagamentos.find(x=>x.id===el.dataset.marcarPago);
@@ -2266,6 +2279,7 @@ const Modals = {
       'reservar-cota': this.reservarCota,
       'cotas-view': this.cotasView,
       'confirmar-pagamento-participante': this.confirmarPagamentoParticipante,
+    'ver-comprovante': this.verComprovante,
     };
     const fn = handlers[modal.type];
     if(!fn){ root.innerHTML=''; return; }
@@ -2321,22 +2335,34 @@ const Modals = {
           </div>
           ${cfg.chavePix ? `
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--texto-2);margin-bottom:4px;">Chave PIX${cfg.nomeRecebedor ? ' — '+escapeHtml(cfg.nomeRecebedor) : ''}</div>
-            <div style="display:flex;gap:6px;align-items:center;">
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;">
               <div class="font-mono" id="pix-key-text" style="flex:1;background:var(--bg);border:1px solid var(--linha);border-radius:6px;padding:8px 10px;font-size:13px;word-break:break-all;">${escapeHtml(cfg.chavePix)}</div>
               <button class="btn btn-secondary btn-sm" id="btn-copy-pix" type="button">Copiar</button>
             </div>
-          ` : `<div class="text-muted">O administrador ainda não cadastrou a chave PIX. Combine o pagamento diretamente com ele.</div>`}
+          ` : `<div class="text-muted" style="margin-bottom:10px;">O administrador ainda não cadastrou a chave PIX. Combine o pagamento diretamente com ele.</div>`}
+          <div style="margin-top:4px;">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--texto-2);margin-bottom:6px;">Comprovante de pagamento</div>
+            <label id="label-upload" style="display:flex;align-items:center;gap:8px;background:var(--bg);border:1.5px dashed var(--linha);border-radius:6px;padding:10px 12px;cursor:pointer;font-size:12px;color:var(--texto-2);">
+              <span style="font-size:18px;">📎</span>
+              <span id="upload-label-txt">Anexar foto do comprovante PIX</span>
+              <input type="file" id="input-comprovante" accept="image/*" style="display:none;">
+            </label>
+            <div id="upload-preview" style="display:none;margin-top:8px;text-align:center;">
+              <img id="preview-img" style="max-width:100%;max-height:180px;border-radius:6px;border:1px solid var(--linha);">
+            </div>
+          </div>
           <div style="font-size:11px;color:var(--texto-2);margin-top:10px;line-height:1.5;">
-            Pague até o início do jogo. Se o pagamento não for confirmado pelo administrador antes do jogo começar, esta aposta será removida automaticamente.
+            Pague e anexe o comprovante antes do início do jogo.
           </div>
         </div>
       ` : ''}
+      ${jaPago ? `<div style="text-align:center;color:var(--verde);font-weight:700;font-size:13px;margin-top:10px;">✓ Pagamento confirmado</div>` : ''}
 
       <div style="font-size:11.5px;color:var(--texto-3);margin-top:12px;line-height:1.5;text-align:center;">
         Guarde o código de verificação. Ele e o administrador consultam o mesmo registro —
         é a prova de qual placar você apostou e quando.
       </div>
-    `, `<button class="btn btn-primary btn-block" id="modal-cancel">Entendi</button>`);
+    `, `<button class="btn btn-outline" id="modal-cancel">Fechar</button>${pagamento && pagamento.status !== 'pago' && pagamento.status !== 'em_analise' ? '<button class="btn btn-primary" id="btn-avisei">✓ Avisei que paguei</button>' : pagamento && pagamento.status === 'em_analise' ? '<span style="color:var(--amarelo);font-size:12px;font-weight:700;align-self:center;">⏳ Aguardando confirmação</span>' : ''}`);
     document.getElementById('modal-cancel').onclick = () => App.closeModal();
 
     const copyBtn = document.getElementById('btn-copy-pix');
@@ -2350,6 +2376,73 @@ const Modals = {
         }
       };
     }
+
+    // Preview da imagem antes do upload
+    const inputComp = document.getElementById('input-comprovante');
+    if(inputComp){
+      inputComp.onchange = () => {
+        const file = inputComp.files[0];
+        if(!file) return;
+        document.getElementById('upload-label-txt').textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = e => {
+          const prev = document.getElementById('upload-preview');
+          document.getElementById('preview-img').src = e.target.result;
+          prev.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      };
+    }
+
+    const aviseiBtn = document.getElementById('btn-avisei');
+    if(aviseiBtn){
+      aviseiBtn.onclick = async () => {
+        aviseiBtn.disabled = true; aviseiBtn.textContent = 'Enviando...';
+
+        const file = inputComp && inputComp.files[0];
+        let comprovanteUrl = null;
+
+        // Faz upload da imagem se foi selecionada
+        if(file){
+          const ext = file.name.split('.').pop();
+          const path = `${Session.currentUser().id}/${pagamento.id}.${ext}`;
+          const { error: upErr } = await sb.storage.from('comprovantes').upload(path, file, { upsert: true });
+          if(upErr){
+            toast('Erro ao enviar imagem: ' + upErr.message, 'error');
+            aviseiBtn.disabled = false; aviseiBtn.textContent = '✓ Avisei que paguei';
+            return;
+          }
+          comprovanteUrl = path;
+        }
+
+        const update = { forma_pagamento: 'PIX', status: 'em_analise' };
+        if(comprovanteUrl) update.comprovante_url = comprovanteUrl;
+
+        const { error } = await sb.from('pagamentos').update(update).eq('id', pagamento.id);
+        if(error){
+          toast('Erro ao enviar aviso: ' + error.message, 'error');
+          aviseiBtn.disabled = false; aviseiBtn.textContent = '✓ Avisei que paguei';
+          return;
+        }
+        Store.log(Session.currentUser().id, 'Participante avisou pagamento' + (comprovanteUrl ? ' com comprovante.' : '.'));
+        toast(file ? 'Comprovante enviado! Aguarde a confirmação.' : 'Aviso enviado! Aguarde a confirmação.');
+        await Store.reloadPagamentos();
+        aviseiBtn.textContent = '⏳ Aguardando confirmação';
+        aviseiBtn.disabled = true;
+        aviseiBtn.className = 'btn btn-outline';
+      };
+    }
+  },
+
+  // ---------------- VER COMPROVANTE (ADMIN) ----------------
+  verComprovante(root, payload){
+    this._shell(root, `Comprovante — ${escapeHtml(payload.nome)}`, `
+      <div style="text-align:center;margin-bottom:14px;">
+        <div style="font-size:12px;color:var(--texto-2);margin-bottom:10px;">Valor: <strong class="font-mono">${fmtMoney(payload.valor)}</strong></div>
+        <img src="${escapeHtml(payload.url)}" style="max-width:100%;max-height:420px;border-radius:8px;border:1px solid var(--linha);" onerror="this.src='';this.alt='Imagem indisponível';">
+      </div>
+    `, `<button class="btn btn-outline" id="modal-cancel">Fechar</button>`);
+    document.getElementById('modal-cancel').onclick = () => App.closeModal();
   },
 
   // ---------------- BOLÃO ----------------
