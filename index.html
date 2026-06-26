@@ -113,6 +113,7 @@ body{
   cursor:pointer;
   border-left:3px solid transparent;
   transition:background .15s, color .15s;
+  -webkit-user-select:none;
   user-select:none;
 }
 .nav-item:hover{background:rgba(255,255,255,0.03);color:var(--texto);}
@@ -357,6 +358,18 @@ tr:hover td{background:rgba(255,255,255,0.02);}
   border-radius:50%;
   border:1.5px solid var(--linha);
 }
+.shield.flag-emoji{
+  font-size:22px;
+  background:transparent;
+  border-color:transparent;
+  letter-spacing:0;
+}
+@media (max-width:860px){
+  .shield.flag-emoji{font-size:18px;}
+}
+@media (max-width:420px){
+  .shield.flag-emoji{font-size:16px;}
+}
 .sumula-team .name{font-size:11.5px;font-weight:600;color:var(--texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
 .placar-box{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .placar-input{
@@ -519,6 +532,7 @@ a{color:var(--azul-2);}
   .sumula-team{min-width:0;}
   .sumula-team .name{font-size:10.5px;max-width:100%;}
   .shield{width:30px;height:30px;font-size:9.5px;}
+  .shield.flag-emoji{font-size:18px;width:30px;height:30px;}
   .placar-box{gap:4px;}
   .placar-input{width:32px;height:32px;font-size:14px;}
   .placar-sep{font-size:11px;}
@@ -567,6 +581,42 @@ function fmtDate(iso){
 function escapeHtml(str){
   if(str===undefined||str===null) return '';
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---- BANDEIRAS DAS SELEÇÕES -----------------------------------------------
+// Mapa sigla → emoji de bandeira (Copa do Mundo 2026 — 48 seleções)
+const BANDEIRAS = {
+  // Américas
+  'BRA':'🇧🇷','ARG':'🇦🇷','URU':'🇺🇾','COL':'🇨🇴','EQU':'🇪🇨','CHI':'🇨🇱',
+  'PAR':'🇵🇾','VEN':'🇻🇪','BOL':'🇧🇴','PER':'🇵🇪',
+  'EUA':'🇺🇸','USA':'🇺🇸','MEX':'🇲🇽','CAN':'🇨🇦','CRC':'🇨🇷','HON':'🇭🇳',
+  'PAN':'🇵🇦','JAM':'🇯🇲','HAI':'🇭🇹','GUA':'🇬🇹','ELS':'🇸🇻','TRI':'🇹🇹',
+  // Europa
+  'ALE':'🇩🇪','GER':'🇩🇪','FRA':'🇫🇷','ENG':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','ING':'🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'ESP':'🇪🇸','POR':'🇵🇹','HOL':'🇳🇱','NED':'🇳🇱','BEL':'🇧🇪',
+  'ITA':'🇮🇹','CRO':'🇭🇷','SER':'🇷🇸','POL':'🇵🇱','DIN':'🇩🇰','DEN':'🇩🇰',
+  'SUI':'🇨🇭','AUT':'🇦🇹','ESC':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','SCO':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','HUN':'🇭🇺',
+  'SVK':'🇸🇰','SLO':'🇸🇮','ROU':'🇷🇴','ALB':'🇦🇱','GEO':'🇬🇪',
+  'UKR':'🇺🇦','WAL':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','ISL':'🇮🇸','NOR':'🇳🇴','SUE':'🇸🇪','SWE':'🇸🇪',
+  'FIN':'🇫🇮','GRE':'🇬🇷','TUR':'🇹🇷','RUS':'🇷🇺',
+  // África
+  'MAR':'🇲🇦','SEN':'🇸🇳','GHA':'🇬🇭','CMR':'🇨🇲','CIV':'🇨🇮','NIG':'🇳🇬',
+  'EGI':'🇪🇬','ALG':'🇩🇿','TUN':'🇹🇳','GUI':'🇬🇳','ZAF':'🇿🇦',
+  // Ásia / Oceania
+  'JAP':'🇯🇵','JPN':'🇯🇵','COR':'🇰🇷','KOR':'🇰🇷','AUS':'🇦🇺','IRA':'🇮🇷',
+  'ARA':'🇸🇦','SAU':'🇸🇦','JAT':'🇸🇦','QAT':'🇶🇦','EAU':'🇦🇪','UAE':'🇦🇪',
+  'IRA2':'🇮🇶','IRQ':'🇮🇶','CHN':'🇨🇳','IND':'🇮🇳','UZB':'🇺🇿',
+  'TAI':'🇹🇭','VIE':'🇻🇳','NZL':'🇳🇿','NZE':'🇳🇿',
+};
+
+// Retorna emoji de bandeira ou o badge com a sigla (fallback)
+function bandeira(sigla, nome){
+  const s = (sigla||'').toUpperCase().trim();
+  const emoji = BANDEIRAS[s];
+  if(emoji) return `<span class="shield flag-emoji" title="${escapeHtml(nome||sigla)}">${emoji}</span>`;
+  // fallback: shield com sigla (≤3 chars)
+  const label = s || (nome||'').slice(0,3).toUpperCase();
+  return `<span class="shield" title="${escapeHtml(nome||sigla)}">${escapeHtml(label)}</span>`;
 }
 
 // ---------------------------------------------------------------------
@@ -817,11 +867,11 @@ const Auth = {
     area.innerHTML = `
       <form id="form-login">
         <div class="field">
-          <label>E-mail</label>
+          <label for="li-email">E-mail</label>
           <input type="email" id="li-email" required autocomplete="username">
         </div>
         <div class="field">
-          <label>Senha</label>
+          <label for="li-senha">Senha</label>
           <input type="password" id="li-senha" required autocomplete="current-password">
         </div>
         <button type="submit" class="btn btn-primary btn-block" id="li-submit">Entrar</button>
@@ -874,23 +924,23 @@ const Auth = {
     area.innerHTML = `
       <form id="form-cadastro">
         <div class="field">
-          <label>Nome completo</label>
+          <label for="ca-nome">Nome completo</label>
           <input type="text" id="ca-nome" required>
         </div>
         <div class="field">
-          <label>E-mail</label>
+          <label for="ca-email">E-mail</label>
           <input type="email" id="ca-email" required>
         </div>
         <div class="field">
-          <label>Telefone</label>
+          <label for="ca-telefone">Telefone</label>
           <input type="text" id="ca-telefone" placeholder="(00) 00000-0000">
         </div>
         <div class="field">
-          <label>Senha</label>
+          <label for="ca-senha">Senha</label>
           <input type="password" id="ca-senha" required minlength="6" placeholder="mínimo 6 caracteres">
         </div>
         <div class="field">
-          <label>Código de convite</label>
+          <label for="ca-convite">Código de convite</label>
           <input type="text" id="ca-convite" required placeholder="ex: BOLAO2026" style="text-transform:uppercase;">
         </div>
         <button type="submit" class="btn btn-primary btn-block" id="ca-submit">Criar conta</button>
@@ -1191,7 +1241,7 @@ const App = {
         <span class="tk-brand"><span class="dot"></span>BOLÃO <span>CENTRAL</span></span>
         <div class="tk-sep"></div>
         <span class="live-badge"><span class="pulse"></span>Live</span>
-        <div class="tk-item">${proxJogo ? `Próximo: ${escapeHtml(proxJogo.mandante)} x ${escapeHtml(proxJogo.visitante)}` : 'Sem jogos agendados'}</div>
+        <div class="tk-item">${proxJogo ? `Próximo: ${BANDEIRAS[(proxJogo.mandanteSigla||'').toUpperCase()]||''}${escapeHtml(proxJogo.mandante)} × ${escapeHtml(proxJogo.visitante)}${BANDEIRAS[(proxJogo.visitanteSigla||'').toUpperCase()]||''}` : 'Sem jogos agendados'}</div>
         <div class="tk-sep"></div>
         <div class="tk-item">Participantes <span class="tk-val">${s.participantesAtivos}</span></div>
         <div class="tk-sep"></div>
@@ -1385,13 +1435,13 @@ Pages._sumulaMini = function(j){
   <div class="sumula" style="margin-bottom:10px;">
     <div class="sumula-head"><span class="comp">${escapeHtml(j.rodada||'')}</span>${isLive ? `<span class="live-badge"><span class="pulse"></span>Ao vivo</span>` : `<span>${j.dataHora ? new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}</span>`}</div>
     <div class="sumula-body">
-      <div class="sumula-team"><div class="shield">${escapeHtml(j.mandanteSigla||j.mandante.slice(0,3).toUpperCase())}</div><div class="name">${escapeHtml(j.mandante)}</div></div>
+      <div class="sumula-team">${bandeira(j.mandanteSigla, j.mandante)}<div class="name">${escapeHtml(j.mandante)}</div></div>
       <div class="placar-box font-mono">
         <div class="placar-input" style="border:none;background:transparent;">${placarOn?j.placarMandante:'-'}</div>
         <span class="placar-sep">×</span>
         <div class="placar-input" style="border:none;background:transparent;">${placarOn?j.placarVisitante:'-'}</div>
       </div>
-      <div class="sumula-team"><div class="shield">${escapeHtml(j.visitanteSigla||j.visitante.slice(0,3).toUpperCase())}</div><div class="name">${escapeHtml(j.visitante)}</div></div>
+      <div class="sumula-team">${bandeira(j.visitanteSigla, j.visitante)}<div class="name">${escapeHtml(j.visitante)}</div></div>
     </div>
   </div>`;
 };
@@ -1502,13 +1552,13 @@ Pages._sumulaEditavel = function(j){
       ${isLive ? `<span class="live-badge"><span class="pulse"></span>Ao vivo</span>` : `<span>${escapeHtml(j.rodada||'')}</span>`}
     </div>
     <div class="sumula-body">
-      <div class="sumula-team"><div class="shield">${escapeHtml(j.mandanteSigla||'')}</div><div class="name">${escapeHtml(j.mandante)}</div></div>
+      <div class="sumula-team">${bandeira(j.mandanteSigla, j.mandante)}<div class="name">${escapeHtml(j.mandante)}</div></div>
       <div class="placar-box">
         <input type="number" min="0" class="placar-input font-mono" data-jogo="${j.id}" data-lado="mandante" value="${j.placarMandante??''}" placeholder="-">
         <span class="placar-sep">×</span>
         <input type="number" min="0" class="placar-input font-mono" data-jogo="${j.id}" data-lado="visitante" value="${j.placarVisitante??''}" placeholder="-">
       </div>
-      <div class="sumula-team"><div class="shield">${escapeHtml(j.visitanteSigla||'')}</div><div class="name">${escapeHtml(j.visitante)}</div></div>
+      <div class="sumula-team">${bandeira(j.visitanteSigla, j.visitante)}<div class="name">${escapeHtml(j.visitante)}</div></div>
     </div>
     <div class="sumula-foot">
       <span>${j.dataHora ? new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Sem data'} · ${finalizado?'<strong style="color:var(--azul);">Finalizado</strong>':'Agendado'}</span>
@@ -1798,8 +1848,8 @@ Pages.configuracoes = function(){
   document.getElementById('content').innerHTML = `
     <div class="card" style="max-width:480px;">
       <form id="f-config">
-        <div class="field"><label>Chave PIX</label><input type="text" id="cfg-chave" value="${escapeHtml(cfg.chavePix)}" placeholder="CPF, e-mail, telefone ou chave aleatória" required></div>
-        <div class="field"><label>Nome do recebedor (exibido para os participantes)</label><input type="text" id="cfg-nome" value="${escapeHtml(cfg.nomeRecebedor)}" placeholder="ex: Mauricio Gomes"></div>
+        <div class="field"><label for="cfg-chave">Chave PIX</label><input type="text" id="cfg-chave" value="${escapeHtml(cfg.chavePix)}" placeholder="CPF, e-mail, telefone ou chave aleatória" required></div>
+        <div class="field"><label for="cfg-nome">Nome do recebedor (exibido para os participantes)</label><input type="text" id="cfg-nome" value="${escapeHtml(cfg.nomeRecebedor)}" placeholder="ex: Mauricio Gomes"></div>
         <button type="submit" class="btn btn-primary" id="cfg-submit">Salvar configuração</button>
       </form>
       <div class="divider"></div>
@@ -1907,13 +1957,13 @@ Pages.partPalpites = function(user){
             <div class="sumula-head"><span class="comp">${escapeHtml(j.rodada||'')}</span><span>${new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span></div>
             ${j.valorAposta > 0 ? `<div style="padding:6px 14px;background:var(--bg-3);font-size:11px;color:var(--texto-2);display:flex;justify-content:space-between;"><span>Valor da aposta</span><span class="font-mono" style="color:var(--verde);font-weight:700;">${fmtMoney(j.valorAposta)}</span></div>` : ''}
             <div class="sumula-body">
-              <div class="sumula-team"><div class="shield">${escapeHtml(j.mandanteSigla||'')}</div><div class="name">${escapeHtml(j.mandante)}</div></div>
+              <div class="sumula-team">${bandeira(j.mandanteSigla, j.mandante)}<div class="name">${escapeHtml(j.mandante)}</div></div>
               <div class="placar-box">
                 <input type="number" min="0" class="placar-input font-mono" id="pm-${j.id}" value="${meuPalpite?meuPalpite.placarMandante:''}" placeholder="-">
                 <span class="placar-sep">×</span>
                 <input type="number" min="0" class="placar-input font-mono" id="pv-${j.id}" value="${meuPalpite?meuPalpite.placarVisitante:''}" placeholder="-">
               </div>
-              <div class="sumula-team"><div class="shield">${escapeHtml(j.visitanteSigla||'')}</div><div class="name">${escapeHtml(j.visitante)}</div></div>
+              <div class="sumula-team">${bandeira(j.visitanteSigla, j.visitante)}<div class="name">${escapeHtml(j.visitante)}</div></div>
             </div>
             <div class="sumula-foot">
               <span>${meuPalpite?`✓ ${escapeHtml(meuPalpite.codigoVerificacao||'')}${meuPagamento?' · '+Pages._badgePagamento(meuPagamento.status):''}`:'Sem palpite ainda'}</span>
@@ -2039,11 +2089,11 @@ Pages.partPerfil = function(user){
   document.getElementById('content').innerHTML = `
     <div class="card" style="max-width:480px;">
       <form id="form-perfil">
-        <div class="field"><label>Nome completo</label><input type="text" id="pf-nome" value="${escapeHtml(user.nome)}" required></div>
-        <div class="field"><label>E-mail</label><input type="email" id="pf-email" value="${escapeHtml(user.email)}" required></div>
-        <div class="field"><label>Telefone</label><input type="text" id="pf-telefone" value="${escapeHtml(user.telefone||'')}"></div>
-        <div class="field"><label>Data de nascimento</label><input type="date" id="pf-nascimento" value="${user.nascimento||''}"></div>
-        <div class="field"><label>Nova senha (deixe em branco para manter)</label><input type="password" id="pf-senha" placeholder="mínimo 6 caracteres" minlength="6"></div>
+        <div class="field"><label for="pf-nome">Nome completo</label><input type="text" id="pf-nome" value="${escapeHtml(user.nome)}" required></div>
+        <div class="field"><label for="pf-email">E-mail</label><input type="email" id="pf-email" value="${escapeHtml(user.email)}" required></div>
+        <div class="field"><label for="pf-telefone">Telefone</label><input type="text" id="pf-telefone" value="${escapeHtml(user.telefone||'')}"></div>
+        <div class="field"><label for="pf-nascimento">Data de nascimento</label><input type="date" id="pf-nascimento" value="${user.nascimento||''}"></div>
+        <div class="field"><label for="pf-senha">Nova senha (deixe em branco para manter)</label><input type="password" id="pf-senha" placeholder="mínimo 6 caracteres" minlength="6"></div>
         <button type="submit" class="btn btn-primary" id="pf-submit">Salvar alterações</button>
       </form>
     </div>
@@ -2297,29 +2347,29 @@ const Modals = {
     const editing = !!bolao;
     this._shell(root, editing ? 'Editar Bolão' : 'Novo Bolão', `
       <form id="f-bolao">
-        <div class="field"><label>Nome do bolão</label><input type="text" id="b-nome" value="${editing?escapeHtml(bolao.nome):''}" required></div>
-        <div class="field"><label>Tipo</label>
+        <div class="field"><label for="b-nome">Nome do bolão</label><input type="text" id="b-nome" value="${editing?escapeHtml(bolao.nome):''}" required></div>
+        <div class="field"><label for="b-tipo">Tipo</label>
           <select id="b-tipo">
             ${['Copa do Mundo','Campeonato Brasileiro','Libertadores','Champions League','Fórmula 1','NBA','Outro'].map(t=>`<option ${editing&&bolao.tipo===t?'selected':''}>${t}</option>`).join('')}
           </select>
         </div>
-        <div class="field"><label>Descrição</label><textarea id="b-desc" rows="2">${editing?escapeHtml(bolao.descricao||''):''}</textarea></div>
+        <div class="field"><label for="b-desc">Descrição</label><textarea id="b-desc" rows="2">${editing?escapeHtml(bolao.descricao||''):''}</textarea></div>
         <div class="grid grid-2">
-          <div class="field"><label>Valor da inscrição (R$)</label><input type="number" min="0" step="0.01" id="b-valor" value="${editing?bolao.valorInscricao:''}" required></div>
-          <div class="field"><label>Status</label>
+          <div class="field"><label for="b-valor">Valor da inscrição (R$)</label><input type="number" min="0" step="0.01" id="b-valor" value="${editing?bolao.valorInscricao:''}" required></div>
+          <div class="field"><label for="b-status">Status</label>
             <select id="b-status"><option value="ativo" ${editing&&bolao.status==='ativo'?'selected':''}>Ativo</option><option value="encerrado" ${editing&&bolao.status==='encerrado'?'selected':''}>Encerrado</option></select>
           </div>
         </div>
         <div class="grid grid-2">
-          <div class="field"><label>Data de início</label><input type="date" id="b-inicio" value="${editing?bolao.dataInicio:''}"></div>
-          <div class="field"><label>Data de encerramento</label><input type="date" id="b-fim" value="${editing?bolao.dataFim:''}"></div>
+          <div class="field"><label for="b-inicio">Data de início</label><input type="date" id="b-inicio" value="${editing?bolao.dataInicio:''}"></div>
+          <div class="field"><label for="b-fim">Data de encerramento</label><input type="date" id="b-fim" value="${editing?bolao.dataFim:''}"></div>
         </div>
-        <div class="field"><label>Premiação</label><textarea id="b-premio" rows="2">${editing?escapeHtml(bolao.premiacao||''):''}</textarea></div>
+        <div class="field"><label for="b-premio">Premiação</label><textarea id="b-premio" rows="2">${editing?escapeHtml(bolao.premiacao||''):''}</textarea></div>
         <div class="section-title" style="font-size:14px;margin-top:6px;">Regras de pontuação</div>
         <div class="grid grid-3">
-          <div class="field"><label>Acertar vencedor</label><input type="number" min="0" id="b-r-venc" value="${editing?bolao.regras.vencedor:3}"></div>
-          <div class="field"><label>Acertar empate</label><input type="number" min="0" id="b-r-emp" value="${editing?bolao.regras.empate:3}"></div>
-          <div class="field"><label>Placar exato</label><input type="number" min="0" id="b-r-exato" value="${editing?bolao.regras.placarExato:10}"></div>
+          <div class="field"><label for="b-r-venc">Acertar vencedor</label><input type="number" min="0" id="b-r-venc" value="${editing?bolao.regras.vencedor:3}"></div>
+          <div class="field"><label for="b-r-emp">Acertar empate</label><input type="number" min="0" id="b-r-emp" value="${editing?bolao.regras.empate:3}"></div>
+          <div class="field"><label for="b-r-exato">Placar exato</label><input type="number" min="0" id="b-r-exato" value="${editing?bolao.regras.placarExato:10}"></div>
         </div>
       </form>
     `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">${editing?'Salvar alterações':'Criar bolão'}</button>`);
@@ -2366,22 +2416,22 @@ const Modals = {
     const boloes = Store.data.boloes;
     this._shell(root, editing?'Editar Jogo':'Novo Jogo', `
       <form id="f-jogo">
-        <div class="field"><label>Bolão</label>
+        <div class="field"><label for="j-bolao">Bolão</label>
           <select id="j-bolao">${boloes.map(b=>`<option value="${b.id}" ${editing&&jogo.bolaoId===b.id?'selected':''}>${escapeHtml(b.nome)}</option>`).join('')}</select>
         </div>
         <div class="grid grid-2">
-          <div class="field"><label>Time mandante</label><input type="text" id="j-mandante" value="${editing?escapeHtml(jogo.mandante):''}" required></div>
-          <div class="field"><label>Sigla mandante</label><input type="text" id="j-mandante-sigla" maxlength="4" value="${editing?escapeHtml(jogo.mandanteSigla||''):''}" placeholder="ex: FLA"></div>
+          <div class="field"><label for="j-mandante">Time mandante</label><input type="text" id="j-mandante" value="${editing?escapeHtml(jogo.mandante):''}" required></div>
+          <div class="field"><label for="j-mandante-sigla">Sigla mandante</label><input type="text" id="j-mandante-sigla" maxlength="4" value="${editing?escapeHtml(jogo.mandanteSigla||''):''}" placeholder="ex: FLA"></div>
         </div>
         <div class="grid grid-2">
-          <div class="field"><label>Time visitante</label><input type="text" id="j-visitante" value="${editing?escapeHtml(jogo.visitante):''}" required></div>
-          <div class="field"><label>Sigla visitante</label><input type="text" id="j-visitante-sigla" maxlength="4" value="${editing?escapeHtml(jogo.visitanteSigla||''):''}" placeholder="ex: PAL"></div>
+          <div class="field"><label for="j-visitante">Time visitante</label><input type="text" id="j-visitante" value="${editing?escapeHtml(jogo.visitante):''}" required></div>
+          <div class="field"><label for="j-visitante-sigla">Sigla visitante</label><input type="text" id="j-visitante-sigla" maxlength="4" value="${editing?escapeHtml(jogo.visitanteSigla||''):''}" placeholder="ex: PAL"></div>
         </div>
         <div class="grid grid-2">
-          <div class="field"><label>Data e hora</label><input type="datetime-local" id="j-data" value="${editing?jogo.dataHora:''}" required></div>
-          <div class="field"><label>Rodada / fase</label><input type="text" id="j-rodada" value="${editing?escapeHtml(jogo.rodada||''):''}" placeholder="ex: Rodada 12"></div>
+          <div class="field"><label for="j-data">Data e hora</label><input type="datetime-local" id="j-data" value="${editing?jogo.dataHora:''}" required></div>
+          <div class="field"><label for="j-rodada">Rodada / fase</label><input type="text" id="j-rodada" value="${editing?escapeHtml(jogo.rodada||''):''}" placeholder="ex: Rodada 12"></div>
         </div>
-        <div class="field"><label>Valor da aposta neste jogo (PIX)</label><input type="number" min="0" step="0.01" id="j-valor-aposta" value="${editing?jogo.valorAposta:''}" placeholder="ex: 5.00" required></div>
+        <div class="field"><label for="j-valor-aposta">Valor da aposta neste jogo (PIX)</label><input type="number" min="0" step="0.01" id="j-valor-aposta" value="${editing?jogo.valorAposta:''}" placeholder="ex: 5.00" required></div>
         <div class="text-muted">Cada palpite enviado para este jogo vai gerar um pagamento individual com esse valor. Se ninguém pagar até o início do jogo, o palpite é removido automaticamente.</div>
       </form>
     `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">${editing?'Salvar':'Criar jogo'}</button>`);
@@ -2439,14 +2489,14 @@ const Modals = {
 
     this._shell(root, 'Editar Participante', `
       <form id="f-usuario">
-        <div class="field"><label>Nome completo</label><input type="text" id="u-nome" value="${escapeHtml(usuario.nome)}" required></div>
+        <div class="field"><label for="u-nome">Nome completo</label><input type="text" id="u-nome" value="${escapeHtml(usuario.nome)}" required></div>
         <div class="field"><label>E-mail</label><input type="email" value="${escapeHtml(usuario.email)}" disabled style="opacity:0.6;"></div>
         <div class="grid grid-2">
-          <div class="field"><label>CPF (opcional)</label><input type="text" id="u-cpf" value="${escapeHtml(usuario.cpf||'')}"></div>
-          <div class="field"><label>Telefone</label><input type="text" id="u-telefone" value="${escapeHtml(usuario.telefone||'')}"></div>
+          <div class="field"><label for="u-cpf">CPF (opcional)</label><input type="text" id="u-cpf" value="${escapeHtml(usuario.cpf||'')}"></div>
+          <div class="field"><label for="u-telefone">Telefone</label><input type="text" id="u-telefone" value="${escapeHtml(usuario.telefone||'')}"></div>
         </div>
-        <div class="field"><label>Data de nascimento</label><input type="date" id="u-nasc" value="${usuario.nascimento||''}"></div>
-        <div class="field"><label>Status</label>
+        <div class="field"><label for="u-nasc">Data de nascimento</label><input type="date" id="u-nasc" value="${usuario.nascimento||''}"></div>
+        <div class="field"><label for="u-status">Status</label>
           <select id="u-status"><option value="ativo" ${usuario.status==='ativo'?'selected':''}>Ativo</option><option value="inativo" ${usuario.status==='inativo'?'selected':''}>Inativo</option></select>
         </div>
       </form>
@@ -2484,18 +2534,18 @@ const Modals = {
     const boloes = Store.data.boloes;
     this._shell(root, editing?'Editar Pagamento':'Registrar Pagamento', `
       <form id="f-pagamento">
-        <div class="field"><label>Participante</label>
+        <div class="field"><label for="p-user">Participante</label>
           <select id="p-user">${participantes.map(u=>`<option value="${u.id}" ${editing&&pagamento.usuarioId===u.id?'selected':''}>${escapeHtml(u.nome)}</option>`).join('')}</select>
         </div>
-        <div class="field"><label>Bolão</label>
+        <div class="field"><label for="p-bolao">Bolão</label>
           <select id="p-bolao">${boloes.map(b=>`<option value="${b.id}" ${editing&&pagamento.bolaoId===b.id?'selected':''}>${escapeHtml(b.nome)}</option>`).join('')}</select>
         </div>
         <div class="grid grid-2">
-          <div class="field"><label>Valor da inscrição</label><input type="number" min="0" step="0.01" id="p-valor" value="${editing?pagamento.valorInscricao:(boloes[0]?boloes[0].valorInscricao:0)}"></div>
-          <div class="field"><label>Valor pago</label><input type="number" min="0" step="0.01" id="p-pago" value="${editing?pagamento.valorPago:0}"></div>
+          <div class="field"><label for="p-valor">Valor da inscrição</label><input type="number" min="0" step="0.01" id="p-valor" value="${editing?pagamento.valorInscricao:(boloes[0]?boloes[0].valorInscricao:0)}"></div>
+          <div class="field"><label for="p-pago">Valor pago</label><input type="number" min="0" step="0.01" id="p-pago" value="${editing?pagamento.valorPago:0}"></div>
         </div>
-        <div class="field"><label>Vencimento</label><input type="date" id="p-venc" value="${editing?pagamento.dataVencimento:todayISO()}"></div>
-        <div class="field"><label>Status</label>
+        <div class="field"><label for="p-venc">Vencimento</label><input type="date" id="p-venc" value="${editing?pagamento.dataVencimento:todayISO()}"></div>
+        <div class="field"><label for="p-status">Status</label>
           <select id="p-status">${['pendente','pago','atrasado','isento'].map(s=>`<option value="${s}" ${editing&&pagamento.status===s?'selected':''}>${s}</option>`).join('')}</select>
         </div>
       </form>
@@ -2587,13 +2637,13 @@ const Modals = {
   sorteioForm(root){
     this._shell(root, 'Novo Sorteio / Rifa', `
       <form id="f-sorteio">
-        <div class="field"><label>Nome do sorteio</label><input type="text" id="s-nome" required></div>
-        <div class="field"><label>Descrição</label><textarea id="s-desc" rows="2"></textarea></div>
+        <div class="field"><label for="s-nome">Nome do sorteio</label><input type="text" id="s-nome" required></div>
+        <div class="field"><label for="s-desc">Descrição</label><textarea id="s-desc" rows="2"></textarea></div>
         <div class="grid grid-2">
-          <div class="field"><label>Valor da cota (R$)</label><input type="number" min="0" step="0.01" id="s-valor" required></div>
-          <div class="field"><label>Total de cotas</label><input type="number" min="1" id="s-total" value="50" required></div>
+          <div class="field"><label for="s-valor">Valor da cota (R$)</label><input type="number" min="0" step="0.01" id="s-valor" required></div>
+          <div class="field"><label for="s-total">Total de cotas</label><input type="number" min="1" id="s-total" value="50" required></div>
         </div>
-        <div class="field"><label>Data do sorteio</label><input type="date" id="s-data"></div>
+        <div class="field"><label for="s-data">Data do sorteio</label><input type="date" id="s-data"></div>
       </form>
     `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">Criar sorteio</button>`);
     document.getElementById('modal-cancel').onclick = () => App.closeModal();
@@ -2657,7 +2707,7 @@ const Modals = {
     const livres = Logic.cotasDisponiveis(sorteio);
     this._shell(root, `Reservar cota — ${sorteio.nome}`, `
       ${livres.length ? `
-      <div class="field"><label>Número da cota</label>
+      <div class="field"><label for="r-numero">Número da cota</label>
         <select id="r-numero">${livres.map(n=>`<option value="${n}">Cota nº ${n}</option>`).join('')}</select>
       </div>
       <div class="text-muted">Valor: <strong class="font-mono">${fmtMoney(sorteio.valorCota)}</strong>. A cota ficará reservada até a confirmação do pagamento pelo administrador.</div>
