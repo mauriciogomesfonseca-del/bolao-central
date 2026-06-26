@@ -658,6 +658,7 @@ const Map_ = {
       placarMandante:p.placar_mandante, placarVisitante:p.placar_visitante,
       pontos:p.pontos||0, codigoVerificacao:p.codigo_verificacao,
       criadoEm:p.criado_em, atualizadoEm:p.atualizado_em, travado:p.travado,
+      numeroPalpite:p.numero_palpite||1,
     };
   },
   pagamento(p){
@@ -1959,6 +1960,7 @@ Pages.partDashboard = function(user){
 Pages.partPalpites = function(user){
   App.setTopbar('Meus Palpites', 'Informe o placar antes do início de cada partida');
   const db = Store.data;
+  const LIMITE_PALPITES = 3;
   const jogosAgendados = db.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora));
   const jogosFinalizados = db.jogos.filter(j=>j.status==='finalizado').sort((a,b)=>new Date(b.dataHora)-new Date(a.dataHora));
 
@@ -1969,73 +1971,99 @@ Pages.partPalpites = function(user){
     </div>
     <div id="tab-content"></div>
   `;
+
   const renderAbertos = () => {
     document.getElementById('tab-content').innerHTML = `
       <div class="grid grid-3">
         ${jogosAgendados.length ? jogosAgendados.map(j=>{
-          const meuPalpite = db.palpites.find(p=>p.jogoId===j.id && p.usuarioId===user.id);
-          const meuPagamento = meuPalpite ? db.pagamentos.find(p=>p.palpiteId===meuPalpite.id) : null;
+          const meusPalpites = db.palpites.filter(p=>p.jogoId===j.id && p.usuarioId===user.id)
+            .sort((a,b)=>a.numeroPalpite-b.numeroPalpite);
+          const total = meusPalpites.length;
+          const podeAdicionar = total < LIMITE_PALPITES;
+
           return `
           <div class="sumula">
-            <div class="sumula-head"><span class="comp">${escapeHtml(j.rodada||'')}</span><span>${new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span></div>
-            ${j.valorAposta > 0 ? `<div style="padding:6px 14px;background:var(--bg-3);font-size:11px;color:var(--texto-2);display:flex;justify-content:space-between;"><span>Valor da aposta</span><span class="font-mono" style="color:var(--verde);font-weight:700;">${fmtMoney(j.valorAposta)}</span></div>` : ''}
+            <div class="sumula-head">
+              <span class="comp">${escapeHtml(j.rodada||'')}</span>
+              <span>${new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
+            </div>
             <div class="sumula-body">
               <div class="sumula-team">${bandeira(j.mandanteSigla, j.mandante)}<div class="name">${escapeHtml(j.mandante)}</div></div>
               <div class="placar-box">
-                <input type="number" min="0" class="placar-input font-mono" id="pm-${j.id}" value="${meuPalpite?meuPalpite.placarMandante:''}" placeholder="-">
+                <input type="number" min="0" class="placar-input font-mono" id="pm-${j.id}" placeholder="-">
                 <span class="placar-sep">×</span>
-                <input type="number" min="0" class="placar-input font-mono" id="pv-${j.id}" value="${meuPalpite?meuPalpite.placarVisitante:''}" placeholder="-">
+                <input type="number" min="0" class="placar-input font-mono" id="pv-${j.id}" placeholder="-">
               </div>
               <div class="sumula-team">${bandeira(j.visitanteSigla, j.visitante)}<div class="name">${escapeHtml(j.visitante)}</div></div>
             </div>
+            ${meusPalpites.length ? `
+            <div style="padding:8px 14px;border-top:1px solid var(--linha);">
+              <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--texto-3);margin-bottom:6px;">Meus palpites (${total}/${LIMITE_PALPITES})</div>
+              ${meusPalpites.map(p=>{
+                const pag = db.pagamentos.find(x=>x.palpiteId===p.id);
+                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--linha);font-size:12px;">
+                  <span class="font-mono" style="color:var(--verde);font-weight:700;">${p.placarMandante} × ${p.placarVisitante}</span>
+                  <span style="color:var(--texto-3);font-size:10.5px;">${escapeHtml(p.codigoVerificacao||'')}</span>
+                  <span>${pag ? Pages._badgePagamento(pag.status) : ''}</span>
+                </div>`;
+              }).join('')}
+            </div>` : ''}
             <div class="sumula-foot">
-              <span>${meuPalpite?`✓ ${escapeHtml(meuPalpite.codigoVerificacao||'')}${meuPagamento?' · '+Pages._badgePagamento(meuPagamento.status):''}`:'Sem palpite ainda'}</span>
-              <button class="btn btn-primary btn-sm" data-enviar="${j.id}">${meuPalpite?'Atualizar':'Enviar palpite'}</button>
+              <span style="font-size:11px;color:var(--texto-2);">${podeAdicionar ? `Aposte até ${LIMITE_PALPITES}x neste jogo` : `Limite de ${LIMITE_PALPITES} palpites atingido`}</span>
+              ${podeAdicionar ? `<button class="btn btn-primary btn-sm" data-enviar="${j.id}">+ Apostar</button>` : ''}
             </div>
           </div>`;
         }).join('') : `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">⚽</div><div class="msg">Nenhum jogo aberto para palpite no momento</div></div>`}
       </div>
     `;
+
     document.querySelectorAll('[data-enviar]').forEach(btn=>{
       btn.onclick = async () => {
         const jogoId = btn.dataset.enviar;
         const jogo = db.jogos.find(j=>j.id===jogoId);
         const pm = document.getElementById(`pm-${jogoId}`).value;
         const pv = document.getElementById(`pv-${jogoId}`).value;
-        if(pm==='' || pv===''){ toast('Informe o placar completo.', 'error'); return; }
+        if(pm==='' || pv===''){ toast('Informe o placar dos dois times.', 'error'); return; }
 
         if(jogo && jogo.dataHora && Date.now() >= new Date(jogo.dataHora).getTime()){
-          toast('Este jogo já começou — o palpite não pode mais ser enviado ou alterado.', 'error');
+          toast('Este jogo já começou — não é possível mais apostar.', 'error');
+          return;
+        }
+
+        // Verifica limite no cliente antes de ir ao banco
+        const jaFeitos = db.palpites.filter(p=>p.jogoId===jogoId && p.usuarioId===user.id).length;
+        if(jaFeitos >= LIMITE_PALPITES){
+          toast(`Limite de ${LIMITE_PALPITES} palpites por jogo atingido.`, 'error');
           return;
         }
 
         btn.disabled = true; btn.textContent = 'Enviando...';
 
-        const linha = {
-          jogo_id: jogoId,
-          usuario_id: user.id,
-          placar_mandante: parseInt(pm,10),
-          placar_visitante: parseInt(pv,10),
-        };
-
-        // upsert: cria se não existir, atualiza se já existir (respeitando unique(jogo_id, usuario_id))
         const { data, error } = await sb.from('palpites')
-          .upsert(linha, { onConflict: 'jogo_id,usuario_id' })
+          .insert({
+            jogo_id: jogoId,
+            usuario_id: user.id,
+            placar_mandante: parseInt(pm,10),
+            placar_visitante: parseInt(pv,10),
+            numero_palpite: jaFeitos + 1,
+          })
           .select()
           .single();
 
         if(error){
-          const msg = error.message && error.message.includes('travado')
-            ? 'Este jogo já começou — o palpite não pode mais ser alterado.'
+          const msg = error.message.includes('travado')
+            ? 'Este jogo já começou — não é possível mais apostar.'
+            : error.message.includes('max_palpites')
+            ? `Limite de ${LIMITE_PALPITES} palpites por jogo atingido.`
             : 'Erro ao enviar palpite: ' + error.message;
           toast(msg, 'error');
-          btn.disabled = false; btn.textContent = 'Enviar palpite';
+          btn.disabled = false; btn.textContent = '+ Apostar';
           return;
         }
 
         await Promise.all([Store.reloadPalpites(), Store.reloadPagamentos()]);
         const palpiteSalvo = Map_.palpite(data);
-        const pagamentoVinculado = Store.data.pagamentos.find(p => p.palpiteId === palpiteSalvo.id);
+        const pagamentoVinculado = Store.data.pagamentos.find(p=>p.palpiteId===palpiteSalvo.id);
         Modals.comprovantePalpite(jogo, palpiteSalvo, pagamentoVinculado);
         renderAbertos();
       };
@@ -2048,13 +2076,20 @@ Pages.partPalpites = function(user){
           <thead><tr><th>Jogo</th><th>Resultado</th><th>Meu palpite</th><th>Pontos</th></tr></thead>
           <tbody>
             ${jogosFinalizados.length ? jogosFinalizados.map(j=>{
-              const p = db.palpites.find(pp=>pp.jogoId===j.id && pp.usuarioId===user.id);
-              return `<tr>
-                <td>${escapeHtml(j.mandante)} x ${escapeHtml(j.visitante)}</td>
-                <td class="font-mono">${j.placarMandante} x ${j.placarVisitante}</td>
-                <td class="font-mono">${p? p.placarMandante+' x '+p.placarVisitante : 'não enviado'}</td>
-                <td><span class="pts-pill">${p?p.pontos:0} pts</span></td>
+              const meusPalpites = db.palpites.filter(p=>p.jogoId===j.id && p.usuarioId===user.id)
+                .sort((a,b)=>a.numeroPalpite-b.numeroPalpite);
+              if(!meusPalpites.length) return `<tr>
+                <td>${escapeHtml(j.mandante)} × ${escapeHtml(j.visitante)}</td>
+                <td class="font-mono">${j.placarMandante} × ${j.placarVisitante}</td>
+                <td style="color:var(--texto-3);">não apostou</td>
+                <td><span class="pts-pill">0 pts</span></td>
               </tr>`;
+              return meusPalpites.map((p,i)=>`<tr>
+                <td>${i===0?escapeHtml(j.mandante)+' × '+escapeHtml(j.visitante):'↳ aposta '+(i+1)}</td>
+                <td class="font-mono">${i===0?j.placarMandante+' × '+j.placarVisitante:'—'}</td>
+                <td class="font-mono" style="color:var(--verde);">${p.placarMandante} × ${p.placarVisitante}</td>
+                <td><span class="pts-pill">${p.pontos||0} pts</span></td>
+              </tr>`).join('');
             }).join('') : `<tr><td colspan="4"><div class="empty-state"><div class="msg">Nenhum resultado ainda</div></div></td></tr>`}
           </tbody>
         </table>
