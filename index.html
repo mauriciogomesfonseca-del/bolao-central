@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Bolão Central — Sistema de Bolões e Sorteios</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Source+Sans+3:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -113,6 +116,7 @@ body{
   cursor:pointer;
   border-left:3px solid transparent;
   transition:background .15s, color .15s;
+  -webkit-user-select:none;
   user-select:none;
 }
 .nav-item:hover{background:rgba(255,255,255,0.03);color:var(--texto);}
@@ -2045,13 +2049,25 @@ Pages.partPalpites = function(user){
 
         btn.disabled = true; btn.textContent = 'Enviando...';
 
+        // Revalida no banco antes de inserir para evitar duplicata
+        const { count } = await sb.from('palpites')
+          .select('*', { count: 'exact', head: true })
+          .eq('jogo_id', jogoId)
+          .eq('usuario_id', user.id);
+
+        if(count !== null && count >= LIMITE_PALPITES){
+          toast(`Limite de ${LIMITE_PALPITES} palpites por jogo atingido.`, 'error');
+          btn.disabled = false; btn.textContent = '+ Apostar';
+          return;
+        }
+
         const { data, error } = await sb.from('palpites')
           .insert({
             jogo_id: jogoId,
             usuario_id: user.id,
             placar_mandante: parseInt(pm,10),
             placar_visitante: parseInt(pv,10),
-            numero_palpite: jaFeitos + 1,
+            numero_palpite: (count ?? jaFeitos) + 1,
           })
           .select()
           .single();
@@ -2061,6 +2077,8 @@ Pages.partPalpites = function(user){
             ? 'Este jogo já começou — não é possível mais apostar.'
             : error.message.includes('max_palpites')
             ? `Limite de ${LIMITE_PALPITES} palpites por jogo atingido.`
+            : (error.message.includes('duplicate') || error.message.includes('unique') || error.message.includes('palpite_unico'))
+            ? `Você já enviou este palpite. Tente um placar diferente ou aguarde um instante.`
             : 'Erro ao enviar palpite: ' + error.message;
           toast(msg, 'error');
           btn.disabled = false; btn.textContent = '+ Apostar';
