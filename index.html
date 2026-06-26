@@ -728,7 +728,7 @@ const Store = {
 
   async reloadBoloes(){
     const { data, error } = await sb.from('boloes').select('*').order('criado_em');
-    if(error){ console.error('Erro ao carregar bolões:', error); return; }
+    if(error){ console.error('[BOLAO] Erro ao carregar bolões:', error); return; }
     this.data.boloes = (data||[]).map(Map_.bolao);
   },
 
@@ -2441,8 +2441,7 @@ const Modals = {
           <div class="field"><label>Data e hora</label><input type="datetime-local" id="j-data" value="${editing?jogo.dataHora:''}" required></div>
           <div class="field"><label>Rodada / fase</label><input type="text" id="j-rodada" value="${editing?escapeHtml(jogo.rodada||''):''}" placeholder="ex: Rodada 12"></div>
         </div>
-        <div class="field"><label>Valor da aposta neste jogo (PIX)</label><input type="number" min="0" step="0.01" id="j-valor-aposta" value="${editing?jogo.valorAposta:''}" placeholder="ex: 5.00" required></div>
-        <div class="text-muted">Cada palpite enviado para este jogo vai gerar um pagamento individual com esse valor. Se ninguém pagar até o início do jogo, o palpite é removido automaticamente.</div>
+
       </form>
     `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">${editing?'Salvar':'Criar jogo'}</button>`);
 
@@ -2451,7 +2450,6 @@ const Modals = {
       const mandante = document.getElementById('j-mandante').value.trim();
       const visitante = document.getElementById('j-visitante').value.trim();
       const dataHora = document.getElementById('j-data').value;
-      const valorAposta = parseFloat(document.getElementById('j-valor-aposta').value || 0);
       if(!mandante || !visitante || !dataHora){ toast('Preencha os times e a data do jogo.', 'error'); return; }
       const linha = {
         bolao_id: document.getElementById('j-bolao').value,
@@ -2459,7 +2457,6 @@ const Modals = {
         mandante_sigla: document.getElementById('j-mandante-sigla').value.trim().toUpperCase(),
         visitante_sigla: document.getElementById('j-visitante-sigla').value.trim().toUpperCase(),
         data_hora: dataHora, rodada: document.getElementById('j-rodada').value.trim(),
-        valor_aposta: valorAposta,
       };
       const btn = document.getElementById('modal-save');
       btn.disabled = true; btn.textContent = 'Salvando...';
