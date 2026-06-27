@@ -558,6 +558,13 @@ a{color:var(--azul-2);}
   .col-hide-mobile{display:none;}
   table{min-width:360px;}
 }
+/* Pagamentos: tabela no desktop, cards no mobile */
+.pagto-mobile{display:none;}
+.pagto-desktop{display:block;}
+@media (max-width:860px){
+  .pagto-mobile{display:block;}
+  .pagto-desktop{display:none;}
+}
 </style>
 </head>
 <body>
@@ -1220,6 +1227,7 @@ const App = {
     { section: 'Meu Bolão' },
     { key:'dashboard', label:'Início', icon:'◆' },
     { key:'palpites', label:'Meus Palpites', icon:'✎' },
+    { key:'turma', label:'A Turma', icon:'👥' },
     { key:'ranking', label:'Ranking', icon:'★' },
     { key:'pagamentos', label:'Meu Pagamento', icon:'$' },
     { key:'sorteios', label:'Sorteios & Rifas', icon:'⊙' },
@@ -1377,6 +1385,7 @@ const App = {
     } : {
       dashboard: Pages.partDashboard,
       palpites: Pages.partPalpites,
+      turma: Pages.partTurma,
       ranking: Pages.ranking,
       pagamentos: Pages.partPagamentos,
       sorteios: Pages.sorteios,
@@ -1851,9 +1860,10 @@ Pages.adminPagamentos = function(){
       <div class="stat-card"><div class="stat-label">Pagantes</div><div class="stat-value">${fin.pagantes}</div></div>
       <div class="stat-card alert"><div class="stat-label">Inadimplentes</div><div class="stat-value">${fin.inadimplentes}</div></div>
     </div>
-    <div class="card card-flush table-scroll">
+    <!-- Desktop: tabela -->
+    <div class="card card-flush table-scroll pagto-desktop">
       <table>
-        <thead><tr><th>Participante</th><th class="col-hide-mobile">Jogo</th><th class="col-hide-mobile">Palpite</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Participante</th><th>Jogo</th><th>Palpite</th><th>Valor</th><th>Status</th><th></th></tr></thead>
         <tbody>
           ${db.pagamentos.length ? [...db.pagamentos].sort((a,b)=>{
               const ordem = { em_analise:0, pendente:1, atrasado:1, pago:2, isento:2 };
@@ -1864,8 +1874,8 @@ Pages.adminPagamentos = function(){
             const jogo = palpite ? db.jogos.find(j=>j.id===palpite.jogoId) : null;
             return `<tr>
               <td style="font-weight:600;">${escapeHtml(u?u.nome:'—')}</td>
-              <td class="col-hide-mobile">${jogo ? escapeHtml(jogo.mandante)+' x '+escapeHtml(jogo.visitante) : '<span class="text-muted">sem vínculo</span>'}</td>
-              <td class="col-hide-mobile font-mono" style="font-size:11px;">${palpite ? palpite.placarMandante+'x'+palpite.placarVisitante+' · '+escapeHtml(palpite.codigoVerificacao||'') : '—'}</td>
+              <td>${jogo ? escapeHtml(jogo.mandante)+' x '+escapeHtml(jogo.visitante) : '<span class="text-muted">sem vínculo</span>'}</td>
+              <td class="font-mono" style="font-size:11px;">${palpite ? palpite.placarMandante+'x'+palpite.placarVisitante+' · '+escapeHtml(palpite.codigoVerificacao||'') : '—'}</td>
               <td class="font-mono">${fmtMoney(p.valorInscricao)}</td>
               <td>${Pages._badgePagamento(p.status)}</td>
               <td class="flex-row">
@@ -1876,6 +1886,29 @@ Pages.adminPagamentos = function(){
           }).join('') : `<tr><td colspan="6"><div class="empty-state"><div class="msg">Nenhum pagamento registrado</div></div></td></tr>`}
         </tbody>
       </table>
+    </div>
+    <!-- Mobile: cards -->
+    <div class="pagto-mobile">
+      ${db.pagamentos.length ? [...db.pagamentos].sort((a,b)=>{
+          const ordem = { em_analise:0, pendente:1, atrasado:1, pago:2, isento:2 };
+          return (ordem[a.status]??9) - (ordem[b.status]??9);
+        }).map(p=>{
+        const u = db.usuarios.find(x=>x.id===p.usuarioId);
+        const palpite = p.palpiteId ? db.palpites.find(pl=>pl.id===p.palpiteId) : null;
+        const jogo = palpite ? db.jogos.find(j=>j.id===palpite.jogoId) : null;
+        return `<div class="card" style="margin-bottom:10px;">
+          <div class="flex-row" style="justify-content:space-between;margin-bottom:8px;">
+            <span style="font-weight:700;">${escapeHtml(u?u.nome:'—')}</span>
+            ${Pages._badgePagamento(p.status)}
+          </div>
+          ${jogo ? `<div style="font-size:12px;color:var(--texto-2);margin-bottom:4px;">${escapeHtml(jogo.mandante)} x ${escapeHtml(jogo.visitante)}</div>` : ''}
+          <div style="font-size:13px;font-weight:700;color:var(--verde);margin-bottom:10px;" class="font-mono">${fmtMoney(p.valorInscricao)}</div>
+          <div class="flex-row" style="gap:8px;">
+            ${p.comprovanteUrl ? `<button class="btn btn-outline btn-sm" data-ver-comp="${p.id}" style="flex:1;">Ver comprovante</button>` : ''}
+            ${p.status!=='pago' ? `<button class="btn btn-secondary btn-sm" data-marcar-pago="${p.id}" style="flex:1;">✓ Confirmar pagamento</button>` : '<span style="color:var(--verde);font-size:12px;font-weight:700;">✓ Pago</span>'}
+          </div>
+        </div>`;
+      }).join('') : `<div class="empty-state"><div class="msg">Nenhum pagamento registrado</div></div>`}
     </div>
   `;
 
@@ -2075,6 +2108,42 @@ Pages.partDashboard = function(user){
       <div style="font-size:13px;color:var(--texto-2);line-height:1.8;white-space:pre-wrap;">${escapeHtml(bolao.descricao)}</div>
     </div>` : ''}
 
+    ${(()=>{
+      if(!bolao) return '';
+      const top3 = ranking.slice(0,3);
+      const lider = top3[0];
+      const minhaPosicao = minhaLinha ? minhaLinha.posicao : null;
+      const diffLider = lider && minhaLinha ? lider.pontuacao - minhaLinha.pontuacao : 0;
+      const totalPart = ranking.length;
+      return `
+      <div class="card" style="margin-bottom:18px;border-left:3px solid var(--amarelo);">
+        <div class="section-title" style="margin-bottom:12px;">🏆 Placar ao vivo — ${escapeHtml(bolao.nome)} <span class="right"><a href="#" id="link-turma" style="font-size:12px;">ver turma →</a></span></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <div style="flex:1;min-width:100px;background:var(--bg-3);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:11px;color:var(--texto-3);margin-bottom:4px;">Participantes</div>
+            <div style="font-size:22px;font-weight:800;">${totalPart}</div>
+          </div>
+          <div style="flex:1;min-width:100px;background:var(--bg-3);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:11px;color:var(--texto-3);margin-bottom:4px;">Minha posição</div>
+            <div style="font-size:22px;font-weight:800;color:var(--azul);">${minhaPosicao ? '#'+minhaPosicao : '—'}</div>
+          </div>
+          <div style="flex:1;min-width:100px;background:var(--bg-3);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:11px;color:var(--texto-3);margin-bottom:4px;">Distância do líder</div>
+            <div style="font-size:22px;font-weight:800;color:${diffLider===0?'var(--verde)':'var(--amarelo)'};">${diffLider===0&&minhaLinha?'👑':'-'+diffLider+' pts'}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--texto-3);margin-bottom:6px;">Top 3</div>
+        ${top3.map((r,i)=>{
+          const medals = ['🥇','🥈','🥉'];
+          const isMe = r.usuario.id === user.id;
+          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--linha);${isMe?'font-weight:700;color:var(--azul);':''}">
+            <span style="font-size:16px;">${medals[i]}</span>
+            <span style="flex:1;">${escapeHtml(r.usuario.nome)}${isMe?' (você)':''}</span>
+            <span class="font-mono">${r.pontuacao} pts</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+    })()}
     <div class="grid grid-2">
       <div class="card">
         <div class="section-title">Próximos jogos para palpitar <span class="right"><a href="#" id="link-palpitar">palpitar →</a></span></div>
@@ -2092,6 +2161,97 @@ Pages.partDashboard = function(user){
     </div>
   `;
   const lk = document.getElementById('link-palpitar'); if(lk) lk.onclick=(e)=>{e.preventDefault(); App.navigate('palpites');};
+  const lt = document.getElementById('link-turma'); if(lt) lt.onclick=(e)=>{e.preventDefault(); App.navigate('turma');};
+};
+
+Pages.partTurma = function(user){
+  App.setTopbar('A Turma', 'Veja os participantes e os palpites de cada jogo');
+  const db = Store.data;
+  const bolao = db.boloes.find(b=>b.status==='ativo') || db.boloes[0];
+  if(!bolao){
+    document.getElementById('content').innerHTML = `<div class="empty-state"><div class="icon">👥</div><div class="msg">Nenhum bolão ativo</div></div>`;
+    return;
+  }
+
+  const participantes = db.usuarios.filter(u=>u.perfil==='participante');
+  const jogos = db.jogos.filter(j=>j.bolaoId===bolao.id).sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora));
+  const ranking = Logic.rankingDoBolao(bolao.id,'geral');
+
+  // Card de participantes
+  const cardPart = `
+    <div class="card" style="margin-bottom:18px;">
+      <div class="section-title" style="margin-bottom:12px;">👥 Participantes (${participantes.length})</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        ${participantes.map(u=>{
+          const r = ranking.find(x=>x.usuario.id===u.id);
+          const isMe = u.id === user.id;
+          return `<div style="display:flex;align-items:center;gap:8px;background:var(--bg-3);border-radius:8px;padding:8px 12px;${isMe?'border:1.5px solid var(--azul);':''}">
+            <span style="width:28px;height:28px;border-radius:50%;background:var(--azul);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">${u.nome.charAt(0).toUpperCase()}</span>
+            <div>
+              <div style="font-size:13px;font-weight:${isMe?'700':'600'};">${escapeHtml(u.nome)}${isMe?' (você)':''}</div>
+              <div style="font-size:11px;color:var(--texto-3);">${r ? '#'+r.posicao+' · '+r.pontuacao+' pts' : '0 pts'}</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  // Cards por jogo
+  const cardsJogos = jogos.length ? jogos.map(j=>{
+    const finalizado = j.status === 'finalizado';
+    const temResultado = j.placarMandante !== null && j.placarVisitante !== null;
+    const palpitesDoJogo = db.palpites.filter(p=>p.jogoId===j.id);
+    const qtdApostaram = [...new Set(palpitesDoJogo.map(p=>p.usuarioId))].length;
+
+    const statusLabel = finalizado
+      ? `<span style="color:var(--azul-2);font-size:12px;font-weight:700;">✓ ${j.placarMandante} × ${j.placarVisitante}</span>`
+      : j.dataHora && new Date(j.dataHora) <= new Date()
+      ? `<span class="live-badge"><span class="pulse"></span>Ao vivo</span>`
+      : `<span style="color:var(--texto-3);font-size:12px;">${j.dataHora ? new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'sem data'}</span>`;
+
+    const linhasParticipantes = participantes.map(u=>{
+      const meus = palpitesDoJogo.filter(p=>p.usuarioId===u.id).sort((a,b)=>a.numeroPalpite-b.numeroPalpite);
+      const isMe = u.id === user.id;
+
+      if(!meus.length) return `<tr style="${isMe?'background:rgba(var(--azul-rgb,59,130,246),0.06);':''}">
+        <td style="font-weight:${isMe?'700':'500'};">${escapeHtml(u.nome)}${isMe?' 👤':''}</td>
+        <td colspan="2" style="color:var(--texto-3);font-size:12px;">— não apostou</td>
+      </tr>`;
+
+      return meus.map((p,i)=>{
+        // Revela palpite só após o jogo finalizar (exceto o próprio usuário)
+        const revelar = finalizado || isMe;
+        const pts = p.pontos || 0;
+        const corPts = pts > 0 ? 'var(--verde)' : 'var(--vermelho,#ef4444)';
+        return `<tr style="${isMe?'background:rgba(59,130,246,0.06);':''}">
+          <td style="font-weight:${isMe?'700':'500'};">${i===0 ? escapeHtml(u.nome)+(isMe?' 👤':'') : ''}</td>
+          <td class="font-mono" style="font-weight:700;color:${revelar?'var(--verde)':'var(--texto-3)'};">
+            ${revelar ? p.placarMandante+' × '+p.placarVisitante : '🔒 Em sigilo'}
+          </td>
+          <td>${temResultado && revelar ? `<span class="font-mono" style="color:${corPts};font-weight:700;">${pts} pts</span>` : ''}</td>
+        </tr>`;
+      }).join('');
+    }).join('');
+
+    return `
+    <div class="card card-flush" style="margin-bottom:14px;">
+      <div style="padding:10px 16px;background:var(--bg-3);border-bottom:1px solid var(--linha);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+        <span style="font-weight:700;">${escapeHtml(j.mandante)} × ${escapeHtml(j.visitante)}</span>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span style="font-size:12px;color:var(--texto-3);">${qtdApostaram}/${participantes.length} apostaram</span>
+          ${statusLabel}
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Participante</th><th>Palpite</th><th>${finalizado?'Pontos':''}</th></tr></thead>
+          <tbody>${linhasParticipantes}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('') : `<div class="empty-state"><div class="icon">⚽</div><div class="msg">Nenhum jogo cadastrado</div></div>`;
+
+  document.getElementById('content').innerHTML = cardPart + cardsJogos;
 };
 
 Pages.partPalpites = function(user){
@@ -2317,7 +2477,27 @@ Pages.partPerfil = function(user){
         <button type="submit" class="btn btn-primary" id="pf-submit">Salvar alterações</button>
       </form>
     </div>
+
+    <div class="card" style="max-width:480px;margin-top:18px;border:1px solid rgba(239,68,68,0.25);">
+      <div style="font-size:13px;font-weight:700;color:var(--vermelho,#ef4444);margin-bottom:8px;">⚠️ Zona de perigo</div>
+      <p style="font-size:12px;color:var(--texto-2);margin-bottom:12px;">Ao excluir sua conta, todos os seus dados, palpites e histórico serão permanentemente removidos. Esta ação não pode ser desfeita.</p>
+      <button class="btn btn-danger btn-sm" id="btn-excluir-conta">Excluir minha conta</button>
+    </div>
   `;
+  document.getElementById('btn-excluir-conta').onclick = async () => {
+    const confirmacao = prompt('Para confirmar, digite seu e-mail:');
+    if(!confirmacao || confirmacao.trim().toLowerCase() !== user.email.toLowerCase()){
+      toast('E-mail incorreto. Conta não excluída.', 'error'); return;
+    }
+    const btn = document.getElementById('btn-excluir-conta');
+    btn.disabled = true; btn.textContent = 'Excluindo...';
+    const { error } = await sb.from('perfis').delete().eq('id', user.id);
+    if(error){ toast('Erro ao excluir conta: ' + error.message, 'error'); btn.disabled=false; btn.textContent='Excluir minha conta'; return; }
+    await sb.auth.signOut();
+    toast('Conta excluída com sucesso.');
+    Auth.render();
+  };
+
   document.getElementById('form-perfil').onsubmit = async (e) => {
     e.preventDefault();
     const novoNome = document.getElementById('pf-nome').value.trim();
@@ -2828,7 +3008,7 @@ const Modals = {
     this._shell(root, 'Editar Participante', `
       <form id="f-usuario">
         <div class="field"><label>Nome completo</label><input type="text" id="u-nome" value="${escapeHtml(usuario.nome)}" required></div>
-        <div class="field"><label>E-mail</label><input type="email" value="${escapeHtml(usuario.email)}" disabled style="opacity:0.6;"></div>
+        <div class="field"><label>E-mail</label><input type="email" value="${escapeHtml(usuario.email)}" disabled style="opacity:0.6;cursor:default;"></div>
         <div class="grid grid-2">
           <div class="field"><label>CPF (opcional)</label><input type="text" id="u-cpf" value="${escapeHtml(usuario.cpf||'')}"></div>
           <div class="field"><label>Telefone</label><input type="text" id="u-telefone" value="${escapeHtml(usuario.telefone||'')}"></div>
@@ -2837,13 +3017,37 @@ const Modals = {
         <div class="field"><label>Status</label>
           <select id="u-status"><option value="ativo" ${usuario.status==='ativo'?'selected':''}>Ativo</option><option value="inativo" ${usuario.status==='inativo'?'selected':''}>Inativo</option></select>
         </div>
+        <hr style="border:none;border-top:1px solid var(--linha);margin:14px 0;">
+        <div class="field">
+          <label>Nova senha <span style="font-size:11px;color:var(--texto-3);font-weight:400;">(deixe em branco para não alterar)</span></label>
+          <input type="password" id="u-senha" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+        </div>
       </form>
+      <div style="margin-top:14px;padding:10px 12px;background:rgba(239,68,68,0.07);border-radius:8px;border:1px solid rgba(239,68,68,0.2);">
+        <div style="font-size:12px;font-weight:700;color:var(--vermelho,#ef4444);margin-bottom:6px;">⚠️ Zona de perigo</div>
+        <button class="btn btn-danger btn-sm" id="btn-excluir-user">Excluir participante</button>
+      </div>
     `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">Salvar</button>`);
 
     document.getElementById('modal-cancel').onclick = () => App.closeModal();
+
+    document.getElementById('btn-excluir-user').onclick = async () => {
+      if(!confirm(`Tem certeza que deseja excluir "${usuario.nome}"? Esta ação não pode ser desfeita.`)) return;
+      const btn = document.getElementById('btn-excluir-user');
+      btn.disabled = true; btn.textContent = 'Excluindo...';
+      const { error } = await sb.from('perfis').delete().eq('id', usuario.id);
+      if(error){ toast('Erro ao excluir: ' + error.message, 'error'); btn.disabled=false; btn.textContent='Excluir participante'; return; }
+      toast('Participante excluído.');
+      await Store.reloadUsuarios();
+      App.closeModal();
+      Pages.adminParticipantes();
+    };
+
     document.getElementById('modal-save').onclick = async () => {
       const nome = document.getElementById('u-nome').value.trim();
+      const novaSenha = document.getElementById('u-senha').value.trim();
       if(!nome){ toast('Informe o nome.', 'error'); return; }
+      if(novaSenha && novaSenha.length < 6){ toast('A senha deve ter pelo menos 6 caracteres.', 'error'); return; }
       const linha = {
         nome,
         cpf: document.getElementById('u-cpf').value.trim(),
@@ -2857,8 +3061,15 @@ const Modals = {
       const { error } = await sb.from('perfis').update(linha).eq('id', usuario.id);
       if(error){ toast('Erro ao salvar participante: ' + error.message, 'error'); btn.disabled=false; btn.textContent='Salvar'; return; }
 
+      if(novaSenha){
+        const { error: senhaErr } = await sb.rpc('admin_set_user_password', { p_user_id: usuario.id, p_password: novaSenha });
+        if(senhaErr){ toast('Dados salvos, mas erro ao alterar senha: ' + senhaErr.message, 'error'); }
+        else { toast('Participante e senha atualizados!'); }
+      } else {
+        toast('Participante atualizado!');
+      }
+
       Store.log(Session.currentUser().id, `Participante "${nome}" editado.`);
-      toast('Participante atualizado!');
       await Store.reloadUsuarios();
       App.closeModal();
       Pages.adminParticipantes();
