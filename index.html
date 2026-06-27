@@ -761,6 +761,7 @@ const Store = {
 
   async reloadPalpites(){
     const { data, error } = await sb.from('palpites').select('*');
+    console.log('[palpites] data:', data?.length, 'error:', error?.message);
     if(error){ console.error('Erro ao carregar palpites:', error); return; }
     this.data.palpites = (data||[]).map(Map_.palpite);
   },
