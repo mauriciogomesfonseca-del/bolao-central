@@ -9,6 +9,13 @@
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'none'">
 <title>Bolão Central — Sistema de Bolões e Sorteios</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bolão Central">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Source+Sans+3:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -48,7 +55,7 @@ body{
 
 .ticker-bar{
   background:var(--bg-2);
-  border-bottom:1px solid var(--linha);
+  border-bottom:2px solid var(--verde);
   display:flex;
   align-items:center;
   padding:0 20px;
@@ -57,6 +64,7 @@ body{
   gap:18px;
   overflow-x:auto;
   white-space:nowrap;
+  position:relative;
 }
 .ticker-bar .tk-brand{
   font-family:'Archivo Black',sans-serif;
@@ -97,6 +105,7 @@ body{
   width:204px;
   background:var(--bg-2);
   border-right:1px solid var(--linha);
+  border-top:3px solid var(--verde);
   display:flex;
   flex-direction:column;
   flex-shrink:0;
@@ -180,8 +189,19 @@ body{
   position:absolute;
   inset:0;
   background:
-    radial-gradient(circle at 80% 10%, rgba(61,125,216,0.16), transparent 42%),
-    radial-gradient(circle at 15% 95%, rgba(30,215,96,0.08), transparent 38%);
+    radial-gradient(circle at 80% 10%, rgba(61,125,216,0.18), transparent 42%),
+    radial-gradient(circle at 15% 95%, rgba(30,215,96,0.10), transparent 38%),
+    radial-gradient(circle at 50% 50%, rgba(255,215,0,0.03), transparent 60%);
+}
+.login-wrap::after{
+  content:"⚽";
+  position:absolute;
+  font-size:340px;
+  opacity:0.025;
+  bottom:-60px;
+  right:-60px;
+  pointer-events:none;
+  line-height:1;
 }
 .login-card{
   position:relative;
@@ -603,6 +623,23 @@ function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// ---- JOGOS DA COPA DO MUNDO 2026 -----------------------------------------
+const COPA_2026 = [
+  // Fase de Grupos — Jogos do Brasil e principais confrontos
+  { data:'2026-06-13', hora:'15:00', time1:'BRA', nome1:'Brasil',    time2:'MEX', nome2:'México',    grupo:'C', cidade:'Dallas' },
+  { data:'2026-06-17', hora:'18:00', time1:'BRA', nome1:'Brasil',    time2:'GER', nome2:'Alemanha',  grupo:'C', cidade:'Los Angeles' },
+  { data:'2026-06-21', hora:'21:00', time1:'BRA', nome1:'Brasil',    time2:'ESP', nome2:'Espanha',   grupo:'C', cidade:'Miami' },
+  { data:'2026-06-13', hora:'12:00', time1:'ARG', nome1:'Argentina', time2:'CAN', nome2:'Canadá',    grupo:'A', cidade:'Nova York' },
+  { data:'2026-06-14', hora:'15:00', time1:'FRA', nome1:'França',    time2:'POR', nome2:'Portugal',  grupo:'B', cidade:'São Francisco' },
+  { data:'2026-06-14', hora:'18:00', time1:'ENG', nome1:'Inglaterra',time2:'HOL', nome2:'Holanda',   grupo:'D', cidade:'Seattle' },
+  { data:'2026-06-15', hora:'15:00', time1:'ESP', nome1:'Espanha',   time2:'COL', nome2:'Colômbia',  grupo:'C', cidade:'Kansas City' },
+  { data:'2026-06-15', hora:'18:00', time1:'GER', nome1:'Alemanha',  time2:'JAP', nome2:'Japão',     grupo:'E', cidade:'Chicago' },
+  { data:'2026-06-16', hora:'15:00', time1:'URU', nome1:'Uruguai',   time2:'ARG', nome2:'Argentina', grupo:'A', cidade:'Boston' },
+  { data:'2026-06-16', hora:'18:00', time1:'POR', nome1:'Portugal',  time2:'MEX', nome2:'México',    grupo:'B', cidade:'Filadélfia' },
+  { data:'2026-06-17', hora:'15:00', time1:'MAR', nome1:'Marrocos',  time2:'COR', nome2:'Coreia',    grupo:'F', cidade:'Toronto' },
+  { data:'2026-06-18', hora:'18:00', time1:'ITA', nome1:'Itália',    time2:'CRO', nome2:'Croácia',   grupo:'G', cidade:'Vancouver' },
+];
+
 // ---- BANDEIRAS DAS SELEÇÕES -----------------------------------------------
 // Mapa sigla → emoji de bandeira (Copa do Mundo 2026 — 48 seleções)
 const BANDEIRAS = {
@@ -732,6 +769,7 @@ const Store = {
       this.reloadPagamentos(),
       this.reloadSorteios(),
       this.reloadConfiguracao(),
+      this.reloadNotificacoes(),
     ]);
   },
 
@@ -763,9 +801,21 @@ const Store = {
 
   async reloadPalpites(){
     const { data, error } = await sb.from('palpites').select('*');
-    console.log('[palpites] data:', data?.length, 'error:', error?.message);
     if(error){ console.error('Erro ao carregar palpites:', error); return; }
     this.data.palpites = (data||[]).map(Map_.palpite);
+  },
+
+  async reloadNotificacoes(){
+    const { data, error } = await sb.from('notificacoes').select('*').order('criado_em', { ascending: false });
+    if(error){ console.error('Erro ao carregar notificações:', error); return; }
+    this.data.notificacoes = (data||[]).map(n=>({
+      id: n.id,
+      usuarioId: n.usuario_id,
+      titulo: n.titulo,
+      mensagem: n.mensagem,
+      lida: n.lida,
+      criadoEm: n.criado_em,
+    }));
   },
 
   async reloadPagamentos(){
@@ -859,6 +909,13 @@ function toast(msg, type){
 // =====================================================================
 // AUTENTICAÇÃO / LOGIN — agora via Supabase Auth real
 // =====================================================================
+
+// Converte celular em email fictício para o Supabase Auth
+function celularParaEmail(celular){
+  const nums = celular.replace(/\D/g,'');
+  return `${nums}@bolaocentral.app`;
+}
+
 const Auth = {
   mode: 'login', // 'login' | 'cadastro'
   error: '',
@@ -870,8 +927,9 @@ const Auth = {
       <div class="login-wrap">
         <div class="login-card">
           <div class="login-badge">
+            <div style="font-size:32px;margin-bottom:4px;">⚽</div>
             <div class="title font-display">BOLÃO<span> CENTRAL</span></div>
-            <div class="sub">Sua casa de bolões &amp; sorteios</div>
+            <div class="sub">Sua casa de bolões &amp; sorteios · Copa 2026</div>
           </div>
 
           <div class="login-toggle">
@@ -901,8 +959,8 @@ const Auth = {
     area.innerHTML = `
       <form id="form-login">
         <div class="field">
-          <label>E-mail</label>
-          <input type="email" id="li-email" required autocomplete="username">
+          <label>Celular</label>
+          <input type="tel" id="li-celular" required autocomplete="username" placeholder="(00) 00000-0000">
         </div>
         <div class="field">
           <label>Senha</label>
@@ -914,19 +972,24 @@ const Auth = {
     document.getElementById('form-login').onsubmit = async (e) => {
       e.preventDefault();
       if(this.loading) return;
-      const email = document.getElementById('li-email').value.trim().toLowerCase();
+      const celular = document.getElementById('li-celular').value.trim();
       const senha = document.getElementById('li-senha').value;
+
+      if(celular.replace(/\D/g,'').length < 10){
+        this.error = 'Informe um número de celular válido.'; this.render(); return;
+      }
 
       this.loading = true;
       const btn = document.getElementById('li-submit');
       btn.disabled = true; btn.textContent = 'Entrando...';
 
+      const email = celularParaEmail(celular);
       const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
 
       if(error){
         this.loading = false;
         this.error = error.message.includes('Invalid login credentials')
-          ? 'E-mail ou senha incorretos.'
+          ? 'Celular ou senha incorretos.'
           : 'Não foi possível entrar: ' + error.message;
         this.render();
         return;
@@ -959,15 +1022,11 @@ const Auth = {
       <form id="form-cadastro">
         <div class="field">
           <label>Nome completo</label>
-          <input type="text" id="ca-nome" required>
+          <input type="text" id="ca-nome" required placeholder="Seu nome">
         </div>
         <div class="field">
-          <label>E-mail</label>
-          <input type="email" id="ca-email" required>
-        </div>
-        <div class="field">
-          <label>Telefone</label>
-          <input type="text" id="ca-telefone" placeholder="(00) 00000-0000">
+          <label>Celular</label>
+          <input type="tel" id="ca-celular" required placeholder="(00) 00000-0000">
         </div>
         <div class="field">
           <label>Senha</label>
@@ -984,10 +1043,13 @@ const Auth = {
       e.preventDefault();
       if(this.loading) return;
       const nome = document.getElementById('ca-nome').value.trim();
-      const email = document.getElementById('ca-email').value.trim().toLowerCase();
-      const telefone = document.getElementById('ca-telefone').value.trim();
+      const celular = document.getElementById('ca-celular').value.trim();
       const senha = document.getElementById('ca-senha').value;
       const convite = document.getElementById('ca-convite').value.trim();
+
+      if(celular.replace(/\D/g,'').length < 10){
+        this.error = 'Informe um número de celular válido.'; this.render(); return;
+      }
 
       this.loading = true;
       const btn = document.getElementById('ca-submit');
@@ -1007,17 +1069,12 @@ const Auth = {
         .eq('codigo', codigoNorm)
         .maybeSingle();
 
-      if(conviteErr){
-        return erroUI('Erro ao verificar o convite. Tente novamente.');
-      }
-      if(!conviteData){
-        return erroUI('Código de convite inválido. Verifique e tente novamente.');
-      }
-      if(conviteData.usos_atuais >= conviteData.usos_maximos){
-        return erroUI('Este código de convite já atingiu o limite de usos.');
-      }
+      if(conviteErr) return erroUI('Erro ao verificar o convite. Tente novamente.');
+      if(!conviteData) return erroUI('Código de convite inválido. Verifique e tente novamente.');
+      if(conviteData.usos_atuais >= conviteData.usos_maximos) return erroUI('Este código de convite já atingiu o limite de usos.');
 
-      // 2. Cria o usuário no Supabase Auth
+      // 2. Gera email fictício a partir do celular
+      const email = celularParaEmail(celular);
       btn.textContent = 'Criando conta...';
       const { data, error } = await sb.auth.signUp({ email, password: senha });
 
@@ -1028,33 +1085,29 @@ const Auth = {
           error.message.includes('already exists') ||
           error.status === 422;
         return erroUI(jaExiste
-          ? 'Já existe uma conta cadastrada com esse e-mail.'
+          ? 'Já existe uma conta com esse número de celular.'
           : 'Não foi possível criar a conta: ' + error.message);
       }
 
-      // Supabase às vezes retorna sucesso mas com identities vazio = e-mail já existe
       if(data.user && data.user.identities && data.user.identities.length === 0){
-        return erroUI('Já existe uma conta cadastrada com esse e-mail.');
+        return erroUI('Já existe uma conta com esse número de celular.');
       }
 
       // 3. Garante sessão ativa
       if(!data.session){
         const { error: loginErr } = await sb.auth.signInWithPassword({ email, password: senha });
-        if(loginErr){
-          return erroUI('Conta criada, mas não foi possível entrar automaticamente. Tente fazer login.');
-        }
+        if(loginErr) return erroUI('Conta criada, mas não foi possível entrar. Tente fazer login.');
       }
 
-      // 4. Cria o perfil via RPC (convite já validado no passo 1)
+      // 4. Cria o perfil via RPC
       btn.textContent = 'Finalizando cadastro...';
       const { error: rpcError } = await sb.rpc('cadastrar_com_convite', {
         p_nome: nome,
-        p_telefone: telefone,
+        p_telefone: celular,
         p_codigo_convite: codigoNorm,
       });
 
       if(rpcError){
-        // Desfaz auth para não deixar usuário fantasma
         await sb.auth.signOut();
         return erroUI(rpcError.message.includes('Código de convite')
           ? rpcError.message
@@ -1221,6 +1274,7 @@ const App = {
     { key:'pagamentos', label:'Pagamentos', icon:'$' },
     { key:'ranking', label:'Ranking', icon:'★' },
     { key:'sorteios', label:'Sorteios & Rifas', icon:'⊙' },
+    { key:'notificacoes', label:'Notificações', icon:'🔔' },
     { section: 'Sistema' },
     { key:'relatorios', label:'Relatórios', icon:'▤' },
     { key:'auditoria', label:'Auditoria', icon:'⌗' },
@@ -1316,6 +1370,9 @@ const App = {
         <div class="sidebar-overlay" id="sidebar-overlay"></div>
         <div class="sidebar" id="sidebar">
           <div class="brand">
+            <div style="font-family:'Archivo Black',sans-serif;font-size:16px;color:var(--texto);display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <span style="font-size:20px;">⚽</span> BOLÃO
+            </div>
             <div class="sub">${isAdmin ? 'Painel Administrativo' : 'Área do Participante'}</div>
           </div>
           <div class="nav" id="nav">${navHtml}</div>
@@ -1379,6 +1436,7 @@ const App = {
       boloes: Pages.adminBoloes,
       jogos: Pages.adminJogos,
       participantes: Pages.adminParticipantes,
+      notificacoes: Pages.adminNotificacoes,
       pagamentos: Pages.adminPagamentos,
       ranking: Pages.ranking,
       sorteios: Pages.sorteios,
@@ -1584,6 +1642,85 @@ Pages.adminBoloes = function(){
     await Store.loadAll();
     Pages.adminBoloes();
   });
+};
+
+// ---------------------- NOTIFICAÇÕES ----------------------
+Pages.adminNotificacoes = async function(){
+  App.setTopbar('Notificações', 'Envie avisos para os participantes');
+  document.getElementById('content').innerHTML = '<div class="empty-state"><div class="msg">Carregando...</div></div>';
+  await Promise.all([Store.reloadNotificacoes(), Store.reloadUsuarios()]);
+  const db = Store.data;
+  const participantes = db.usuarios.filter(u=>u.perfil==='participante');
+
+  const render = () => {
+    const notifs = db.notificacoes;
+    document.getElementById('content').innerHTML = `
+      <div class="grid grid-2" style="align-items:start;">
+
+        <!-- Formulário de envio -->
+        <div class="card">
+          <div class="section-title" style="margin-bottom:14px;">📣 Nova notificação</div>
+          <div class="field">
+            <label>Destinatário</label>
+            <select id="notif-dest">
+              <option value="todos">Todos os participantes</option>
+              ${participantes.map(u=>`<option value="${u.id}">${escapeHtml(u.nome)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label>Título</label>
+            <input type="text" id="notif-titulo" placeholder="Ex: Jogo amanhã!" maxlength="80">
+          </div>
+          <div class="field">
+            <label>Mensagem</label>
+            <textarea id="notif-msg" rows="3" placeholder="Digite a mensagem..." style="width:100%;resize:vertical;"></textarea>
+          </div>
+          <button class="btn btn-primary" id="btn-enviar-notif">📤 Enviar notificação</button>
+        </div>
+
+        <!-- Histórico -->
+        <div class="card">
+          <div class="section-title" style="margin-bottom:14px;">Histórico <span style="font-size:12px;color:var(--texto-3);">(${notifs.length} enviadas)</span></div>
+          ${notifs.length ? notifs.slice(0,20).map(n=>{
+            const u = db.usuarios.find(x=>x.id===n.usuarioId);
+            const data = n.criadoEm ? new Date(n.criadoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+            return `<div style="padding:10px 0;border-bottom:1px solid var(--linha);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span style="font-weight:700;font-size:13px;">${escapeHtml(n.titulo)}</span>
+                <span style="font-size:11px;color:var(--texto-3);">${data}</span>
+              </div>
+              <div style="font-size:12px;color:var(--texto-2);margin-bottom:4px;">${escapeHtml(n.mensagem)}</div>
+              <div style="font-size:11px;color:var(--texto-3);">Para: ${u ? escapeHtml(u.nome) : 'Todos'} ${n.lida ? '✓ lida' : '• não lida'}</div>
+            </div>`;
+          }).join('') : `<div class="empty-state"><div class="icon">🔔</div><div class="msg">Nenhuma notificação enviada</div></div>`}
+        </div>
+
+      </div>
+    `;
+
+    document.getElementById('btn-enviar-notif').onclick = async () => {
+      const dest = document.getElementById('notif-dest').value;
+      const titulo = document.getElementById('notif-titulo').value.trim();
+      const mensagem = document.getElementById('notif-msg').value.trim();
+      if(!titulo){ toast('Informe o título.', 'error'); return; }
+      if(!mensagem){ toast('Informe a mensagem.', 'error'); return; }
+
+      const btn = document.getElementById('btn-enviar-notif');
+      btn.disabled = true; btn.textContent = 'Enviando...';
+
+      const destinatarios = dest === 'todos' ? participantes.map(u=>u.id) : [dest];
+      const inserts = destinatarios.map(uid=>({ usuario_id: uid, titulo, mensagem }));
+
+      const { error } = await sb.from('notificacoes').insert(inserts);
+      if(error){ toast('Erro ao enviar: ' + error.message, 'error'); btn.disabled=false; btn.textContent='📤 Enviar notificação'; return; }
+
+      toast(`Notificação enviada para ${destinatarios.length === 1 ? '1 participante' : destinatarios.length + ' participantes'}!`);
+      await Store.reloadNotificacoes();
+      render();
+    };
+  };
+
+  render();
 };
 
 // ---------------------- PALPITES DO BOLÃO ----------------------
@@ -2081,6 +2218,11 @@ Pages.partDashboard = function(user){
   const meuPagamento = db.pagamentos.find(p=>p.usuarioId===user.id && (!bolao || p.bolaoId===bolao.id));
   const proximosJogos = db.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora)).slice(0,3);
   const minhasNotifs = db.notificacoes.filter(n=>n.usuarioId===user.id).slice(0,4);
+  // Marca como lidas em segundo plano
+  const naoLidas = minhasNotifs.filter(n=>!n.lida).map(n=>n.id);
+  if(naoLidas.length) sb.from('notificacoes').update({lida:true}).in('id',naoLidas).then(()=>{
+    naoLidas.forEach(id=>{ const n=db.notificacoes.find(x=>x.id===id); if(n) n.lida=true; });
+  });
 
   document.getElementById('content').innerHTML = `
     <div class="grid grid-4" style="margin-bottom:22px;">
@@ -2105,6 +2247,54 @@ Pages.partDashboard = function(user){
         <div class="stat-sub">${minhaLinha?minhaLinha.jogosPalpitados+' palpite(s) enviados':''}</div>
       </div>
     </div>
+    <!-- Card Copa do Mundo 2026 -->
+    ${(()=>{
+      const hoje = new Date();
+      const proxCopa = COPA_2026.filter(j=> new Date(j.data+'T'+j.hora) >= hoje)
+        .sort((a,b)=> new Date(a.data+'T'+a.hora) - new Date(b.data+'T'+b.hora))
+        .slice(0,4);
+      if(!proxCopa.length) return '';
+      return `
+      <div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(0,40,80,0.6),rgba(0,20,50,0.4));border:1px solid rgba(255,215,0,0.2);position:relative;overflow:hidden;">
+        <div style="position:absolute;top:-10px;right:-10px;font-size:80px;opacity:0.06;pointer-events:none;">🏆</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <span style="font-size:20px;">🌎</span>
+          <div>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:14px;color:#FFD700;letter-spacing:0.05em;">COPA DO MUNDO FIFA 2026</div>
+            <div style="font-size:11px;color:var(--texto-3);">EUA • México • Canadá — Junho/Julho 2026</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">
+          ${proxCopa.map(j=>{
+            const dt = new Date(j.data+'T'+j.hora);
+            const label = dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' · ' + j.hora;
+            const dias = Math.ceil((dt-hoje)/(1000*60*60*24));
+            const urgente = dias <= 3;
+            return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,215,0,0.1);border-radius:8px;padding:10px 12px;">
+              <div style="font-size:10px;color:${urgente?'#FFD700':'var(--texto-3)'};margin-bottom:6px;font-weight:700;">${label} · ${j.cidade} ${urgente?'🔥':''}</div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                <span style="font-size:22px;">${BANDEIRAS[j.time1]||'🏳'}</span>
+                <div style="text-align:center;">
+                  <div style="font-size:10px;color:var(--texto-3);">Grupo ${j.grupo}</div>
+                  <div style="font-size:11px;font-weight:700;color:var(--texto-2);">VS</div>
+                </div>
+                <span style="font-size:22px;">${BANDEIRAS[j.time2]||'🏳'}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;font-weight:700;color:var(--texto-2);">
+                <span>${j.nome1}</span>
+                <span>${j.nome2}</span>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--texto-3);text-align:right;">
+          ${Math.ceil((new Date('2026-06-11')-hoje)/(1000*60*60*24)) > 0 
+            ? `Faltam ${Math.ceil((new Date('2026-06-11')-hoje)/(1000*60*60*24))} dias para a Copa` 
+            : '🏆 Copa em andamento!'}
+        </div>
+      </div>`;
+    })()}
+
     ${bolao && bolao.descricao ? `
     <div class="card" style="margin-bottom:18px;border-left:3px solid var(--azul);">
       <div class="section-title" style="margin-bottom:10px;">📋 Regulamento — ${escapeHtml(bolao.nome)}</div>
@@ -2170,7 +2360,7 @@ Pages.partDashboard = function(user){
 Pages.partTurma = async function(user){
   App.setTopbar('A Turma', 'Veja os participantes e os palpites de cada jogo');
   document.getElementById('content').innerHTML = '<div class="empty-state"><div class="msg">Carregando...</div></div>';
-  await Promise.all([Store.reloadPalpites(), Store.reloadUsuarios()]);
+  await Promise.all([Store.reloadPalpites(), Store.reloadUsuarios(), Store.reloadJogos()]);
   const db = Store.data;
   const bolao = db.boloes.find(b=>b.status==='ativo') || db.boloes[0];
   if(!bolao){
@@ -2475,8 +2665,7 @@ Pages.partPerfil = function(user){
     <div class="card" style="max-width:480px;">
       <form id="form-perfil">
         <div class="field"><label>Nome completo</label><input type="text" id="pf-nome" value="${escapeHtml(user.nome)}" required></div>
-        <div class="field"><label>E-mail</label><input type="email" id="pf-email" value="${escapeHtml(user.email)}" required></div>
-        <div class="field"><label>Telefone</label><input type="text" id="pf-telefone" value="${escapeHtml(user.telefone||'')}"></div>
+        <div class="field"><label>Celular</label><input type="tel" id="pf-telefone" value="${escapeHtml(user.telefone||'')}" placeholder="(00) 00000-0000"></div>
         <div class="field"><label>Data de nascimento</label><input type="date" id="pf-nascimento" value="${user.nascimento||''}"></div>
         <div class="field"><label>Nova senha (deixe em branco para manter)</label><input type="password" id="pf-senha" placeholder="mínimo 6 caracteres" minlength="6"></div>
         <button type="submit" class="btn btn-primary" id="pf-submit">Salvar alterações</button>
@@ -2490,9 +2679,9 @@ Pages.partPerfil = function(user){
     </div>
   `;
   document.getElementById('btn-excluir-conta').onclick = async () => {
-    const confirmacao = prompt('Para confirmar, digite seu e-mail:');
-    if(!confirmacao || confirmacao.trim().toLowerCase() !== user.email.toLowerCase()){
-      toast('E-mail incorreto. Conta não excluída.', 'error'); return;
+    const confirmacao = prompt('Para confirmar, digite seu número de celular:');
+    if(!confirmacao || confirmacao.replace(/\D/g,'') !== (user.telefone||'').replace(/\D/g,'')){
+      toast('Celular incorreto. Conta não excluída.', 'error'); return;
     }
     const btn = document.getElementById('btn-excluir-conta');
     btn.disabled = true; btn.textContent = 'Excluindo...';
@@ -2506,7 +2695,6 @@ Pages.partPerfil = function(user){
   document.getElementById('form-perfil').onsubmit = async (e) => {
     e.preventDefault();
     const novoNome = document.getElementById('pf-nome').value.trim();
-    const novoEmail = document.getElementById('pf-email').value.trim();
     const novoTelefone = document.getElementById('pf-telefone').value.trim();
     const novaNascimento = document.getElementById('pf-nascimento').value;
     const novaSenha = document.getElementById('pf-senha').value;
@@ -2523,9 +2711,8 @@ Pages.partPerfil = function(user){
 
     if(perfilError){ toast('Erro ao salvar perfil: ' + perfilError.message, 'error'); btn.disabled=false; btn.textContent='Salvar alterações'; return; }
 
-    // 2. E-mail e senha (Supabase Auth) — só envia o que mudou
+    // 2. Senha (Supabase Auth)
     const authUpdate = {};
-    if(novoEmail && novoEmail.toLowerCase() !== user.email.toLowerCase()) authUpdate.email = novoEmail;
     if(novaSenha) authUpdate.password = novaSenha;
 
     if(Object.keys(authUpdate).length > 0){
@@ -3301,5 +3488,14 @@ const Modals = {
 
 
 </script>
+  <script>
+    if('serviceWorker' in navigator){
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(r => console.log('SW registrado:', r.scope))
+          .catch(e => console.warn('SW erro:', e));
+      });
+    }
+  </script>
 </body>
 </html>
