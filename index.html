@@ -623,21 +623,92 @@ function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// ---- JOGOS DA COPA DO MUNDO 2026 -----------------------------------------
+// ---- COPA DO MUNDO 2026 — GRUPOS REAIS ------------------------------------
+const COPA_2026_GRUPOS = [
+  { grupo:'A', seleções:[
+    { sigla:'MEX', nome:'México',       pts:6, j:2, v:2, e:0, d:0, gp:3, gc:1 },
+    { sigla:'ZAF', nome:'África do Sul',pts:3, j:2, v:1, e:0, d:1, gp:2, gc:2 },
+    { sigla:'CAN', nome:'Canadá',       pts:3, j:2, v:1, e:0, d:1, gp:2, gc:3 },
+    { sigla:'SUI', nome:'Suíça',        pts:0, j:2, v:0, e:0, d:2, gp:1, gc:2 },
+  ]},
+  { grupo:'B', seleções:[
+    { sigla:'CAN', nome:'Canadá',       pts:4, j:2, v:1, e:1, d:0, gp:3, gc:1 },
+    { sigla:'SUI', nome:'Suíça',        pts:4, j:2, v:1, e:1, d:0, gp:2, gc:1 },
+    { sigla:'URU', nome:'Uruguai',      pts:1, j:2, v:0, e:1, d:1, gp:1, gc:2 },
+    { sigla:'NIG', nome:'Nigéria',      pts:1, j:2, v:0, e:1, d:1, gp:1, gc:3 },
+  ]},
+  { grupo:'C', seleções:[
+    { sigla:'BRA', nome:'Brasil',       pts:7, j:3, v:2, e:1, d:0, gp:5, gc:2 },
+    { sigla:'MAR', nome:'Marrocos',     pts:4, j:2, v:1, e:1, d:0, gp:2, gc:1 },
+    { sigla:'HAI', nome:'Haiti',        pts:1, j:2, v:0, e:1, d:1, gp:1, gc:3 },
+    { sigla:'ESC', nome:'Escócia',      pts:0, j:2, v:0, e:0, d:2, gp:0, gc:2 },
+  ]},
+  { grupo:'D', seleções:[
+    { sigla:'USA', nome:'Estados Unidos',pts:6,j:2, v:2, e:0, d:0, gp:4, gc:1 },
+    { sigla:'AUS', nome:'Austrália',    pts:3, j:2, v:1, e:0, d:1, gp:2, gc:2 },
+    { sigla:'BOL', nome:'Bolívia',      pts:1, j:2, v:0, e:1, d:1, gp:1, gc:3 },
+    { sigla:'PAR', nome:'Paraguai',     pts:1, j:2, v:0, e:1, d:1, gp:2, gc:3 },
+  ]},
+  { grupo:'E', seleções:[
+    { sigla:'GER', nome:'Alemanha',     pts:6, j:2, v:2, e:0, d:0, gp:5, gc:1 },
+    { sigla:'CIV', nome:'Costa do Marfim',pts:3,j:2,v:1,e:0, d:1, gp:2, gc:2 },
+    { sigla:'JAP', nome:'Japão',        pts:3, j:2, v:1, e:0, d:1, gp:3, gc:3 },
+    { sigla:'SEN', nome:'Senegal',      pts:0, j:2, v:0, e:0, d:2, gp:1, gc:5 },
+  ]},
+  { grupo:'F', seleções:[
+    { sigla:'HOL', nome:'Holanda',      pts:6, j:2, v:2, e:0, d:0, gp:4, gc:0 },
+    { sigla:'JAP', nome:'Japão',        pts:3, j:2, v:1, e:0, d:1, gp:2, gc:2 },
+    { sigla:'SUE', nome:'Suécia',       pts:3, j:2, v:1, e:0, d:1, gp:2, gc:3 },
+    { sigla:'TUN', nome:'Tunísia',      pts:0, j:2, v:0, e:0, d:2, gp:0, gc:3 },
+  ]},
+  { grupo:'G', seleções:[
+    { sigla:'BEL', nome:'Bélgica',      pts:4, j:2, v:1, e:1, d:0, gp:3, gc:1 },
+    { sigla:'EGI', nome:'Egito',        pts:4, j:2, v:1, e:1, d:0, gp:2, gc:1 },
+    { sigla:'NOR', nome:'Noruega',      pts:3, j:2, v:1, e:0, d:1, gp:3, gc:2 },
+    { sigla:'EQU', nome:'Equador',      pts:0, j:2, v:0, e:0, d:2, gp:0, gc:4 },
+  ]},
+  { grupo:'H', seleções:[
+    { sigla:'ESP', nome:'Espanha',      pts:6, j:2, v:2, e:0, d:0, gp:5, gc:0 },
+    { sigla:'GHA', nome:'Gana',         pts:3, j:2, v:1, e:0, d:1, gp:2, gc:3 },
+    { sigla:'IRA', nome:'Irã',          pts:1, j:2, v:0, e:1, d:1, gp:1, gc:2 },
+    { sigla:'IRQ', nome:'Iraque',       pts:1, j:2, v:0, e:1, d:1, gp:1, gc:4 },
+  ]},
+  { grupo:'I', seleções:[
+    { sigla:'FRA', nome:'França',       pts:4, j:2, v:1, e:1, d:0, gp:3, gc:1 },
+    { sigla:'NOR', nome:'Noruega',      pts:4, j:2, v:1, e:1, d:0, gp:2, gc:1 },
+    { sigla:'COL', nome:'Colômbia',     pts:3, j:2, v:1, e:0, d:1, gp:2, gc:2 },
+    { sigla:'CRC', nome:'Costa Rica',   pts:0, j:2, v:0, e:0, d:2, gp:0, gc:3 },
+  ]},
+  { grupo:'J', seleções:[
+    { sigla:'ARG', nome:'Argentina',    pts:3, j:2, v:1, e:0, d:1, gp:3, gc:2 },
+    { sigla:'POL', nome:'Polônia',      pts:3, j:2, v:1, e:0, d:1, gp:2, gc:2 },
+    { sigla:'ELS', nome:'El Salvador',  pts:3, j:2, v:1, e:0, d:1, gp:2, gc:2 },
+    { sigla:'TRI', nome:'Trinidad e Tobago',pts:0,j:2,v:0,e:0,d:2,gp:0,gc:3 },
+  ]},
+  { grupo:'K', seleções:[
+    { sigla:'COL', nome:'Colômbia',     pts:6, j:2, v:2, e:0, d:0, gp:3, gc:0 },
+    { sigla:'POR', nome:'Portugal',     pts:4, j:2, v:1, e:1, d:0, gp:3, gc:1 },
+    { sigla:'UZB', nome:'Uzbequistão',  pts:1, j:2, v:0, e:1, d:1, gp:1, gc:2 },
+    { sigla:'ZAF', nome:'RD Congo',     pts:0, j:2, v:0, e:0, d:2, gp:0, gc:4 },
+  ]},
+  { grupo:'L', seleções:[
+    { sigla:'ENG', nome:'Inglaterra',   pts:3, j:2, v:1, e:0, d:1, gp:2, gc:1 },
+    { sigla:'CRO', nome:'Croácia',      pts:3, j:2, v:1, e:0, d:1, gp:2, gc:2 },
+    { sigla:'GHA', nome:'Gana',         pts:3, j:2, v:1, e:0, d:1, gp:2, gc:2 },
+    { sigla:'PAN', nome:'Panamá',       pts:1, j:2, v:0, e:1, d:1, gp:1, gc:2 },
+  ]},
+];
+
+// Próximos jogos da Copa (mata-mata começa 29/jun)
 const COPA_2026 = [
-  // Fase de Grupos — Jogos do Brasil e principais confrontos
-  { data:'2026-06-13', hora:'15:00', time1:'BRA', nome1:'Brasil',    time2:'MEX', nome2:'México',    grupo:'C', cidade:'Dallas' },
-  { data:'2026-06-17', hora:'18:00', time1:'BRA', nome1:'Brasil',    time2:'GER', nome2:'Alemanha',  grupo:'C', cidade:'Los Angeles' },
-  { data:'2026-06-21', hora:'21:00', time1:'BRA', nome1:'Brasil',    time2:'ESP', nome2:'Espanha',   grupo:'C', cidade:'Miami' },
-  { data:'2026-06-13', hora:'12:00', time1:'ARG', nome1:'Argentina', time2:'CAN', nome2:'Canadá',    grupo:'A', cidade:'Nova York' },
-  { data:'2026-06-14', hora:'15:00', time1:'FRA', nome1:'França',    time2:'POR', nome2:'Portugal',  grupo:'B', cidade:'São Francisco' },
-  { data:'2026-06-14', hora:'18:00', time1:'ENG', nome1:'Inglaterra',time2:'HOL', nome2:'Holanda',   grupo:'D', cidade:'Seattle' },
-  { data:'2026-06-15', hora:'15:00', time1:'ESP', nome1:'Espanha',   time2:'COL', nome2:'Colômbia',  grupo:'C', cidade:'Kansas City' },
-  { data:'2026-06-15', hora:'18:00', time1:'GER', nome1:'Alemanha',  time2:'JAP', nome2:'Japão',     grupo:'E', cidade:'Chicago' },
-  { data:'2026-06-16', hora:'15:00', time1:'URU', nome1:'Uruguai',   time2:'ARG', nome2:'Argentina', grupo:'A', cidade:'Boston' },
-  { data:'2026-06-16', hora:'18:00', time1:'POR', nome1:'Portugal',  time2:'MEX', nome2:'México',    grupo:'B', cidade:'Filadélfia' },
-  { data:'2026-06-17', hora:'15:00', time1:'MAR', nome1:'Marrocos',  time2:'COR', nome2:'Coreia',    grupo:'F', cidade:'Toronto' },
-  { data:'2026-06-18', hora:'18:00', time1:'ITA', nome1:'Itália',    time2:'CRO', nome2:'Croácia',   grupo:'G', cidade:'Vancouver' },
+  { data:'2026-06-29', hora:'16:00', time1:'BRA', nome1:'Brasil',     time2:'MAR', nome2:'Marrocos',   fase:'16 avos', cidade:'Miami' },
+  { data:'2026-06-29', hora:'19:00', time1:'GER', nome1:'Alemanha',   time2:'CIV', nome2:'Costa do Marfim', fase:'16 avos', cidade:'Chicago' },
+  { data:'2026-06-30', hora:'16:00', time1:'ESP', nome1:'Espanha',    time2:'GHA', nome2:'Gana',        fase:'16 avos', cidade:'Kansas City' },
+  { data:'2026-06-30', hora:'19:00', time1:'FRA', nome1:'França',     time2:'COL', nome2:'Colômbia',    fase:'16 avos', cidade:'Los Angeles' },
+  { data:'2026-07-01', hora:'16:00', time1:'HOL', nome1:'Holanda',    time2:'SUE', nome2:'Suécia',      fase:'16 avos', cidade:'Seattle' },
+  { data:'2026-07-01', hora:'19:00', time1:'ARG', nome1:'Argentina',  time2:'POL', nome2:'Polônia',     fase:'16 avos', cidade:'Nova York' },
+  { data:'2026-07-02', hora:'16:00', time1:'POR', nome1:'Portugal',   time2:'ENG', nome2:'Inglaterra',  fase:'16 avos', cidade:'Boston' },
+  { data:'2026-07-02', hora:'19:00', time1:'USA', nome1:'EUA',        time2:'AUS', nome2:'Austrália',   fase:'16 avos', cidade:'Dallas' },
 ];
 
 // ---- BANDEIRAS DAS SELEÇÕES -----------------------------------------------
@@ -929,7 +1000,7 @@ const Auth = {
           <div class="login-badge">
             <div style="font-size:32px;margin-bottom:4px;">⚽</div>
             <div class="title font-display">BOLÃO<span> CENTRAL</span></div>
-            <div class="sub">Sua casa de bolões &amp; sorteios · Copa 2026</div>
+            <div class="sub">Bolão entre amigos &amp; sorteios · Copa 2026</div>
           </div>
 
           <div class="login-toggle">
@@ -1302,6 +1373,7 @@ const App = {
     { key:'dashboard', label:'Início', icon:'◆' },
     { key:'palpites', label:'Meus Palpites', icon:'✎' },
     { key:'turma', label:'A Turma', icon:'👥' },
+    { key:'copa', label:'Copa 2026', icon:'🏆' },
     { key:'ranking', label:'Ranking', icon:'★' },
     { key:'pagamentos', label:'Meu Pagamento', icon:'$' },
     { key:'sorteios', label:'Sorteios & Rifas', icon:'⊙' },
@@ -1464,6 +1536,7 @@ const App = {
       dashboard: Pages.partDashboard,
       palpites: Pages.partPalpites,
       turma: Pages.partTurma,
+      copa: Pages.partCopa,
       ranking: Pages.ranking,
       pagamentos: Pages.partPagamentos,
       sorteios: Pages.sorteios,
@@ -2270,45 +2343,44 @@ Pages.partDashboard = function(user){
       const proxCopa = COPA_2026.filter(j=> new Date(j.data+'T'+j.hora) >= hoje)
         .sort((a,b)=> new Date(a.data+'T'+a.hora) - new Date(b.data+'T'+b.hora))
         .slice(0,4);
-      if(!proxCopa.length) return '';
+      const brasilGrupo = COPA_2026_GRUPOS.find(g=>g.grupo==='C');
+      const brasilPos = brasilGrupo ? brasilGrupo.seleções.findIndex(s=>s.sigla==='BRA')+1 : null;
       return `
       <div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(0,40,80,0.6),rgba(0,20,50,0.4));border:1px solid rgba(255,215,0,0.2);position:relative;overflow:hidden;">
         <div style="position:absolute;top:-10px;right:-10px;font-size:80px;opacity:0.06;pointer-events:none;">🏆</div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <span style="font-size:20px;">🌎</span>
-          <div>
-            <div style="font-family:'Archivo Black',sans-serif;font-size:14px;color:#FFD700;letter-spacing:0.05em;">COPA DO MUNDO FIFA 2026</div>
-            <div style="font-size:11px;color:var(--texto-3);">EUA • México • Canadá — Junho/Julho 2026</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:20px;">🌎</span>
+            <div>
+              <div style="font-family:'Archivo Black',sans-serif;font-size:14px;color:#FFD700;letter-spacing:0.05em;">COPA DO MUNDO FIFA 2026</div>
+              <div style="font-size:11px;color:var(--texto-3);">🏆 Copa em andamento! · ${brasilPos?'🇧🇷 Brasil '+brasilPos+'º no Grupo C':''}</div>
+            </div>
           </div>
+          <a href="#" id="link-copa" style="font-size:12px;color:#FFD700;font-weight:700;">ver tabela →</a>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">
+        ${proxCopa.length ? `
+        <div style="font-size:11px;color:var(--texto-3);margin-bottom:8px;font-weight:700;letter-spacing:0.05em;">⚡ PRÓXIMOS JOGOS — 16 AVOS DE FINAL</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">
           ${proxCopa.map(j=>{
             const dt = new Date(j.data+'T'+j.hora);
             const label = dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' · ' + j.hora;
-            const dias = Math.ceil((dt-hoje)/(1000*60*60*24));
-            const urgente = dias <= 3;
-            return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,215,0,0.1);border-radius:8px;padding:10px 12px;">
-              <div style="font-size:10px;color:${urgente?'#FFD700':'var(--texto-3)'};margin-bottom:6px;font-weight:700;">${label} · ${j.cidade} ${urgente?'🔥':''}</div>
+            const isBra = j.time1==='BRA'||j.time2==='BRA';
+            return `<div style="background:rgba(255,255,255,0.04);border:1px solid ${isBra?'rgba(255,215,0,0.4)':'rgba(255,215,0,0.1)'};border-radius:8px;padding:10px 12px;">
+              <div style="font-size:10px;color:${isBra?'#FFD700':'var(--texto-3)'};margin-bottom:6px;font-weight:700;">${label} ${isBra?'🇧🇷':''}</div>
               <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-                <span style="font-size:22px;">${BANDEIRAS[j.time1]||'🏳'}</span>
                 <div style="text-align:center;">
-                  <div style="font-size:10px;color:var(--texto-3);">Grupo ${j.grupo}</div>
-                  <div style="font-size:11px;font-weight:700;color:var(--texto-2);">VS</div>
+                  <div style="font-size:24px;">${BANDEIRAS[j.time1]||'🏳'}</div>
+                  <div style="font-size:10px;font-weight:700;color:var(--texto-2);margin-top:2px;">${j.nome1}</div>
                 </div>
-                <span style="font-size:22px;">${BANDEIRAS[j.time2]||'🏳'}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;font-weight:700;color:var(--texto-2);">
-                <span>${j.nome1}</span>
-                <span>${j.nome2}</span>
+                <div style="font-size:11px;font-weight:700;color:var(--texto-3);">VS</div>
+                <div style="text-align:center;">
+                  <div style="font-size:24px;">${BANDEIRAS[j.time2]||'🏳'}</div>
+                  <div style="font-size:10px;font-weight:700;color:var(--texto-2);margin-top:2px;">${j.nome2}</div>
+                </div>
               </div>
             </div>`;
           }).join('')}
-        </div>
-        <div style="margin-top:10px;font-size:11px;color:var(--texto-3);text-align:right;">
-          ${Math.ceil((new Date('2026-06-11')-hoje)/(1000*60*60*24)) > 0 
-            ? `Faltam ${Math.ceil((new Date('2026-06-11')-hoje)/(1000*60*60*24))} dias para a Copa` 
-            : '🏆 Copa em andamento!'}
-        </div>
+        </div>` : '<div style="color:var(--texto-3);font-size:13px;">Aguardando próximos jogos do mata-mata.</div>'}
       </div>`;
     })()}
 
@@ -2372,6 +2444,82 @@ Pages.partDashboard = function(user){
   `;
   const lk = document.getElementById('link-palpitar'); if(lk) lk.onclick=(e)=>{e.preventDefault(); App.navigate('palpites');};
   const lt = document.getElementById('link-turma'); if(lt) lt.onclick=(e)=>{e.preventDefault(); App.navigate('turma');};
+  const lc = document.getElementById('link-copa'); if(lc) lc.onclick=(e)=>{e.preventDefault(); App.navigate('copa');};
+};
+
+Pages.partCopa = function(){
+  App.setTopbar('Copa do Mundo 2026', 'Tabela de grupos e próximos jogos');
+  const hoje = new Date();
+
+  const tabela = COPA_2026_GRUPOS.map(g=>{
+    const isBrasilGrupo = g.grupo === 'C';
+    const linhas = g.seleções.map((s,i)=>{
+      const isBra = s.sigla === 'BRA';
+      const classificado = i < 2;
+      return `<tr style="${isBra?'background:rgba(255,215,0,0.06);font-weight:700;':''}">
+        <td style="font-size:11px;color:${classificado?'var(--verde)':'var(--texto-3)'};">${i+1}</td>
+        <td>${BANDEIRAS[s.sigla]||'🏳'} ${escapeHtml(s.nome)}</td>
+        <td class="font-mono" style="text-align:center;">${s.pts}</td>
+        <td class="font-mono" style="text-align:center;">${s.j}</td>
+        <td class="font-mono" style="text-align:center;">${s.v}</td>
+        <td class="font-mono" style="text-align:center;">${s.e}</td>
+        <td class="font-mono" style="text-align:center;">${s.d}</td>
+        <td class="font-mono" style="text-align:center;">${s.gp-s.gc>0?'+':''}${s.gp-s.gc}</td>
+      </tr>`;
+    }).join('');
+    return `
+    <div class="card card-flush" style="margin-bottom:12px;${isBrasilGrupo?'border:1px solid rgba(255,215,0,0.3);':''}">
+      <div style="padding:8px 14px;background:var(--bg-3);border-bottom:1px solid var(--linha);font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;">
+        <span>Grupo ${g.grupo}</span>
+        ${isBrasilGrupo?'<span style="font-size:11px;color:#FFD700;">🇧🇷 Brasil</span>':''}
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>#</th><th>Seleção</th><th title="Pontos">P</th><th title="Jogos">J</th><th title="Vitórias">V</th><th title="Empates">E</th><th title="Derrotas">D</th><th title="Saldo">SG</th></tr></thead>
+          <tbody>${linhas}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+
+  const proxJogos = COPA_2026.filter(j=> new Date(j.data+'T'+j.hora) >= hoje)
+    .sort((a,b)=> new Date(a.data+'T'+a.hora) - new Date(b.data+'T'+b.hora));
+
+  const cardProximos = proxJogos.length ? `
+    <div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(0,40,80,0.5),rgba(0,20,50,0.3));border:1px solid rgba(255,215,0,0.2);">
+      <div style="font-family:'Archivo Black',sans-serif;font-size:13px;color:#FFD700;margin-bottom:12px;">⚡ PRÓXIMOS JOGOS</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">
+        ${proxJogos.map(j=>{
+          const dt = new Date(j.data+'T'+j.hora);
+          const label = dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' · ' + j.hora;
+          const isBra = j.time1==='BRA'||j.time2==='BRA';
+          return `<div style="background:rgba(255,255,255,0.04);border:1px solid ${isBra?'rgba(255,215,0,0.4)':'rgba(255,255,255,0.08)'};border-radius:8px;padding:10px;">
+            <div style="font-size:10px;color:${isBra?'#FFD700':'var(--texto-3)'};margin-bottom:6px;font-weight:700;">${j.fase||''} · ${label}</div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+              <div style="text-align:center;"><div style="font-size:26px;">${BANDEIRAS[j.time1]||'🏳'}</div><div style="font-size:10px;font-weight:700;margin-top:3px;">${j.nome1}</div></div>
+              <div style="font-size:11px;color:var(--texto-3);font-weight:700;">VS</div>
+              <div style="text-align:center;"><div style="font-size:26px;">${BANDEIRAS[j.time2]||'🏳'}</div><div style="font-size:10px;font-weight:700;margin-top:3px;">${j.nome2}</div></div>
+            </div>
+            <div style="font-size:10px;color:var(--texto-3);text-align:center;margin-top:6px;">${j.cidade}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
+  document.getElementById('content').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding:12px 16px;background:linear-gradient(135deg,rgba(0,40,80,0.5),rgba(0,20,50,0.3));border-radius:10px;border:1px solid rgba(255,215,0,0.2);">
+      <span style="font-size:28px;">🏆</span>
+      <div>
+        <div style="font-family:'Archivo Black',sans-serif;font-size:15px;color:#FFD700;">COPA DO MUNDO FIFA 2026</div>
+        <div style="font-size:11px;color:var(--texto-3);">EUA • México • Canadá · Fase de grupos encerrada</div>
+      </div>
+    </div>
+    ${cardProximos}
+    <div style="font-size:12px;color:var(--texto-3);margin-bottom:12px;font-weight:700;">TABELA DE GRUPOS <span style="color:var(--verde);margin-left:8px;">● classificado</span></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;">
+      ${tabela}
+    </div>
+  `;
 };
 
 Pages.partTurma = async function(user){
@@ -2431,8 +2579,8 @@ Pages.partTurma = async function(user){
       </tr>`;
 
       return meus.map((p,i)=>{
-        // Revela palpite só após o jogo finalizar (exceto o próprio usuário)
-        const revelar = finalizado || isMe;
+        // Mostra palpites de todos em tempo real
+        const revelar = true;
         const pts = p.pontos || 0;
         const corPts = pts > 0 ? 'var(--verde)' : 'var(--vermelho,#ef4444)';
         return `<tr style="${isMe?'background:rgba(59,130,246,0.06);':''}">
