@@ -689,7 +689,7 @@ const COPA_2026_GRUPOS = [
     { sigla:'COL', nome:'Colômbia',     pts:6, j:2, v:2, e:0, d:0, gp:3, gc:0 },
     { sigla:'POR', nome:'Portugal',     pts:4, j:2, v:1, e:1, d:0, gp:3, gc:1 },
     { sigla:'UZB', nome:'Uzbequistão',  pts:1, j:2, v:0, e:1, d:1, gp:1, gc:2 },
-    { sigla:'ZAF', nome:'RD Congo',     pts:0, j:2, v:0, e:0, d:2, gp:0, gc:4 },
+    { sigla:'RDC', nome:'RD Congo',     pts:0, j:2, v:0, e:0, d:2, gp:0, gc:4 },
   ]},
   { grupo:'L', seleções:[
     { sigla:'ENG', nome:'Inglaterra',   pts:3, j:2, v:1, e:0, d:1, gp:2, gc:1 },
@@ -699,16 +699,20 @@ const COPA_2026_GRUPOS = [
   ]},
 ];
 
-// Próximos jogos da Copa (mata-mata começa 29/jun)
+// Próximos jogos da Copa — 16 avos de final (29/jun em diante)
 const COPA_2026 = [
-  { data:'2026-06-29', hora:'16:00', time1:'BRA', nome1:'Brasil',     time2:'MAR', nome2:'Marrocos',   fase:'16 avos', cidade:'Miami' },
-  { data:'2026-06-29', hora:'19:00', time1:'GER', nome1:'Alemanha',   time2:'CIV', nome2:'Costa do Marfim', fase:'16 avos', cidade:'Chicago' },
-  { data:'2026-06-30', hora:'16:00', time1:'ESP', nome1:'Espanha',    time2:'GHA', nome2:'Gana',        fase:'16 avos', cidade:'Kansas City' },
-  { data:'2026-06-30', hora:'19:00', time1:'FRA', nome1:'França',     time2:'COL', nome2:'Colômbia',    fase:'16 avos', cidade:'Los Angeles' },
-  { data:'2026-07-01', hora:'16:00', time1:'HOL', nome1:'Holanda',    time2:'SUE', nome2:'Suécia',      fase:'16 avos', cidade:'Seattle' },
-  { data:'2026-07-01', hora:'19:00', time1:'ARG', nome1:'Argentina',  time2:'POL', nome2:'Polônia',     fase:'16 avos', cidade:'Nova York' },
-  { data:'2026-07-02', hora:'16:00', time1:'POR', nome1:'Portugal',   time2:'ENG', nome2:'Inglaterra',  fase:'16 avos', cidade:'Boston' },
-  { data:'2026-07-02', hora:'19:00', time1:'USA', nome1:'EUA',        time2:'AUS', nome2:'Austrália',   fase:'16 avos', cidade:'Dallas' },
+  { data:'2026-07-04', hora:'16:00', time1:'BRA', nome1:'Brasil',     time2:'MAR', nome2:'Marrocos',        fase:'16 avos', cidade:'Miami' },
+  { data:'2026-07-04', hora:'19:00', time1:'GER', nome1:'Alemanha',   time2:'CIV', nome2:'Costa do Marfim', fase:'16 avos', cidade:'Chicago' },
+  { data:'2026-07-05', hora:'16:00', time1:'ESP', nome1:'Espanha',    time2:'GHA', nome2:'Gana',            fase:'16 avos', cidade:'Kansas City' },
+  { data:'2026-07-05', hora:'19:00', time1:'FRA', nome1:'França',     time2:'COL', nome2:'Colômbia',        fase:'16 avos', cidade:'Los Angeles' },
+  { data:'2026-07-06', hora:'16:00', time1:'HOL', nome1:'Holanda',    time2:'SUE', nome2:'Suécia',          fase:'16 avos', cidade:'Seattle' },
+  { data:'2026-07-06', hora:'19:00', time1:'ARG', nome1:'Argentina',  time2:'POL', nome2:'Polônia',         fase:'16 avos', cidade:'Nova York' },
+  { data:'2026-07-07', hora:'16:00', time1:'POR', nome1:'Portugal',   time2:'ENG', nome2:'Inglaterra',      fase:'16 avos', cidade:'Boston' },
+  { data:'2026-07-07', hora:'19:00', time1:'USA', nome1:'EUA',        time2:'AUS', nome2:'Austrália',       fase:'16 avos', cidade:'Dallas' },
+  { data:'2026-07-08', hora:'16:00', time1:'MEX', nome1:'México',     time2:'SEN', nome2:'Senegal',         fase:'16 avos', cidade:'Cidade do México' },
+  { data:'2026-07-08', hora:'19:00', time1:'CAN', nome1:'Canadá',     time2:'NOR', nome2:'Noruega',         fase:'16 avos', cidade:'Vancouver' },
+  { data:'2026-07-09', hora:'16:00', time1:'BEL', nome1:'Bélgica',    time2:'JAP', nome2:'Japão',           fase:'16 avos', cidade:'Miami' },
+  { data:'2026-07-09', hora:'19:00', time1:'EGI', nome1:'Egito',      time2:'SUI', nome2:'Suíça',           fase:'16 avos', cidade:'Dallas' },
 ];
 
 // ---- BANDEIRAS DAS SELEÇÕES -----------------------------------------------
@@ -735,6 +739,9 @@ const BANDEIRAS = {
   'ARA':'🇸🇦','SAU':'🇸🇦','JAT':'🇸🇦','QAT':'🇶🇦','EAU':'🇦🇪','UAE':'🇦🇪',
   'IRA2':'🇮🇶','IRQ':'🇮🇶','CHN':'🇨🇳','IND':'🇮🇳','UZB':'🇺🇿',
   'TAI':'🇹🇭','VIE':'🇻🇳','NZL':'🇳🇿','NZE':'🇳🇿',
+  // Copa 2026 extras
+  'RDC':'🇨🇩','CRV':'🇨🇻','ESC':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','HAI':'🇭🇹','CUR':'🇨🇼',
+  'JOR':'🇯🇴','IRQ2':'🇮🇶','BOL':'🇧🇴','SEN':'🇸🇳','SUE':'🇸🇪',
 };
 
 // Retorna emoji de bandeira ou o badge com a sigla (fallback)
@@ -1000,7 +1007,7 @@ const Auth = {
           <div class="login-badge">
             <div style="font-size:32px;margin-bottom:4px;">⚽</div>
             <div class="title font-display">BOLÃO<span> CENTRAL</span></div>
-            <div class="sub">Bolão entre amigos &amp; sorteios · Copa 2026</div>
+            <div class="sub">Sua casa de bolões &amp; sorteios · Copa 2026</div>
           </div>
 
           <div class="login-toggle">
