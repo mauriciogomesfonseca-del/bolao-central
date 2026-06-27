@@ -699,20 +699,23 @@ const COPA_2026_GRUPOS = [
   ]},
 ];
 
-// Próximos jogos da Copa — 16 avos de final (29/jun em diante)
+// 16 avos de final — datas reais (horário de Brasília)
 const COPA_2026 = [
-  { data:'2026-07-04', hora:'16:00', time1:'BRA', nome1:'Brasil',     time2:'MAR', nome2:'Marrocos',        fase:'16 avos', cidade:'Miami' },
-  { data:'2026-07-04', hora:'19:00', time1:'GER', nome1:'Alemanha',   time2:'CIV', nome2:'Costa do Marfim', fase:'16 avos', cidade:'Chicago' },
-  { data:'2026-07-05', hora:'16:00', time1:'ESP', nome1:'Espanha',    time2:'GHA', nome2:'Gana',            fase:'16 avos', cidade:'Kansas City' },
-  { data:'2026-07-05', hora:'19:00', time1:'FRA', nome1:'França',     time2:'COL', nome2:'Colômbia',        fase:'16 avos', cidade:'Los Angeles' },
-  { data:'2026-07-06', hora:'16:00', time1:'HOL', nome1:'Holanda',    time2:'SUE', nome2:'Suécia',          fase:'16 avos', cidade:'Seattle' },
-  { data:'2026-07-06', hora:'19:00', time1:'ARG', nome1:'Argentina',  time2:'POL', nome2:'Polônia',         fase:'16 avos', cidade:'Nova York' },
-  { data:'2026-07-07', hora:'16:00', time1:'POR', nome1:'Portugal',   time2:'ENG', nome2:'Inglaterra',      fase:'16 avos', cidade:'Boston' },
-  { data:'2026-07-07', hora:'19:00', time1:'USA', nome1:'EUA',        time2:'AUS', nome2:'Austrália',       fase:'16 avos', cidade:'Dallas' },
-  { data:'2026-07-08', hora:'16:00', time1:'MEX', nome1:'México',     time2:'SEN', nome2:'Senegal',         fase:'16 avos', cidade:'Cidade do México' },
-  { data:'2026-07-08', hora:'19:00', time1:'CAN', nome1:'Canadá',     time2:'NOR', nome2:'Noruega',         fase:'16 avos', cidade:'Vancouver' },
-  { data:'2026-07-09', hora:'16:00', time1:'BEL', nome1:'Bélgica',    time2:'JAP', nome2:'Japão',           fase:'16 avos', cidade:'Miami' },
-  { data:'2026-07-09', hora:'19:00', time1:'EGI', nome1:'Egito',      time2:'SUI', nome2:'Suíça',           fase:'16 avos', cidade:'Dallas' },
+  { data:'2026-06-28', hora:'16:00', time1:'ZAF', nome1:'África do Sul', time2:'CAN', nome2:'Canadá',          fase:'16 avos', cidade:'Los Angeles' },
+  { data:'2026-06-29', hora:'14:00', time1:'BRA', nome1:'Brasil',         time2:'JAP', nome2:'Japão',           fase:'16 avos', cidade:'Houston' },
+  { data:'2026-06-29', hora:'17:30', time1:'GER', nome1:'Alemanha',       time2:'PAR', nome2:'Paraguai',        fase:'16 avos', cidade:'Boston' },
+  { data:'2026-06-29', hora:'22:00', time1:'HOL', nome1:'Holanda',        time2:'MAR', nome2:'Marrocos',        fase:'16 avos', cidade:'Monterrey' },
+  { data:'2026-06-30', hora:'14:00', time1:'CIV', nome1:'Costa do Marfim',time2:'NOR', nome2:'Noruega',         fase:'16 avos', cidade:'Dallas' },
+  { data:'2026-06-30', hora:'18:00', time1:'FRA', nome1:'França',         time2:'SUE', nome2:'Suécia',          fase:'16 avos', cidade:'Nova Jersey' },
+  { data:'2026-06-30', hora:'22:00', time1:'MEX', nome1:'México',         time2:'SEN', nome2:'Senegal',         fase:'16 avos', cidade:'Cidade do México' },
+  { data:'2026-07-01', hora:'13:00', time1:'ENG', nome1:'Inglaterra',     time2:'EQU', nome2:'Equador',         fase:'16 avos', cidade:'Atlanta' },
+  { data:'2026-07-01', hora:'17:00', time1:'BEL', nome1:'Bélgica',        time2:'BOL', nome2:'Bolívia',         fase:'16 avos', cidade:'Seattle' },
+  { data:'2026-07-01', hora:'21:00', time1:'USA', nome1:'EUA',            time2:'BIH', nome2:'Bósnia',          fase:'16 avos', cidade:'Santa Clara' },
+  { data:'2026-07-02', hora:'16:00', time1:'ESP', nome1:'Espanha',        time2:'ARG', nome2:'Argentina',       fase:'16 avos', cidade:'Los Angeles' },
+  { data:'2026-07-02', hora:'20:00', time1:'POR', nome1:'Portugal',       time2:'COL', nome2:'Colômbia',        fase:'16 avos', cidade:'Toronto' },
+  { data:'2026-07-03', hora:'00:00', time1:'SUI', nome1:'Suíça',          time2:'COR', nome2:'Coreia do Sul',   fase:'16 avos', cidade:'Vancouver' },
+  { data:'2026-07-03', hora:'15:00', time1:'AUS', nome1:'Austrália',      time2:'EGI', nome2:'Egito',           fase:'16 avos', cidade:'Dallas' },
+  { data:'2026-07-03', hora:'19:00', time1:'ARG', nome1:'Argentina',      time2:'CRV', nome2:'Cabo Verde',      fase:'16 avos', cidade:'Miami' },
 ];
 
 // ---- BANDEIRAS DAS SELEÇÕES -----------------------------------------------
@@ -742,6 +745,7 @@ const BANDEIRAS = {
   // Copa 2026 extras
   'RDC':'🇨🇩','CRV':'🇨🇻','ESC':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','HAI':'🇭🇹','CUR':'🇨🇼',
   'JOR':'🇯🇴','IRQ2':'🇮🇶','BOL':'🇧🇴','SEN':'🇸🇳','SUE':'🇸🇪',
+  'ZAF':'🇿🇦','PAR':'🇵🇾','BIH':'🇧🇦','COR':'🇰🇷','EQU':'🇪🇨',
 };
 
 // Retorna emoji de bandeira ou o badge com a sigla (fallback)
@@ -2465,7 +2469,7 @@ Pages.partCopa = function(){
       const classificado = i < 2;
       return `<tr style="${isBra?'background:rgba(255,215,0,0.06);font-weight:700;':''}">
         <td style="font-size:11px;color:${classificado?'var(--verde)':'var(--texto-3)'};">${i+1}</td>
-        <td>${BANDEIRAS[s.sigla]||'🏳'} ${escapeHtml(s.nome)}</td>
+        <td>${bandeira(s.sigla, s.nome)} ${escapeHtml(s.nome)}</td>
         <td class="font-mono" style="text-align:center;">${s.pts}</td>
         <td class="font-mono" style="text-align:center;">${s.j}</td>
         <td class="font-mono" style="text-align:center;">${s.v}</td>
