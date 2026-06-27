@@ -3390,11 +3390,11 @@ const Modals = {
           <label>Nova senha <span style="font-size:11px;color:var(--texto-3);font-weight:400;">(deixe em branco para não alterar)</span></label>
           <input type="password" id="u-senha" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
         </div>
+        <div style="margin-top:14px;padding:10px 12px;background:rgba(239,68,68,0.07);border-radius:8px;border:1px solid rgba(239,68,68,0.2);">
+          <div style="font-size:12px;font-weight:700;color:var(--vermelho,#ef4444);margin-bottom:6px;">⚠️ Zona de perigo</div>
+          <button type="button" class="btn btn-danger btn-sm" id="btn-excluir-user">Excluir participante</button>
+        </div>
       </form>
-      <div style="margin-top:14px;padding:10px 12px;background:rgba(239,68,68,0.07);border-radius:8px;border:1px solid rgba(239,68,68,0.2);">
-        <div style="font-size:12px;font-weight:700;color:var(--vermelho,#ef4444);margin-bottom:6px;">⚠️ Zona de perigo</div>
-        <button class="btn btn-danger btn-sm" id="btn-excluir-user">Excluir participante</button>
-      </div>
     `, `<button class="btn btn-outline" id="modal-cancel">Cancelar</button><button class="btn btn-primary" id="modal-save">Salvar</button>`);
 
     document.getElementById('modal-cancel').onclick = () => App.closeModal();
