@@ -7,9 +7,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
-<meta http-equiv="Content-Security-Policy" content="frame-ancestors 'none'">
 <title>Bolão Central — Sistema de Bolões e Sorteios</title>
-<link rel="manifest" href="/manifest.json">
+<link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#2563eb">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -3403,9 +3402,9 @@ const Modals = {
       if(!confirm(`Tem certeza que deseja excluir "${usuario.nome}"? Esta ação não pode ser desfeita.`)) return;
       const btn = document.getElementById('btn-excluir-user');
       btn.disabled = true; btn.textContent = 'Excluindo...';
-      const { error } = await sb.from('perfis').delete().eq('id', usuario.id);
+      const { error } = await sb.rpc('admin_excluir_usuario', { p_usuario_id: usuario.id });
       if(error){ toast('Erro ao excluir: ' + error.message, 'error'); btn.disabled=false; btn.textContent='Excluir participante'; return; }
-      toast('Participante excluído.');
+      toast('Participante excluído com sucesso.');
       await Store.reloadUsuarios();
       App.closeModal();
       Pages.adminParticipantes();
@@ -3664,14 +3663,6 @@ const Modals = {
 
 
 </script>
-  <script>
-    if('serviceWorker' in navigator){
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(r => console.log('SW registrado:', r.scope))
-          .catch(e => console.warn('SW erro:', e));
-      });
-    }
-  </script>
+
 </body>
 </html>
