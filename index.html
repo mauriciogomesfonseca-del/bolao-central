@@ -954,13 +954,19 @@ const Auth = {
     else this.renderCadastroForm();
   },
 
+  _loginMode: 'celular', // 'celular' | 'email'
+
   renderLoginForm(){
     const area = document.getElementById('login-form-area');
+    const useCelular = this._loginMode === 'celular';
     area.innerHTML = `
       <form id="form-login">
         <div class="field">
-          <label>Celular</label>
-          <input type="tel" id="li-celular" required autocomplete="username" placeholder="(00) 00000-0000">
+          <label>${useCelular ? 'Celular' : 'E-mail'}</label>
+          ${useCelular
+            ? `<input type="tel" id="li-ident" required autocomplete="username" placeholder="(00) 00000-0000">`
+            : `<input type="email" id="li-ident" required autocomplete="username" placeholder="seu@email.com">`
+          }
         </div>
         <div class="field">
           <label>Senha</label>
@@ -968,14 +974,25 @@ const Auth = {
         </div>
         <button type="submit" class="btn btn-primary btn-block" id="li-submit">Entrar</button>
       </form>
+      <div style="text-align:center;margin-top:12px;">
+        <a href="#" id="btn-trocar-login" style="font-size:12px;color:var(--texto-3);">
+          ${useCelular ? 'Entrar com e-mail (conta antiga)' : 'Entrar com celular'}
+        </a>
+      </div>
     `;
+    document.getElementById('btn-trocar-login').onclick = (e) => {
+      e.preventDefault();
+      this._loginMode = useCelular ? 'email' : 'celular';
+      this.renderLoginForm();
+    };
+
     document.getElementById('form-login').onsubmit = async (e) => {
       e.preventDefault();
       if(this.loading) return;
-      const celular = document.getElementById('li-celular').value.trim();
+      const ident = document.getElementById('li-ident').value.trim();
       const senha = document.getElementById('li-senha').value;
 
-      if(celular.replace(/\D/g,'').length < 10){
+      if(useCelular && ident.replace(/\D/g,'').length < 10){
         this.error = 'Informe um número de celular válido.'; this.render(); return;
       }
 
@@ -983,13 +1000,13 @@ const Auth = {
       const btn = document.getElementById('li-submit');
       btn.disabled = true; btn.textContent = 'Entrando...';
 
-      const email = celularParaEmail(celular);
+      const email = useCelular ? celularParaEmail(ident) : ident.toLowerCase();
       const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
 
       if(error){
         this.loading = false;
         this.error = error.message.includes('Invalid login credentials')
-          ? 'Celular ou senha incorretos.'
+          ? (useCelular ? 'Celular ou senha incorretos.' : 'E-mail ou senha incorretos.')
           : 'Não foi possível entrar: ' + error.message;
         this.render();
         return;
