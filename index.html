@@ -2164,8 +2164,10 @@ Pages.partDashboard = function(user){
   const lt = document.getElementById('link-turma'); if(lt) lt.onclick=(e)=>{e.preventDefault(); App.navigate('turma');};
 };
 
-Pages.partTurma = function(user){
+Pages.partTurma = async function(user){
   App.setTopbar('A Turma', 'Veja os participantes e os palpites de cada jogo');
+  document.getElementById('content').innerHTML = '<div class="empty-state"><div class="msg">Carregando...</div></div>';
+  await Promise.all([Store.reloadPalpites(), Store.reloadUsuarios()]);
   const db = Store.data;
   const bolao = db.boloes.find(b=>b.status==='ativo') || db.boloes[0];
   if(!bolao){
