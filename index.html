@@ -279,6 +279,49 @@ body{
 }
 .login-hint{margin-top:16px;font-size:11px;color:var(--texto-3);text-align:center;line-height:1.6;}
 
+/* ---------- MASCOTE ANIMADO ---------- */
+@keyframes mascoteEntrada{
+  0%  {opacity:0;transform:translateY(80px) scale(0.75);}
+  20% {opacity:1;transform:translateY(0) scale(1.06);}
+  35% {transform:translateY(0) scale(1);}
+  100%{opacity:1;transform:translateY(0) scale(1);}
+}
+@keyframes mascoteRecuo{
+  0%  {opacity:1;width:320px;bottom:0;right:0;filter:none;}
+  100%{opacity:0.11;width:380px;bottom:-30px;right:-30px;filter:blur(0.5px);}
+}
+@keyframes mascoteFlutua{
+  0%,100%{transform:translateY(0);}
+  50%    {transform:translateY(-10px);}
+}
+@keyframes cardEntrada{
+  0%  {opacity:0;transform:translateY(16px) scale(0.97);}
+  100%{opacity:1;transform:translateY(0) scale(1);}
+}
+.mascote-hero{
+  position:absolute;
+  bottom:0;right:0;
+  width:320px;
+  pointer-events:none;
+  z-index:4;
+  mix-blend-mode:screen;
+  animation:mascoteEntrada 1s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+.mascote-marca{
+  position:absolute;
+  bottom:-30px;right:-30px;
+  width:380px;
+  pointer-events:none;
+  z-index:0;
+  mix-blend-mode:screen;
+  opacity:0.11;
+  filter:blur(0.5px);
+  animation:mascoteFlutua 3.5s ease-in-out infinite;
+}
+.login-card-anim{
+  animation:cardEntrada 0.7s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+
 /* ---------- CARDS / GRID ---------- */
 .grid{display:grid;gap:14px;}
 .grid-4{grid-template-columns:repeat(4,1fr);}
@@ -1029,18 +1072,25 @@ const Auth = {
   mode: 'login', // 'login' | 'cadastro'
   error: '',
   loading: false,
+  _mascoteJaEntrou: false,
 
   render(){
     const root = document.getElementById('app');
     root.innerHTML = `
       <div class="login-wrap">
-        <!-- Mascote animado — arquivo mascote.mp4 na raiz -->
-        <div style="position:absolute;bottom:0;right:0;width:280px;pointer-events:none;z-index:2;opacity:0.85;">
-          <video autoplay loop muted playsinline style="width:100%;mix-blend-mode:screen;">
+        <!-- Mascote — fase 1: entrada em destaque -->
+        <div class="mascote-hero" id="mascote-hero">
+          <video autoplay muted playsinline style="width:100%;">
             <source src="./mascote.mp4" type="video/mp4">
           </video>
         </div>
-        <div class="login-card">
+        <!-- Mascote — fase 2: marca d'água (oculto até o JS ativar) -->
+        <div class="mascote-marca" id="mascote-marca" style="display:none;">
+          <video autoplay loop muted playsinline style="width:100%;">
+            <source src="./mascote.mp4" type="video/mp4">
+          </video>
+        </div>
+        <div class="login-card login-card-anim" style="opacity:0;">
           <div class="login-badge">
             <div style="font-size:32px;margin-bottom:4px;">⚽</div>
             <div class="title font-display">BOLÃO<span> CENTRAL</span></div>
@@ -1064,6 +1114,28 @@ const Auth = {
     `;
     document.getElementById('tab-login').onclick = () => { this.mode='login'; this.error=''; this.render(); };
     document.getElementById('tab-cadastro').onclick = () => { this.mode='cadastro'; this.error=''; this.render(); };
+
+    // Após 2s: mascote recua para marca d'água e card aparece
+    // Se já passou pela animação antes (_mascoteJaEntrou), pula direto para a fase de marca d'água
+    if(Auth._mascoteJaEntrou){
+      const hero  = document.getElementById('mascote-hero');
+      const marca = document.getElementById('mascote-marca');
+      const card  = document.querySelector('.login-card-anim');
+      if(hero)  hero.style.display  = 'none';
+      if(marca) marca.style.display = 'block';
+      if(card)  { card.style.animation = 'none'; card.style.opacity = '1'; }
+    } else {
+      setTimeout(() => {
+        Auth._mascoteJaEntrou = true;
+        const hero  = document.getElementById('mascote-hero');
+        const marca = document.getElementById('mascote-marca');
+        const card  = document.querySelector('.login-card-anim');
+        if(hero)  { hero.style.animation  = 'mascoteRecuo 0.9s cubic-bezier(0.22,1,0.36,1) forwards'; }
+        if(marca) { marca.style.display   = 'block'; }
+        if(card)  { card.style.animation  = 'cardEntrada 0.7s cubic-bezier(0.22,1,0.36,1) forwards'; card.style.opacity = ''; }
+        setTimeout(() => { if(hero) hero.style.display = 'none'; }, 900);
+      }, 2000);
+    }
 
     if(this.mode==='login') this.renderLoginForm();
     else this.renderCadastroForm();
