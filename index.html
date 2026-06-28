@@ -178,13 +178,12 @@ body{
 
 /* ---------- LOGIN SCREEN ---------- */
 .login-wrap{
-  min-height:100vh;
+  position:fixed;
+  inset:0;
   display:flex;
-  align-items:flex-start;
+  align-items:center;
   justify-content:center;
-  padding-top:clamp(24px, 6vh, 60px);
   background:var(--bg);
-  position:relative;
   overflow:hidden;
 }
 .login-wrap::before{
@@ -212,20 +211,15 @@ body{
 }
 .login-card{
   position:relative;
-  z-index:3;
+  z-index:1;
   width:380px;
-  max-width:92vw;
-  background:rgba(22,27,34,0.75);
-  backdrop-filter:blur(22px);
-  -webkit-backdrop-filter:blur(22px);
-  border:1px solid rgba(255,255,255,0.10);
+  background:rgba(22,27,34,0.55);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,0.08);
   border-radius:12px;
-  box-shadow:0 24px 70px rgba(0,0,0,0.6);
+  box-shadow:0 24px 70px rgba(0,0,0,0.5);
   padding:34px 32px;
-  opacity:0;
-  transform:translateY(24px) scale(0.97);
-  pointer-events:none;
-  transition:opacity 0.7s ease, transform 0.7s cubic-bezier(0.22,1,0.36,1);
 }
 .login-badge{text-align:center;margin-bottom:22px;}
 .login-badge .title{font-family:'Archivo Black',sans-serif;font-size:26px;color:var(--texto);line-height:1.1;}
@@ -333,49 +327,54 @@ body{
   color:var(--verde);margin-top:6px;font-weight:700;
 }
 
-/* ── LOGIN WRAP: ocupa a tela toda ───────────────────────────────── */
-.login-wrap{
-  position:fixed;inset:0;
-  display:flex;align-items:center;justify-content:center;
-  background:var(--bg);
-  overflow:hidden;
-}
-
-/* Mascote: cobre o fundo inteiro, centralizado, sem fundo quadriculado */
+/* ── MASCOTE DE FUNDO ─────────────────────────────────────────────── */
 .login-mascote-bg{
   position:absolute;
   inset:0;
-  width:100%;height:100%;
-  object-fit:contain;
-  object-position:center bottom;
+  width:100%; height:100%;
+  object-fit:cover;
+  object-position:center center;
   pointer-events:none;
   z-index:1;
-  opacity:1;
-  transition:opacity 1s ease, transform 1.2s cubic-bezier(0.22,1,0.36,1),
-             filter 1.2s ease;
   animation:mascoteEntrar 0.9s cubic-bezier(0.22,1,0.36,1) both;
+  transition:opacity 1.1s ease, filter 1.1s ease, transform 1.2s ease;
 }
 @keyframes mascoteEntrar{
-  from{opacity:0;transform:scale(0.82) translateY(60px);}
-  to  {opacity:1;transform:scale(1) translateY(0);}
+  from{opacity:0; transform:scale(0.88) translateY(40px);}
+  to  {opacity:1; transform:scale(1) translateY(0);}
 }
-/* Fase marca d'água: recua para fundo, bem apagado, flutua */
 .login-mascote-bg.marca-dagua{
-  opacity:0.10;
-  filter:saturate(0.3) blur(0.5px);
-  transform:scale(1.08);
-  animation:mascoteFlutua 3.5s ease-in-out infinite;
+  opacity:0.12;
+  filter:saturate(0.3) blur(1px);
+  transform:scale(1.06);
+  animation:mascoteFlutua 3.8s ease-in-out infinite;
 }
 @keyframes mascoteFlutua{
-  0%,100%{transform:scale(1.08) translateY(0);}
-  50%    {transform:scale(1.08) translateY(-14px);}
+  0%,100%{transform:scale(1.06) translateY(0);}
+  50%    {transform:scale(1.06) translateY(-12px);}
 }
 
-/* Card de login: sobre o mascote, centralizado, inicia invisível */
+/* ── CARD DE LOGIN (começa invisível, aparece após o mascote recuar) ── */
+.login-card{
+  position:relative;
+  z-index:3;
+  width:min(400px, 92vw);
+  background:rgba(13,17,23,0.82);
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+  border:1px solid rgba(255,255,255,0.09);
+  border-radius:12px;
+  box-shadow:0 24px 70px rgba(0,0,0,0.65);
+  padding:34px 32px;
+  opacity:0;
+  transform:translateY(22px) scale(0.97);
+  pointer-events:none;
+  transition:opacity 0.7s ease, transform 0.7s cubic-bezier(0.22,1,0.36,1);
+}
 .login-card.visivel{
-  opacity:1 !important;
-  transform:translateY(0) scale(1) !important;
-  pointer-events:auto !important;
+  opacity:1;
+  transform:translateY(0) scale(1);
+  pointer-events:auto;
 }
 
 .mascote-wrap{display:none !important;}
@@ -1136,7 +1135,6 @@ const Auth = {
     const root = document.getElementById('app');
     root.innerHTML = `
       <div class="login-wrap">
-        <!-- Mascote: cobre o fundo, centralizado -->
         <video autoplay muted playsinline class="login-mascote-bg" id="mascote-bg">
           <source src="./mascote.mp4" type="video/mp4">
         </video>
@@ -1165,15 +1163,13 @@ const Auth = {
     document.getElementById('tab-login').onclick = () => { this.mode='login'; this.error=''; this.render(); };
     document.getElementById('tab-cadastro').onclick = () => { this.mode='cadastro'; this.error=''; this.render(); };
 
-    const _mascote = document.getElementById('mascote-bg');
-    const _card    = document.getElementById('login-card');
+    const _m = document.getElementById('mascote-bg');
+    const _c = document.getElementById('login-card');
 
     if(Auth._mascoteJaEntrou){
-      // Re-render (troca de aba): pula direto para fase de fundo
-      if(_mascote){ _mascote.classList.add('marca-dagua'); _mascote.loop = true; }
-      if(_card)   { _card.classList.add('visivel'); }
+      if(_m){ _m.classList.add('marca-dagua'); _m.loop = true; }
+      if(_c){ _c.classList.add('visivel'); }
     } else {
-      // Primeira vez: deixa o mascote em destaque por 2.2s, depois transiciona
       setTimeout(() => {
         Auth._mascoteJaEntrou = true;
         const m = document.getElementById('mascote-bg');
