@@ -179,7 +179,10 @@ body{
 /* ---------- LOGIN SCREEN ---------- */
 .login-wrap{
   min-height:100vh;
-  display:flex;align-items:center;justify-content:center;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding-top:clamp(24px, 6vh, 60px);
   background:var(--bg);
   position:relative;
   overflow:hidden;
@@ -283,26 +286,39 @@ body{
 }
 .login-hint{margin-top:16px;font-size:11px;color:var(--texto-3);text-align:center;line-height:1.6;}
 
-/* Splash screen */
+/* ---- SPLASH + LOGIN COM MASCOTE ---- */
+
+/* Splash: mascote sobe da base, centralizado */
 .splash{
   position:fixed;inset:0;
   background:var(--bg);
   display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
+  align-items:center;justify-content:flex-end;
   z-index:9999;
-  animation:splashOut 0.5s ease 2.5s forwards;
+  overflow:hidden;
 }
-@keyframes splashOut{
-  to{opacity:0;pointer-events:none;visibility:hidden;}
-}
-.splash video{
-  width:min(340px,80vw);
+.splash-mascote{
+  width:min(320px,80vw);
   display:block;
+  animation:mascoteEntrar 0.7s cubic-bezier(0.22,1,0.36,1) forwards;
+  transform:translateY(110%);
+}
+@keyframes mascoteEntrar{
+  to{transform:translateY(0);}
+}
+.splash-info{
+  position:absolute;top:38%;left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center;
+  animation:fadeUp 0.5s ease 0.5s both;
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:translate(-50%,-40%);}
+  to{opacity:1;transform:translate(-50%,-50%);}
 }
 .splash .splash-title{
   font-family:'Archivo Black',sans-serif;
-  font-size:28px;color:var(--texto);
-  margin-top:8px;letter-spacing:-0.01em;
+  font-size:30px;color:var(--texto);letter-spacing:-0.01em;
 }
 .splash .splash-title span{color:var(--azul-2);}
 .splash .splash-sub{
@@ -310,17 +326,31 @@ body{
   color:var(--verde);margin-top:6px;font-weight:700;
 }
 
-/* Mascote de fundo no login */
+/* Login: mascote fixo na base, card desce sobre ele */
+.login-wrap{position:relative;overflow:hidden;}
+
 .login-mascote-bg{
   position:absolute;
   bottom:0;
   left:50%;
   transform:translateX(-50%);
-  width:min(320px,70vw);
+  width:min(320px,80vw);
   pointer-events:none;
-  opacity:0.18;
   z-index:0;
+  /* sem opacidade reduzida — mascote totalmente visível */
 }
+
+/* Card de login desce por cima do mascote */
+.login-card{
+  position:relative;
+  z-index:2;
+  animation:cardDesce 0.6s cubic-bezier(0.22,1,0.36,1) 0.1s both;
+}
+@keyframes cardDesce{
+  from{opacity:0;transform:translateY(-40px);}
+  to{opacity:1;transform:translateY(0);}
+}
+
 .mascote-wrap{display:none !important;}
 
 /* ---------- CARDS / GRID ---------- */
@@ -1641,18 +1671,25 @@ const App = {
 };
 
 window.addEventListener('DOMContentLoaded', async () => {
-  // Splash screen com mascote
+  // Splash screen — mascote sobe da base, depois some com fade
   const splashEl = document.createElement('div');
   splashEl.className = 'splash';
   splashEl.innerHTML = `
-    <video autoplay muted playsinline style="width:min(300px,75vw);display:block;">
+    <div class="splash-info">
+      <div class="splash-title">BOLÃO<span> CENTRAL</span></div>
+      <div class="splash-sub">Copa 2026 · Sorteios · Bolões</div>
+    </div>
+    <video autoplay muted playsinline class="splash-mascote">
       <source src="./mascote.mp4" type="video/mp4">
     </video>
-    <div class="splash-title">BOLÃO<span> CENTRAL</span></div>
-    <div class="splash-sub">Copa 2026 · Sorteios · Bolões</div>
   `;
   document.body.appendChild(splashEl);
-  setTimeout(() => splashEl.remove(), 3100);
+  // Fade out suave antes de remover
+  setTimeout(() => {
+    splashEl.style.transition = 'opacity 0.5s ease';
+    splashEl.style.opacity = '0';
+    setTimeout(() => splashEl.remove(), 500);
+  }, 2500);
 
   App.showLoading('Conectando...');
   await Session.init();
