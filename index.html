@@ -212,15 +212,20 @@ body{
 }
 .login-card{
   position:relative;
-  z-index:1;
+  z-index:3;
   width:380px;
-  background:rgba(22,27,34,0.55);
-  backdrop-filter:blur(18px);
-  -webkit-backdrop-filter:blur(18px);
-  border:1px solid rgba(255,255,255,0.08);
+  max-width:92vw;
+  background:rgba(22,27,34,0.75);
+  backdrop-filter:blur(22px);
+  -webkit-backdrop-filter:blur(22px);
+  border:1px solid rgba(255,255,255,0.10);
   border-radius:12px;
-  box-shadow:0 24px 70px rgba(0,0,0,0.5);
+  box-shadow:0 24px 70px rgba(0,0,0,0.6);
   padding:34px 32px;
+  opacity:0;
+  transform:translateY(24px) scale(0.97);
+  pointer-events:none;
+  transition:opacity 0.7s ease, transform 0.7s cubic-bezier(0.22,1,0.36,1);
 }
 .login-badge{text-align:center;margin-bottom:22px;}
 .login-badge .title{font-family:'Archivo Black',sans-serif;font-size:26px;color:var(--texto);line-height:1.1;}
@@ -328,57 +333,49 @@ body{
   color:var(--verde);margin-top:6px;font-weight:700;
 }
 
-/* Login: mascote centralizado, card aparece por cima */
-.login-wrap{position:relative;overflow:hidden;}
+/* ── LOGIN WRAP: ocupa a tela toda ───────────────────────────────── */
+.login-wrap{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);
+  overflow:hidden;
+}
 
-/* Fase 1 — mascote sobe da base e fica centralizado em destaque */
+/* Mascote: cobre o fundo inteiro, centralizado, sem fundo quadriculado */
 .login-mascote-bg{
   position:absolute;
-  bottom:0;
-  left:50%;
-  transform:translateX(-50%);
-  width:min(360px,85vw);
+  inset:0;
+  width:100%;height:100%;
+  object-fit:contain;
+  object-position:center bottom;
   pointer-events:none;
-  z-index:3;
-  transition: bottom 1s ease, left 1s ease, transform 1s ease,
-              width 1s ease, opacity 1s ease, filter 1s ease;
-  animation:mascoteSobe 0.8s cubic-bezier(0.22,1,0.36,1) both;
+  z-index:1;
+  opacity:1;
+  transition:opacity 1s ease, transform 1.2s cubic-bezier(0.22,1,0.36,1),
+             filter 1.2s ease;
+  animation:mascoteEntrar 0.9s cubic-bezier(0.22,1,0.36,1) both;
 }
-@keyframes mascoteSobe{
-  from{opacity:0;transform:translateX(-50%) translateY(80px) scale(0.85);}
-  to{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
+@keyframes mascoteEntrar{
+  from{opacity:0;transform:scale(0.82) translateY(60px);}
+  to  {opacity:1;transform:scale(1) translateY(0);}
 }
-
-/* Fase 2 — mascote recua para canto inferior direito como marca d'água */
-.login-mascote-bg.fase-marca{
-  bottom:-30px;
-  left:auto;
-  right:-20px;
-  transform:none;
-  width:min(320px,75vw);
-  opacity:0.13;
-  z-index:0;
-  filter:saturate(0.4);
+/* Fase marca d'água: recua para fundo, bem apagado, flutua */
+.login-mascote-bg.marca-dagua{
+  opacity:0.10;
+  filter:saturate(0.3) blur(0.5px);
+  transform:scale(1.08);
   animation:mascoteFlutua 3.5s ease-in-out infinite;
 }
 @keyframes mascoteFlutua{
-  0%,100%{transform:translateY(0);}
-  50%    {transform:translateY(-10px);}
+  0%,100%{transform:scale(1.08) translateY(0);}
+  50%    {transform:scale(1.08) translateY(-14px);}
 }
 
-/* Card de login — oculto até mascote recuar */
-.login-card{
-  position:relative;
-  z-index:2;
-  opacity:0;
-  pointer-events:none;
-  transition:opacity 0.7s ease, transform 0.7s ease;
-  transform:translateY(16px);
-}
+/* Card de login: sobre o mascote, centralizado, inicia invisível */
 .login-card.visivel{
-  opacity:1;
-  pointer-events:auto;
-  transform:translateY(0);
+  opacity:1 !important;
+  transform:translateY(0) scale(1) !important;
+  pointer-events:auto !important;
 }
 
 .mascote-wrap{display:none !important;}
@@ -1139,11 +1136,11 @@ const Auth = {
     const root = document.getElementById('app');
     root.innerHTML = `
       <div class="login-wrap">
-        <!-- Mascote de fundo centralizado -->
-        <video autoplay loop muted playsinline class="login-mascote-bg">
+        <!-- Mascote: cobre o fundo, centralizado -->
+        <video autoplay muted playsinline class="login-mascote-bg" id="mascote-bg">
           <source src="./mascote.mp4" type="video/mp4">
         </video>
-        <div class="login-card" style="position:relative;z-index:1;">
+        <div class="login-card" id="login-card">
           <div class="login-badge">
             <div style="font-size:32px;margin-bottom:4px;">⚽</div>
             <div class="title font-display">BOLÃO<span> CENTRAL</span></div>
@@ -1168,22 +1165,22 @@ const Auth = {
     document.getElementById('tab-login').onclick = () => { this.mode='login'; this.error=''; this.render(); };
     document.getElementById('tab-cadastro').onclick = () => { this.mode='cadastro'; this.error=''; this.render(); };
 
-    const mascote = document.querySelector('.login-mascote-bg');
-    const card    = document.querySelector('.login-card');
+    const _mascote = document.getElementById('mascote-bg');
+    const _card    = document.getElementById('login-card');
 
     if(Auth._mascoteJaEntrou){
-      // Re-render (troca de aba): pula direto para fase de marca d'água
-      if(mascote){ mascote.classList.add('fase-marca'); }
-      if(card)   { card.classList.add('visivel'); }
+      // Re-render (troca de aba): pula direto para fase de fundo
+      if(_mascote){ _mascote.classList.add('marca-dagua'); _mascote.loop = true; }
+      if(_card)   { _card.classList.add('visivel'); }
     } else {
-      // Primeira vez: aguarda mascote em destaque, depois transiciona
+      // Primeira vez: deixa o mascote em destaque por 2.2s, depois transiciona
       setTimeout(() => {
         Auth._mascoteJaEntrou = true;
-        const m = document.querySelector('.login-mascote-bg');
-        const c = document.querySelector('.login-card');
-        if(m){ m.classList.add('fase-marca'); const v = m.querySelector('video'); if(v){ v.loop=true; } }
+        const m = document.getElementById('mascote-bg');
+        const c = document.getElementById('login-card');
+        if(m){ m.classList.add('marca-dagua'); m.loop = true; }
         if(c){ c.classList.add('visivel'); }
-      }, 2400);
+      }, 2200);
     }
 
     if(this.mode==='login') this.renderLoginForm();
