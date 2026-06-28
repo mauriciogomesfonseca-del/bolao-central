@@ -214,10 +214,12 @@ body{
   position:relative;
   z-index:1;
   width:380px;
-  background:var(--bg-2);
-  border:1px solid var(--linha);
+  background:rgba(22,27,34,0.55);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,0.08);
   border-radius:12px;
-  box-shadow:0 24px 70px rgba(0,0,0,0.6);
+  box-shadow:0 24px 70px rgba(0,0,0,0.5);
   padding:34px 32px;
 }
 .login-badge{text-align:center;margin-bottom:22px;}
@@ -334,10 +336,9 @@ body{
   bottom:0;
   left:50%;
   transform:translateX(-50%);
-  width:min(320px,80vw);
+  width:min(380px,90vw);
   pointer-events:none;
-  z-index:0;
-  /* sem opacidade reduzida — mascote totalmente visível */
+  z-index:1;
 }
 
 /* Card de login desce por cima do mascote */
