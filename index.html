@@ -203,6 +203,10 @@ body{
   pointer-events:none;
   line-height:1;
 }
+.mascote-wrap{display:block;}
+@media (max-width:700px){
+  .mascote-wrap{display:none !important;}
+}
 .login-card{
   position:relative;
   z-index:1;
@@ -279,54 +283,45 @@ body{
 }
 .login-hint{margin-top:16px;font-size:11px;color:var(--texto-3);text-align:center;line-height:1.6;}
 
-/* ---------- MASCOTE ANIMADO ---------- */
-@keyframes mascoteEntrada{
-  0%  {opacity:0;transform:translateY(100px) scale(0.7);}
-  25% {opacity:1;transform:translateY(-10px) scale(1.05);}
-  40% {transform:translateY(0) scale(1);}
-  100%{opacity:1;transform:translateY(0) scale(1);}
+/* Splash screen */
+.splash{
+  position:fixed;inset:0;
+  background:var(--bg);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  z-index:9999;
+  animation:splashOut 0.5s ease 2.5s forwards;
 }
-@keyframes mascoteFlutua{
-  0%,100%{transform:translateY(0);}
-  50%    {transform:translateY(-10px);}
+@keyframes splashOut{
+  to{opacity:0;pointer-events:none;visibility:hidden;}
 }
-@keyframes cardEntrada{
-  0%  {opacity:0;transform:translateY(20px);}
-  100%{opacity:1;transform:translateY(0);}
-}
-.mascote-wrap{
-  position:absolute;
-  bottom:0;right:0;
-  width:300px;
-  pointer-events:none;
-  z-index:4;
-  transition: all 1s cubic-bezier(0.22,1,0.36,1), opacity 1s ease;
-}
-.mascote-wrap video{
-  width:100%;
+.splash video{
+  width:min(340px,80vw);
   display:block;
-  /* Remove fundo quadriculado: força compositing sem blend mode */
-  isolation:isolate;
 }
-.mascote-wrap.fase-entrada{
-  animation:mascoteEntrada 1.2s cubic-bezier(0.22,1,0.36,1) forwards;
+.splash .splash-title{
+  font-family:'Archivo Black',sans-serif;
+  font-size:28px;color:var(--texto);
+  margin-top:8px;letter-spacing:-0.01em;
 }
-.mascote-wrap.fase-marca{
-  bottom:-40px;
-  right:-40px;
-  width:420px;
-  opacity:0.12;
+.splash .splash-title span{color:var(--azul-2);}
+.splash .splash-sub{
+  font-size:11px;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--verde);margin-top:6px;font-weight:700;
+}
+
+/* Mascote de fundo no login */
+.login-mascote-bg{
+  position:absolute;
+  bottom:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:min(320px,70vw);
+  pointer-events:none;
+  opacity:0.18;
   z-index:0;
-  animation:mascoteFlutua 3.5s ease-in-out infinite;
-  filter:saturate(0.5);
 }
-.login-card-oculto{
-  opacity:0;
-  transform:translateY(20px);
-}
-.login-card-visivel{
-  animation:cardEntrada 0.7s cubic-bezier(0.22,1,0.36,1) forwards;
-}
+.mascote-wrap{display:none !important;}
 
 /* ---------- CARDS / GRID ---------- */
 .grid{display:grid;gap:14px;}
@@ -1075,21 +1070,19 @@ function celularParaEmail(celular){
 }
 
 const Auth = {
-  mode: 'login',
+  mode: 'login', // 'login' | 'cadastro'
   error: '',
   loading: false,
-  _mascoteJaEntrou: false,
 
   render(){
     const root = document.getElementById('app');
     root.innerHTML = `
       <div class="login-wrap">
-        <div class="mascote-wrap fase-entrada" id="mascote-wrap">
-          <video autoplay muted playsinline style="width:100%;display:block;">
-            <source src="./mascote.mp4" type="video/mp4">
-          </video>
-        </div>
-        <div class="login-card login-card-oculto" id="login-card">
+        <!-- Mascote de fundo centralizado -->
+        <video autoplay loop muted playsinline class="login-mascote-bg">
+          <source src="./mascote.mp4" type="video/mp4">
+        </video>
+        <div class="login-card" style="position:relative;z-index:1;">
           <div class="login-badge">
             <div style="font-size:32px;margin-bottom:4px;">⚽</div>
             <div class="title font-display">BOLÃO<span> CENTRAL</span></div>
@@ -1113,30 +1106,6 @@ const Auth = {
     `;
     document.getElementById('tab-login').onclick = () => { this.mode='login'; this.error=''; this.render(); };
     document.getElementById('tab-cadastro').onclick = () => { this.mode='cadastro'; this.error=''; this.render(); };
-
-    const wrap = document.getElementById('mascote-wrap');
-    const card = document.getElementById('login-card');
-
-    if(Auth._mascoteJaEntrou){
-      // Re-render (troca de aba): mascote já está como marca d'água, mostra card direto
-      if(wrap){ wrap.className='mascote-wrap fase-marca'; }
-      if(card){ card.className='login-card'; }
-    } else {
-      // Primeira vez: aguarda entrada do mascote, depois faz a transição
-      setTimeout(()=>{
-        Auth._mascoteJaEntrou = true;
-        const w = document.getElementById('mascote-wrap');
-        const c = document.getElementById('login-card');
-        if(w){
-          // Remove a animação de entrada e ativa a classe de marca d'água via transition CSS
-          w.className = 'mascote-wrap fase-marca';
-          // Reinicia o vídeo em loop para a fase de fundo
-          const vid = w.querySelector('video');
-          if(vid){ vid.loop = true; }
-        }
-        if(c){ c.className = 'login-card login-card-visivel'; }
-      }, 2200);
-    }
 
     if(this.mode==='login') this.renderLoginForm();
     else this.renderCadastroForm();
@@ -1672,6 +1641,19 @@ const App = {
 };
 
 window.addEventListener('DOMContentLoaded', async () => {
+  // Splash screen com mascote
+  const splashEl = document.createElement('div');
+  splashEl.className = 'splash';
+  splashEl.innerHTML = `
+    <video autoplay muted playsinline style="width:min(300px,75vw);display:block;">
+      <source src="./mascote.mp4" type="video/mp4">
+    </video>
+    <div class="splash-title">BOLÃO<span> CENTRAL</span></div>
+    <div class="splash-sub">Copa 2026 · Sorteios · Bolões</div>
+  `;
+  document.body.appendChild(splashEl);
+  setTimeout(() => splashEl.remove(), 3100);
+
   App.showLoading('Conectando...');
   await Session.init();
   App.boot();
