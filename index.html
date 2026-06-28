@@ -194,7 +194,7 @@ body{
   background:
     radial-gradient(circle at 80% 10%, rgba(61,125,216,0.15), transparent 42%),
     radial-gradient(circle at 15% 95%, rgba(30,215,96,0.08), transparent 38%),
-    linear-gradient(to bottom, rgba(13,17,23,0.55) 0%, rgba(13,17,23,0.30) 40%, rgba(13,17,23,0.55) 100%);
+    linear-gradient(to bottom, rgba(13,17,23,0.55) 0%, rgba(13,17,23,0.25) 40%, rgba(13,17,23,0.55) 100%);
   pointer-events:none;
 }
 .login-wrap::after{
@@ -329,12 +329,11 @@ body{
   color:var(--verde);margin-top:6px;font-weight:700;
 }
 
-/* ── MASCOTE FUNDO ────────────────────────────────────────────────── */
+/* ── MASCOTE FUNDO ──────────────────────────────────────────────── */
 .login-mascote-bg{
   position:absolute;
   inset:0;
-  width:100%;
-  height:100%;
+  width:100%; height:100%;
   object-fit:contain;
   object-position:center bottom;
   pointer-events:none;
@@ -356,13 +355,12 @@ body{
   0%,100%{transform:scale(1.05) translateY(0);}
   50%    {transform:scale(1.05) translateY(-12px);}
 }
-
-/* ── CARD DE LOGIN ────────────────────────────────────────────────── */
+/* ── CARD DE LOGIN ──────────────────────────────────────────────── */
 .login-card{
   position:relative;
   z-index:3;
   width:min(400px,92vw);
-  background:rgba(13,17,23,0.80);
+  background:rgba(13,17,23,0.82);
   backdrop-filter:blur(22px);
   -webkit-backdrop-filter:blur(22px);
   border:1px solid rgba(255,255,255,0.09);
@@ -379,7 +377,6 @@ body{
   transform:translateY(0) scale(1) !important;
   pointer-events:auto !important;
 }
-
 .mascote-wrap{display:none !important;}
 
 /* ---------- CARDS / GRID ---------- */
@@ -689,6 +686,13 @@ a{color:var(--azul-2);}
 @media (max-width:860px){
   .pagto-mobile{display:block;}
   .pagto-desktop{display:none;}
+}
+/* Participantes: tabela no desktop, cards no mobile */
+.part-mobile{display:none;}
+.part-desktop{display:block;}
+@media (max-width:860px){
+  .part-mobile{display:block;}
+  .part-desktop{display:none;}
 }
 </style>
 </head>
@@ -2198,28 +2202,42 @@ Pages.adminParticipantes = function(){
 
   const participantes = db.usuarios.filter(u=>u.perfil==='participante');
 
-  document.getElementById('content').innerHTML = `
-    <div class="toolbar">
-      <input type="text" class="search-box" id="busca-part" placeholder="Buscar por nome ou e-mail...">
-      <div class="text-muted">${participantes.length} participante(s) cadastrado(s)</div>
-    </div>
-    <div class="card card-flush">
-      <table>
-        <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Cadastro</th><th>Status</th><th></th></tr></thead>
-        <tbody id="tbody-part">
-          ${Pages._linhasParticipantes(participantes)}
-        </tbody>
-      </table>
-    </div>
-  `;
-  Pages._bindParticipantesEvents();
+  const renderContent = (lista) => {
+    document.getElementById('content').innerHTML = `
+      <div class="toolbar">
+        <input type="text" class="search-box" id="busca-part" placeholder="Buscar por nome ou e-mail...">
+        <div class="text-muted">${lista.length} participante(s)</div>
+      </div>
 
-  document.getElementById('busca-part').oninput = (e) => {
-    const q = e.target.value.toLowerCase();
-    const filtrados = participantes.filter(u => u.nome.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
-    document.getElementById('tbody-part').innerHTML = Pages._linhasParticipantes(filtrados);
+      <!-- Desktop: tabela -->
+      <div class="card card-flush part-desktop">
+        <table>
+          <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Cadastro</th><th>Status</th><th></th></tr></thead>
+          <tbody id="tbody-part">
+            ${Pages._linhasParticipantes(lista)}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile: cards -->
+      <div class="part-mobile" id="part-cards">
+        ${Pages._cardsParticipantes(lista)}
+      </div>
+    `;
     Pages._bindParticipantesEvents();
+
+    document.getElementById('busca-part').oninput = (e) => {
+      const q = e.target.value.toLowerCase();
+      const filtrados = participantes.filter(u =>
+        u.nome.toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q)
+      );
+      document.getElementById('tbody-part').innerHTML = Pages._linhasParticipantes(filtrados);
+      document.getElementById('part-cards').innerHTML = Pages._cardsParticipantes(filtrados);
+      Pages._bindParticipantesEvents();
+    };
   };
+
+  renderContent(participantes);
 };
 
 Pages._linhasParticipantes = function(lista){
@@ -2236,6 +2254,28 @@ Pages._linhasParticipantes = function(lista){
         <button class="btn btn-outline btn-sm" data-toggle-user="${u.id}">${u.status==='ativo'?'Inativar':'Ativar'}</button>
       </td>
     </tr>
+  `).join('');
+};
+
+Pages._cardsParticipantes = function(lista){
+  if(!lista.length) return `<div class="empty-state"><div class="icon">☷</div><div class="msg">Nenhum participante encontrado</div></div>`;
+  return lista.map(u => `
+    <div class="card" style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div>
+          <div style="font-weight:700;font-size:14px;">${escapeHtml(u.nome)}</div>
+          <div style="font-size:12px;color:var(--texto-2);">${escapeHtml(u.telefone||'—')}</div>
+        </div>
+        <span class="badge-status ${u.status==='ativo'?'badge-ativo':'badge-inativo'}">${u.status}</span>
+      </div>
+      <div style="font-size:12px;color:var(--texto-3);margin-bottom:10px;">
+        Cadastro: ${fmtDate(u.dataCadastro)}
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline btn-sm" style="flex:1;" data-edit-user="${u.id}">✎ Editar</button>
+        <button class="btn btn-outline btn-sm" style="flex:1;" data-toggle-user="${u.id}">${u.status==='ativo'?'Inativar':'Ativar'}</button>
+      </div>
+    </div>
   `).join('');
 };
 
@@ -3549,7 +3589,7 @@ const Modals = {
       return;
     }
 
-    this._shell(root, 'Editar Participante — '+escapeHtml(usuario.nome), `
+    this._shell(root, 'Editar Participante', `
       <form id="f-usuario">
         <div class="field"><label>Nome completo</label><input type="text" id="u-nome" value="${escapeHtml(usuario.nome)}" required></div>
         <div class="field"><label>E-mail</label><input type="email" value="${escapeHtml(usuario.email)}" disabled style="opacity:0.6;cursor:default;"></div>
