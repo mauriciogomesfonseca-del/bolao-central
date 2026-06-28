@@ -328,28 +328,57 @@ body{
   color:var(--verde);margin-top:6px;font-weight:700;
 }
 
-/* Login: mascote fixo na base, card desce sobre ele */
+/* Login: mascote centralizado, card aparece por cima */
 .login-wrap{position:relative;overflow:hidden;}
 
+/* Fase 1 — mascote sobe da base e fica centralizado em destaque */
 .login-mascote-bg{
   position:absolute;
   bottom:0;
   left:50%;
   transform:translateX(-50%);
-  width:min(380px,90vw);
+  width:min(360px,85vw);
   pointer-events:none;
-  z-index:1;
+  z-index:3;
+  transition: bottom 1s ease, left 1s ease, transform 1s ease,
+              width 1s ease, opacity 1s ease, filter 1s ease;
+  animation:mascoteSobe 0.8s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes mascoteSobe{
+  from{opacity:0;transform:translateX(-50%) translateY(80px) scale(0.85);}
+  to{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
 }
 
-/* Card de login desce por cima do mascote */
+/* Fase 2 — mascote recua para canto inferior direito como marca d'água */
+.login-mascote-bg.fase-marca{
+  bottom:-30px;
+  left:auto;
+  right:-20px;
+  transform:none;
+  width:min(320px,75vw);
+  opacity:0.13;
+  z-index:0;
+  filter:saturate(0.4);
+  animation:mascoteFlutua 3.5s ease-in-out infinite;
+}
+@keyframes mascoteFlutua{
+  0%,100%{transform:translateY(0);}
+  50%    {transform:translateY(-10px);}
+}
+
+/* Card de login — oculto até mascote recuar */
 .login-card{
   position:relative;
   z-index:2;
-  animation:cardDesce 0.6s cubic-bezier(0.22,1,0.36,1) 0.1s both;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.7s ease, transform 0.7s ease;
+  transform:translateY(16px);
 }
-@keyframes cardDesce{
-  from{opacity:0;transform:translateY(-40px);}
-  to{opacity:1;transform:translateY(0);}
+.login-card.visivel{
+  opacity:1;
+  pointer-events:auto;
+  transform:translateY(0);
 }
 
 .mascote-wrap{display:none !important;}
@@ -1104,6 +1133,7 @@ const Auth = {
   mode: 'login', // 'login' | 'cadastro'
   error: '',
   loading: false,
+  _mascoteJaEntrou: false,
 
   render(){
     const root = document.getElementById('app');
@@ -1137,6 +1167,24 @@ const Auth = {
     `;
     document.getElementById('tab-login').onclick = () => { this.mode='login'; this.error=''; this.render(); };
     document.getElementById('tab-cadastro').onclick = () => { this.mode='cadastro'; this.error=''; this.render(); };
+
+    const mascote = document.querySelector('.login-mascote-bg');
+    const card    = document.querySelector('.login-card');
+
+    if(Auth._mascoteJaEntrou){
+      // Re-render (troca de aba): pula direto para fase de marca d'água
+      if(mascote){ mascote.classList.add('fase-marca'); }
+      if(card)   { card.classList.add('visivel'); }
+    } else {
+      // Primeira vez: aguarda mascote em destaque, depois transiciona
+      setTimeout(() => {
+        Auth._mascoteJaEntrou = true;
+        const m = document.querySelector('.login-mascote-bg');
+        const c = document.querySelector('.login-card');
+        if(m){ m.classList.add('fase-marca'); const v = m.querySelector('video'); if(v){ v.loop=true; } }
+        if(c){ c.classList.add('visivel'); }
+      }, 2400);
+    }
 
     if(this.mode==='login') this.renderLoginForm();
     else this.renderCadastroForm();
@@ -2197,9 +2245,16 @@ Pages._linhasParticipantes = function(lista){
 };
 
 Pages._bindParticipantesEvents = function(){
-  document.querySelectorAll('[data-edit-user]').forEach(el=> el.onclick = () => App.openModal('usuario-form', Store.data.usuarios.find(u=>u.id===el.dataset.editUser)));
+  document.querySelectorAll('[data-edit-user]').forEach(el=> el.onclick = () => {
+    const id = el.getAttribute('data-edit-user');
+    const usuario = Store.data.usuarios.find(u=> String(u.id) === String(id));
+    if(!usuario){ toast('Participante não encontrado. Recarregue a página.', 'error'); return; }
+    App.openModal('usuario-form', usuario);
+  });
   document.querySelectorAll('[data-toggle-user]').forEach(el=> el.onclick = async () => {
-    const u = Store.data.usuarios.find(x=>x.id===el.dataset.toggleUser);
+    const id = el.getAttribute('data-toggle-user');
+    const u = Store.data.usuarios.find(x=> String(x.id) === String(id));
+    if(!u){ toast('Participante não encontrado.', 'error'); return; }
     const novoStatus = u.status==='ativo' ? 'inativo' : 'ativo';
     el.disabled = true;
 
