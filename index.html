@@ -190,10 +190,12 @@ body{
   content:"";
   position:absolute;
   inset:0;
+  z-index:2;
   background:
-    radial-gradient(circle at 80% 10%, rgba(61,125,216,0.18), transparent 42%),
-    radial-gradient(circle at 15% 95%, rgba(30,215,96,0.10), transparent 38%),
-    radial-gradient(circle at 50% 50%, rgba(255,215,0,0.03), transparent 60%);
+    radial-gradient(circle at 80% 10%, rgba(61,125,216,0.15), transparent 42%),
+    radial-gradient(circle at 15% 95%, rgba(30,215,96,0.08), transparent 38%),
+    linear-gradient(to bottom, rgba(13,17,23,0.55) 0%, rgba(13,17,23,0.30) 40%, rgba(13,17,23,0.55) 100%);
+  pointer-events:none;
 }
 .login-wrap::after{
   content:"⚽";
@@ -327,41 +329,42 @@ body{
   color:var(--verde);margin-top:6px;font-weight:700;
 }
 
-/* ── MASCOTE DE FUNDO ─────────────────────────────────────────────── */
+/* ── MASCOTE FUNDO ────────────────────────────────────────────────── */
 .login-mascote-bg{
   position:absolute;
   inset:0;
-  width:100%; height:100%;
-  object-fit:cover;
-  object-position:center center;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center bottom;
   pointer-events:none;
   z-index:1;
   animation:mascoteEntrar 0.9s cubic-bezier(0.22,1,0.36,1) both;
   transition:opacity 1.1s ease, filter 1.1s ease, transform 1.2s ease;
 }
 @keyframes mascoteEntrar{
-  from{opacity:0; transform:scale(0.88) translateY(40px);}
-  to  {opacity:1; transform:scale(1) translateY(0);}
+  from{opacity:0;transform:scale(0.88) translateY(50px);}
+  to  {opacity:1;transform:scale(1) translateY(0);}
 }
 .login-mascote-bg.marca-dagua{
-  opacity:0.12;
+  opacity:0.13;
   filter:saturate(0.3) blur(1px);
-  transform:scale(1.06);
+  transform:scale(1.05);
   animation:mascoteFlutua 3.8s ease-in-out infinite;
 }
 @keyframes mascoteFlutua{
-  0%,100%{transform:scale(1.06) translateY(0);}
-  50%    {transform:scale(1.06) translateY(-12px);}
+  0%,100%{transform:scale(1.05) translateY(0);}
+  50%    {transform:scale(1.05) translateY(-12px);}
 }
 
-/* ── CARD DE LOGIN (começa invisível, aparece após o mascote recuar) ── */
+/* ── CARD DE LOGIN ────────────────────────────────────────────────── */
 .login-card{
   position:relative;
   z-index:3;
-  width:min(400px, 92vw);
-  background:rgba(13,17,23,0.82);
-  backdrop-filter:blur(24px);
-  -webkit-backdrop-filter:blur(24px);
+  width:min(400px,92vw);
+  background:rgba(13,17,23,0.80);
+  backdrop-filter:blur(22px);
+  -webkit-backdrop-filter:blur(22px);
   border:1px solid rgba(255,255,255,0.09);
   border-radius:12px;
   box-shadow:0 24px 70px rgba(0,0,0,0.65);
@@ -372,9 +375,9 @@ body{
   transition:opacity 0.7s ease, transform 0.7s cubic-bezier(0.22,1,0.36,1);
 }
 .login-card.visivel{
-  opacity:1;
-  transform:translateY(0) scale(1);
-  pointer-events:auto;
+  opacity:1 !important;
+  transform:translateY(0) scale(1) !important;
+  pointer-events:auto !important;
 }
 
 .mascote-wrap{display:none !important;}
@@ -1165,16 +1168,15 @@ const Auth = {
 
     const _m = document.getElementById('mascote-bg');
     const _c = document.getElementById('login-card');
-
     if(Auth._mascoteJaEntrou){
-      if(_m){ _m.classList.add('marca-dagua'); _m.loop = true; }
+      if(_m){ _m.classList.add('marca-dagua'); _m.loop=true; }
       if(_c){ _c.classList.add('visivel'); }
     } else {
-      setTimeout(() => {
+      setTimeout(()=>{
         Auth._mascoteJaEntrou = true;
         const m = document.getElementById('mascote-bg');
         const c = document.getElementById('login-card');
-        if(m){ m.classList.add('marca-dagua'); m.loop = true; }
+        if(m){ m.classList.add('marca-dagua'); m.loop=true; }
         if(c){ c.classList.add('visivel'); }
       }, 2200);
     }
@@ -2238,21 +2240,21 @@ Pages._linhasParticipantes = function(lista){
 };
 
 Pages._bindParticipantesEvents = function(){
-  document.querySelectorAll('[data-edit-user]').forEach(el=> el.onclick = () => {
+  document.querySelectorAll('[data-edit-user]').forEach(el=> el.onclick = ()=>{
     const id = el.getAttribute('data-edit-user');
-    const usuario = Store.data.usuarios.find(u=> String(u.id) === String(id));
-    if(!usuario){ toast('Participante não encontrado. Recarregue a página.', 'error'); return; }
+    const usuario = Store.data.usuarios.find(u=> String(u.id)===String(id));
+    if(!usuario){ toast('Participante não encontrado — recarregue a página.','error'); return; }
     App.openModal('usuario-form', usuario);
   });
-  document.querySelectorAll('[data-toggle-user]').forEach(el=> el.onclick = async () => {
+  document.querySelectorAll('[data-toggle-user]').forEach(el=> el.onclick = async ()=>{
     const id = el.getAttribute('data-toggle-user');
-    const u = Store.data.usuarios.find(x=> String(x.id) === String(id));
-    if(!u){ toast('Participante não encontrado.', 'error'); return; }
+    const u = Store.data.usuarios.find(x=> String(x.id)===String(id));
+    if(!u){ toast('Participante não encontrado.','error'); return; }
     const novoStatus = u.status==='ativo' ? 'inativo' : 'ativo';
     el.disabled = true;
 
     const { error } = await sb.from('perfis').update({ status: novoStatus }).eq('id', u.id);
-    if(error){ toast('Erro ao atualizar status: ' + error.message, 'error'); el.disabled=false; return; }
+    if(error){ toast('Erro ao atualizar status: '+error.message,'error'); el.disabled=false; return; }
 
     u.status = novoStatus;
     Store.log(Session.currentUser().id, `Participante "${u.nome}" marcado como ${u.status}.`);
@@ -3547,7 +3549,7 @@ const Modals = {
       return;
     }
 
-    this._shell(root, 'Editar Participante', `
+    this._shell(root, 'Editar Participante — '+escapeHtml(usuario.nome), `
       <form id="f-usuario">
         <div class="field"><label>Nome completo</label><input type="text" id="u-nome" value="${escapeHtml(usuario.nome)}" required></div>
         <div class="field"><label>E-mail</label><input type="email" value="${escapeHtml(usuario.email)}" disabled style="opacity:0.6;cursor:default;"></div>
