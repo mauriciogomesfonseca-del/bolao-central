@@ -1600,6 +1600,10 @@ const App = {
     // Não bloqueia a primeira renderização; quando terminar, re-renderiza
     // a página atual para refletir eventuais pagamentos marcados como atrasados.
     Logic.atualizarStatusPagamentosEmSegundoPlano().then(() => this.renderPage());
+    // Notificações: pede permissão (se nunca perguntado) e liga o polling
+    // que dispara pop-up do sistema quando chega notificação nova.
+    notifPedirPermissaoSeNecessario();
+    notificacoesPollingIniciar();
   },
 
   showLoading(msg){
@@ -1624,6 +1628,7 @@ const App = {
   async logout(){
     const user = Session.currentUser();
     if(user) Store.log(user.id, 'Logout realizado.');
+    notificacoesPollingParar();
     await Session.clear();
     Auth.render();
   },
@@ -1760,8 +1765,169 @@ const App = {
     const root = document.getElementById('modal-root');
     if(!this.modal){ root.innerHTML=''; return; }
     Modals.render(root, this.modal);
+  },
+
+  // Renderiza (ou esconde) o card "Instalar app" no topo do dashboard.
+  // Chamado: ao entrar no dashboard, e sempre que beforeinstallprompt/appinstalled disparam.
+  atualizarBotaoInstalar(){
+    const el = document.getElementById('card-instalar-app');
+    if(!el) return; // não estamos numa tela que tem esse card
+
+    if(pwaRodandoStandalone()){
+      el.innerHTML = '';
+      return;
+    }
+
+    const podeInstalarDireto = !!deferredInstallPrompt;
+    const ehIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+    el.innerHTML = `
+      <div class="card" style="margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;background:linear-gradient(135deg,rgba(37,99,235,0.18),rgba(37,99,235,0.05));border:1px solid rgba(37,99,235,0.3);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:24px;">📲</span>
+          <div>
+            <div style="font-weight:700;font-size:13px;">Instale o Bolão Central</div>
+            <div class="text-muted" style="font-size:12px;">${ehIOS ? 'No Safari: toque em Compartilhar → Adicionar à Tela de Início.' : 'Acesso rápido direto da tela inicial do seu celular.'}</div>
+          </div>
+        </div>
+        ${ehIOS ? '' : `<button class="btn btn-primary" id="btn-instalar-app" style="white-space:nowrap;">${podeInstalarDireto?'Instalar app':'Como instalar'}</button>`}
+      </div>
+    `;
+    const btn = document.getElementById('btn-instalar-app');
+    if(btn) btn.onclick = () => pwaInstalar();
   }
 };
+
+// ---- NOTIFICAÇÕES: PERMISSÃO + POP-UP DO SISTEMA + POLLING ---------------
+// Pede permissão de notificação de forma discreta (só quando o usuário já
+// está logado, nunca na tela de login) e dispara um pop-up nativo do
+// navegador (Notification API) sempre que uma notificação nova chega.
+
+let notificacoesPollingId = null;
+const NOTIF_IDS_VISTOS_KEY = 'bolao_notif_ids_vistos';
+
+function notifIdsVistosCarregar(){
+  try{
+    return new Set(JSON.parse(localStorage.getItem(NOTIF_IDS_VISTOS_KEY) || '[]'));
+  }catch(e){ return new Set(); }
+}
+function notifIdsVistosSalvar(set){
+  try{
+    // mantém só os 200 mais recentes para não crescer pra sempre
+    const arr = Array.from(set).slice(-200);
+    localStorage.setItem(NOTIF_IDS_VISTOS_KEY, JSON.stringify(arr));
+  }catch(e){ /* localStorage indisponível, ignora silenciosamente */ }
+}
+
+// Pede permissão de notificação. Só chama o prompt nativo se ainda
+// estiver no estado 'default' (nunca perguntado) — nunca insiste se a
+// pessoa já negou.
+async function notifPedirPermissaoSeNecessario(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission === 'default'){
+    try{ await Notification.requestPermission(); }catch(e){ /* ignora */ }
+  }
+}
+
+// Dispara o pop-up nativo do navegador/SO para uma notificação,
+// além do toast interno do app.
+function notifDispararPopup(titulo, mensagem){
+  toast(`🔔 ${titulo}`);
+  if('Notification' in window && Notification.permission === 'granted'){
+    try{
+      const n = new Notification(titulo, {
+        body: mensagem,
+        icon: './icon-192.png',
+        badge: './icon-192.png',
+        tag: 'bolao-central-notif',
+      });
+      n.onclick = () => { window.focus(); n.close(); };
+    }catch(e){ console.error('Erro ao exibir notificação:', e); }
+  }
+}
+
+// Verifica periodicamente se há notificações novas (não vistas neste
+// dispositivo) destinadas ao usuário logado, e dispara pop-up para cada uma.
+async function notificacoesVerificarNovas(){
+  const user = Session.currentUser ? Session.currentUser() : null;
+  if(!user) return;
+
+  await Store.reloadNotificacoes();
+  const minhas = Store.data.notificacoes.filter(n=>n.usuarioId===user.id);
+  if(!minhas.length) return;
+
+  const vistos = notifIdsVistosCarregar();
+  const novas = minhas.filter(n=>!vistos.has(n.id));
+
+  // Na primeiríssima verificação (vistos vazio), não dispara pop-up de tudo
+  // que já existia antes — só marca como visto, para não bombardear notificações antigas.
+  const primeiraVez = vistos.size === 0;
+
+  novas.forEach(n=>{
+    if(!primeiraVez) notifDispararPopup(n.titulo, n.mensagem);
+    vistos.add(n.id);
+  });
+  notifIdsVistosSalvar(vistos);
+}
+
+function notificacoesPollingIniciar(){
+  if(notificacoesPollingId) return; // já está rodando
+  notificacoesVerificarNovas(); // primeira checagem (silenciosa, só marca como visto)
+  notificacoesPollingId = setInterval(notificacoesVerificarNovas, 20000); // a cada 20s
+}
+function notificacoesPollingParar(){
+  if(notificacoesPollingId){ clearInterval(notificacoesPollingId); notificacoesPollingId = null; }
+}
+
+// ---- PWA: SERVICE WORKER + INSTALAÇÃO -------------------------------------
+// Registra o Service Worker o quanto antes (necessário para o navegador
+// considerar o site "instalável" como app).
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err=>{
+      console.error('Falha ao registrar Service Worker:', err);
+    });
+  });
+}
+
+// Captura o prompt nativo de instalação do Chrome/Android e guarda para
+// disparar quando o usuário clicar no botão "Instalar app" da nossa UI
+// (o navegador não mostra esse prompt automaticamente sem interação).
+let deferredInstallPrompt = null;
+let pwaJaInstalado = false;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  App.atualizarBotaoInstalar && App.atualizarBotaoInstalar();
+});
+
+window.addEventListener('appinstalled', () => {
+  pwaJaInstalado = true;
+  deferredInstallPrompt = null;
+  toast('App instalado com sucesso! 🎉');
+  App.atualizarBotaoInstalar && App.atualizarBotaoInstalar();
+});
+
+// Detecta se já está rodando como app instalado (modo standalone)
+function pwaRodandoStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true; // iOS Safari
+}
+
+async function pwaInstalar(){
+  if(!deferredInstallPrompt){
+    toast('Para instalar: abra o menu (⋮) do navegador e toque em "Instalar app" ou "Adicionar à tela inicial".');
+    return;
+  }
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  if(outcome === 'accepted'){
+    toast('Instalando o app...');
+  }
+  deferredInstallPrompt = null;
+  App.atualizarBotaoInstalar && App.atualizarBotaoInstalar();
+}
 
 window.addEventListener('DOMContentLoaded', async () => {
   // Splash screen — mascote sobe da base, depois some com fade
@@ -1794,6 +1960,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 sb.auth.onAuthStateChange((event) => {
   if(event === 'SIGNED_OUT'){
     Session._user = null;
+    notificacoesPollingParar();
     Auth.render();
   }
 });
@@ -2587,6 +2754,7 @@ Pages.partDashboard = function(user){
   });
 
   document.getElementById('content').innerHTML = `
+    <div id="card-instalar-app"></div>
     <div class="grid grid-4" style="margin-bottom:22px;">
       <div class="stat-card">
         <div class="stat-label">Minha posição</div>
@@ -2697,6 +2865,7 @@ Pages.partDashboard = function(user){
   const lk = document.getElementById('link-palpitar'); if(lk) lk.onclick=(e)=>{e.preventDefault(); App.navigate('palpites');};
   const lt = document.getElementById('link-turma'); if(lt) lt.onclick=(e)=>{e.preventDefault(); App.navigate('turma');};
   const lc = document.getElementById('link-copa'); if(lc) lc.onclick=(e)=>{e.preventDefault(); App.navigate('copa');};
+  App.atualizarBotaoInstalar();
 };
 
 // ---- RESOLUÇÃO DO CHAVEAMENTO DO MATA-MATA --------------------------------
