@@ -180,8 +180,9 @@ body{
 .login-wrap{
   min-height:100vh;
   display:flex;
-  align-items:flex-end;
+  align-items:flex-start;
   justify-content:center;
+  padding-top:clamp(24px, 6vh, 60px);
   background:var(--bg);
   position:relative;
   overflow:hidden;
@@ -211,15 +212,15 @@ body{
 }
 .login-card{
   position:relative;
-  z-index:2;
+  z-index:1;
   width:380px;
-  background:linear-gradient(to bottom, var(--bg-2) 70%, transparent 100%);
-  border:1px solid var(--linha);
-  border-bottom:none;
-  border-radius:12px 12px 0 0;
-  box-shadow:0 -4px 40px rgba(0,0,0,0.4);
-  padding:34px 32px 48px;
-  margin-bottom:0;
+  background:rgba(22,27,34,0.55);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:12px;
+  box-shadow:0 24px 70px rgba(0,0,0,0.5);
+  padding:34px 32px;
 }
 .login-badge{text-align:center;margin-bottom:22px;}
 .login-badge .title{font-family:'Archivo Black',sans-serif;font-size:26px;color:var(--texto);line-height:1.1;}
@@ -337,7 +338,7 @@ body{
   transform:translateX(-50%);
   width:min(380px,90vw);
   pointer-events:none;
-  z-index:10;
+  z-index:1;
 }
 
 /* Card de login desce por cima do mascote */
