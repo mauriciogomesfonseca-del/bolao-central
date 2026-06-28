@@ -291,28 +291,33 @@ body{
 
 /* ---- SPLASH + LOGIN COM MASCOTE ---- */
 
-/* Splash: mascote sobe da base, centralizado */
+/* Splash: mascote em tela cheia, centralizado */
 .splash{
   position:fixed;inset:0;
   background:var(--bg);
   display:flex;flex-direction:column;
-  align-items:center;justify-content:flex-end;
+  align-items:center;justify-content:center;
   z-index:9999;
   overflow:hidden;
 }
 .splash-mascote{
-  width:min(320px,80vw);
+  position:absolute;
+  top:0;left:0;
+  width:100%;height:100%;
+  object-fit:cover;
+  object-position:center;
   display:block;
   animation:mascoteEntrar 0.7s cubic-bezier(0.22,1,0.36,1) forwards;
-  transform:translateY(110%);
 }
 @keyframes mascoteEntrar{
-  to{transform:translateY(0);}
+  from{opacity:0;transform:scale(1.04);}
+  to{opacity:1;transform:scale(1);}
 }
 .splash-info{
-  position:absolute;top:38%;left:50%;
+  position:absolute;top:12%;left:50%;
   transform:translate(-50%,-50%);
   text-align:center;
+  z-index:1;
   animation:fadeUp 0.5s ease 0.5s both;
 }
 @keyframes fadeUp{
@@ -322,11 +327,13 @@ body{
 .splash .splash-title{
   font-family:'Archivo Black',sans-serif;
   font-size:30px;color:var(--texto);letter-spacing:-0.01em;
+  text-shadow:0 2px 12px rgba(0,0,0,0.6);
 }
 .splash .splash-title span{color:var(--azul-2);}
 .splash .splash-sub{
   font-size:11px;letter-spacing:0.12em;text-transform:uppercase;
   color:var(--verde);margin-top:6px;font-weight:700;
+  text-shadow:0 2px 8px rgba(0,0,0,0.6);
 }
 
 /* ── MASCOTE FUNDO ──────────────────────────────────────────────── */
@@ -806,23 +813,61 @@ const COPA_2026_GRUPOS = [
   ]},
 ];
 
-// 16 avos de final — datas reais (horário de Brasília)
+// FASE ELIMINATÓRIA INICIAL (16 avos de final, formato 48 seleções) — datas/locais reais (horário de Brasília)
+// Cada jogo tem um "id" único — as fases seguintes (oitavas, quartas, semis, final) referenciam
+// esses ids em origem1/origem2 para montar o chaveamento "vencedor de X x Y" automaticamente.
+// Preencha placar1/placar2 (e penaltis1/penaltis2 se houver) depois que o jogo acontecer,
+// para que o vencedor seja propagado automaticamente para a fase seguinte.
 const COPA_2026 = [
-  { data:'2026-06-28', hora:'16:00', time1:'ZAF', nome1:'África do Sul', time2:'CAN', nome2:'Canadá',          fase:'16 avos', cidade:'Los Angeles' },
-  { data:'2026-06-29', hora:'14:00', time1:'BRA', nome1:'Brasil',         time2:'JAP', nome2:'Japão',           fase:'16 avos', cidade:'Houston' },
-  { data:'2026-06-29', hora:'17:30', time1:'GER', nome1:'Alemanha',       time2:'PAR', nome2:'Paraguai',        fase:'16 avos', cidade:'Boston' },
-  { data:'2026-06-29', hora:'22:00', time1:'HOL', nome1:'Holanda',        time2:'MAR', nome2:'Marrocos',        fase:'16 avos', cidade:'Monterrey' },
-  { data:'2026-06-30', hora:'14:00', time1:'CIV', nome1:'Costa do Marfim',time2:'NOR', nome2:'Noruega',         fase:'16 avos', cidade:'Dallas' },
-  { data:'2026-06-30', hora:'18:00', time1:'FRA', nome1:'França',         time2:'SUE', nome2:'Suécia',          fase:'16 avos', cidade:'Nova Jersey' },
-  { data:'2026-06-30', hora:'22:00', time1:'MEX', nome1:'México',         time2:'SEN', nome2:'Senegal',         fase:'16 avos', cidade:'Cidade do México' },
-  { data:'2026-07-01', hora:'13:00', time1:'ENG', nome1:'Inglaterra',     time2:'EQU', nome2:'Equador',         fase:'16 avos', cidade:'Atlanta' },
-  { data:'2026-07-01', hora:'17:00', time1:'BEL', nome1:'Bélgica',        time2:'BOL', nome2:'Bolívia',         fase:'16 avos', cidade:'Seattle' },
-  { data:'2026-07-01', hora:'21:00', time1:'USA', nome1:'EUA',            time2:'BIH', nome2:'Bósnia',          fase:'16 avos', cidade:'Santa Clara' },
-  { data:'2026-07-02', hora:'16:00', time1:'ESP', nome1:'Espanha',        time2:'ARG', nome2:'Argentina',       fase:'16 avos', cidade:'Los Angeles' },
-  { data:'2026-07-02', hora:'20:00', time1:'POR', nome1:'Portugal',       time2:'COL', nome2:'Colômbia',        fase:'16 avos', cidade:'Toronto' },
-  { data:'2026-07-03', hora:'00:00', time1:'SUI', nome1:'Suíça',          time2:'COR', nome2:'Coreia do Sul',   fase:'16 avos', cidade:'Vancouver' },
-  { data:'2026-07-03', hora:'15:00', time1:'AUS', nome1:'Austrália',      time2:'EGI', nome2:'Egito',           fase:'16 avos', cidade:'Dallas' },
-  { data:'2026-07-03', hora:'19:00', time1:'ARG', nome1:'Argentina',      time2:'CRV', nome2:'Cabo Verde',      fase:'16 avos', cidade:'Miami' },
+  { id:'16-01', data:'2026-06-28', hora:'16:00', time1:'ZAF', nome1:'África do Sul', time2:'CAN', nome2:'Canadá',          fase:'16 avos', cidade:'Los Angeles',      placar1:null, placar2:null },
+  { id:'16-02', data:'2026-06-29', hora:'14:00', time1:'BRA', nome1:'Brasil',         time2:'JAP', nome2:'Japão',           fase:'16 avos', cidade:'Houston',          placar1:null, placar2:null },
+  { id:'16-03', data:'2026-06-29', hora:'17:30', time1:'GER', nome1:'Alemanha',       time2:'PAR', nome2:'Paraguai',        fase:'16 avos', cidade:'Boston',           placar1:null, placar2:null },
+  { id:'16-04', data:'2026-06-29', hora:'22:00', time1:'HOL', nome1:'Holanda',        time2:'MAR', nome2:'Marrocos',        fase:'16 avos', cidade:'Monterrey',        placar1:null, placar2:null },
+  { id:'16-05', data:'2026-06-30', hora:'14:00', time1:'CIV', nome1:'Costa do Marfim',time2:'NOR', nome2:'Noruega',         fase:'16 avos', cidade:'Dallas',           placar1:null, placar2:null },
+  { id:'16-06', data:'2026-06-30', hora:'18:00', time1:'FRA', nome1:'França',         time2:'SUE', nome2:'Suécia',          fase:'16 avos', cidade:'Nova Jersey',      placar1:null, placar2:null },
+  { id:'16-07', data:'2026-06-30', hora:'22:00', time1:'MEX', nome1:'México',         time2:'EQU', nome2:'Equador',         fase:'16 avos', cidade:'Cidade do México', placar1:null, placar2:null },
+  { id:'16-08', data:'2026-07-01', hora:'13:00', time1:'ENG', nome1:'Inglaterra',     time2:'RDC', nome2:'RD Congo',        fase:'16 avos', cidade:'Atlanta',          placar1:null, placar2:null },
+  { id:'16-09', data:'2026-07-01', hora:'17:00', time1:'BEL', nome1:'Bélgica',        time2:'SEN', nome2:'Senegal',         fase:'16 avos', cidade:'Seattle',          placar1:null, placar2:null },
+  { id:'16-10', data:'2026-07-01', hora:'21:00', time1:'USA', nome1:'EUA',            time2:'BIH', nome2:'Bósnia',          fase:'16 avos', cidade:'Santa Clara',      placar1:null, placar2:null },
+  { id:'16-11', data:'2026-07-02', hora:'16:00', time1:'ESP', nome1:'Espanha',        time2:'AUT', nome2:'Áustria',         fase:'16 avos', cidade:'Los Angeles',      placar1:null, placar2:null },
+  { id:'16-12', data:'2026-07-02', hora:'20:00', time1:'POR', nome1:'Portugal',       time2:'CRO', nome2:'Croácia',         fase:'16 avos', cidade:'Toronto',          placar1:null, placar2:null },
+  { id:'16-13', data:'2026-07-03', hora:'00:00', time1:'SUI', nome1:'Suíça',          time2:'ALG', nome2:'Argélia',         fase:'16 avos', cidade:'Vancouver',        placar1:null, placar2:null },
+  { id:'16-14', data:'2026-07-03', hora:'15:00', time1:'AUS', nome1:'Austrália',      time2:'EGI', nome2:'Egito',           fase:'16 avos', cidade:'Dallas',           placar1:null, placar2:null },
+  { id:'16-15', data:'2026-07-03', hora:'19:00', time1:'ARG', nome1:'Argentina',      time2:'CRV', nome2:'Cabo Verde',      fase:'16 avos', cidade:'Miami',            placar1:null, placar2:null },
+  { id:'16-16', data:'2026-07-03', hora:'22:30', time1:'COL', nome1:'Colômbia',       time2:'GHA', nome2:'Gana',            fase:'16 avos', cidade:'Kansas City',      placar1:null, placar2:null },
+];
+
+// OITAVAS DE FINAL (4 a 7 de julho) — cada confronto referencia os ids dos jogos de origem.
+// Os times só são conhecidos após os jogos de origem; até então mostramos "Vencedor de X x Y".
+const COPA_2026_OITAVAS = [
+  { id:'8-01', data:'2026-07-04', origem1:'16-03', origem2:'16-06', fase:'Oitavas', cidade:'a definir' },           // Alemanha/Paraguai x França/Suécia
+  { id:'8-02', data:'2026-07-04', origem1:'16-01', origem2:'16-04', fase:'Oitavas', cidade:'a definir' },           // África do Sul/Canadá x Holanda/Marrocos
+  { id:'8-03', data:'2026-07-05', origem1:'16-12', origem2:'16-11', fase:'Oitavas', cidade:'a definir' },           // Portugal/Croácia x Espanha/Áustria
+  { id:'8-04', data:'2026-07-05', origem1:'16-10', origem2:'16-09', fase:'Oitavas', cidade:'a definir' },           // EUA/Bósnia x Bélgica/Senegal
+  { id:'8-05', data:'2026-07-05', origem1:'16-02', origem2:'16-05', fase:'Oitavas', cidade:'Nova Jersey' },          // Brasil/Japão x Costa do Marfim/Noruega
+  { id:'8-06', data:'2026-07-06', origem1:'16-07', origem2:'16-08', fase:'Oitavas', cidade:'a definir' },           // México/Equador x Inglaterra/RD Congo
+  { id:'8-07', data:'2026-07-06', origem1:'16-15', origem2:'16-14', fase:'Oitavas', cidade:'a definir' },           // Argentina/Cabo Verde x Austrália/Egito
+  { id:'8-08', data:'2026-07-07', origem1:'16-13', origem2:'16-16', fase:'Oitavas', cidade:'a definir' },           // Suíça/Argélia x Colômbia/Gana
+];
+
+// QUARTAS DE FINAL (9 a 11 de julho)
+const COPA_2026_QUARTAS = [
+  { id:'4-01', data:'2026-07-09', origem1:'8-01', origem2:'8-02', fase:'Quartas', cidade:'a definir' },
+  { id:'4-02', data:'2026-07-10', origem1:'8-03', origem2:'8-04', fase:'Quartas', cidade:'Los Angeles' },
+  { id:'4-03', data:'2026-07-11', origem1:'8-05', origem2:'8-06', fase:'Quartas', cidade:'Miami' },
+  { id:'4-04', data:'2026-07-11', origem1:'8-07', origem2:'8-08', fase:'Quartas', cidade:'a definir' },
+];
+
+// SEMIFINAIS (14 e 15 de julho)
+const COPA_2026_SEMIS = [
+  { id:'2-01', data:'2026-07-14', origem1:'4-01', origem2:'4-02', fase:'Semifinal', cidade:'Dallas' },
+  { id:'2-02', data:'2026-07-15', origem1:'4-03', origem2:'4-04', fase:'Semifinal', cidade:'Atlanta' },
+];
+
+// DISPUTA DE 3º LUGAR (18 de julho) e FINAL (19 de julho)
+const COPA_2026_FINAIS = [
+  { id:'3lugar', data:'2026-07-18', origemPerdedor1:'2-01', origemPerdedor2:'2-02', fase:'3º lugar', cidade:'a definir' },
+  { id:'final',  data:'2026-07-19', origem1:'2-01', origem2:'2-02', fase:'Final', cidade:'Nova Jersey' },
 ];
 
 // ---- MAPA SIGLA → ISO (para flag-icons CSS) --------------------------------
@@ -2567,9 +2612,7 @@ Pages.partDashboard = function(user){
     <!-- Card Copa do Mundo 2026 -->
     ${(()=>{
       const hoje = new Date();
-      const proxCopa = COPA_2026.filter(j=> new Date(j.data+'T'+j.hora) >= hoje)
-        .sort((a,b)=> new Date(a.data+'T'+a.hora) - new Date(b.data+'T'+b.hora))
-        .slice(0,4);
+      const proxCopa = copaProximosConfrontos(hoje, 4);
       const brasilGrupo = COPA_2026_GRUPOS.find(g=>g.grupo==='C');
       const brasilPos = brasilGrupo ? brasilGrupo.seleções.findIndex(s=>s.sigla==='BRA')+1 : null;
       return `
@@ -2586,27 +2629,9 @@ Pages.partDashboard = function(user){
           <a href="#" id="link-copa" style="font-size:12px;color:#FFD700;font-weight:700;">ver tabela →</a>
         </div>
         ${proxCopa.length ? `
-        <div style="font-size:11px;color:var(--texto-3);margin-bottom:8px;font-weight:700;letter-spacing:0.05em;">⚡ PRÓXIMOS JOGOS — 16 AVOS DE FINAL</div>
+        <div style="font-size:11px;color:var(--texto-3);margin-bottom:8px;font-weight:700;letter-spacing:0.05em;">⚡ PRÓXIMOS JOGOS — FASE ELIMINATÓRIA</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">
-          ${proxCopa.map(j=>{
-            const dt = new Date(j.data+'T'+j.hora);
-            const label = dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' · ' + j.hora;
-            const isBra = j.time1==='BRA'||j.time2==='BRA';
-            return `<div style="background:rgba(255,255,255,0.04);border:1px solid ${isBra?'rgba(255,215,0,0.4)':'rgba(255,215,0,0.1)'};border-radius:8px;padding:10px 12px;">
-              <div style="font-size:10px;color:${isBra?'#FFD700':'var(--texto-3)'};margin-bottom:6px;font-weight:700;">${label} ${isBra?'🇧🇷':''}</div>
-              <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-                <div style="text-align:center;">
-                  <div style="font-size:24px;">${bandeiraCss(j.time1,j.nome1)}</div>
-                  <div style="font-size:10px;font-weight:700;color:var(--texto-2);margin-top:2px;">${j.nome1}</div>
-                </div>
-                <div style="font-size:11px;font-weight:700;color:var(--texto-3);">VS</div>
-                <div style="text-align:center;">
-                  <div style="font-size:24px;">${bandeiraCss(j.time2,j.nome2)}</div>
-                  <div style="font-size:10px;font-weight:700;color:var(--texto-2);margin-top:2px;">${j.nome2}</div>
-                </div>
-              </div>
-            </div>`;
-          }).join('')}
+          ${proxCopa.map(j=>copaCardConfronto(j, hoje)).join('')}
         </div>` : '<div style="color:var(--texto-3);font-size:13px;">Aguardando próximos jogos do mata-mata.</div>'}
       </div>`;
     })()}
@@ -2674,6 +2699,108 @@ Pages.partDashboard = function(user){
   const lc = document.getElementById('link-copa'); if(lc) lc.onclick=(e)=>{e.preventDefault(); App.navigate('copa');};
 };
 
+// ---- RESOLUÇÃO DO CHAVEAMENTO DO MATA-MATA --------------------------------
+// Junta todas as fases num único lugar para facilitar a busca por id.
+function copaTodosJogosMataMata(){
+  return [
+    ...COPA_2026,
+    ...COPA_2026_OITAVAS,
+    ...COPA_2026_QUARTAS,
+    ...COPA_2026_SEMIS,
+    ...COPA_2026_FINAIS,
+  ];
+}
+function copaJogoPorId(id){
+  return copaTodosJogosMataMata().find(j=>j.id===id) || null;
+}
+// Resolve um "lado" de um confronto: pode ser um time fixo (time1/nome1 já preenchidos)
+// ou pode depender do vencedor (ou perdedor, para o 3º lugar) de um jogo anterior.
+// Retorna { sigla, nome, definido, label } — label é o texto a mostrar quando ainda não definido.
+function copaResolveLado(jogo, lado){
+  // lado = 1 ou 2
+  const siglaKey = 'time'+lado, nomeKey = 'nome'+lado;
+  if(jogo[siglaKey]) return { sigla:jogo[siglaKey], nome:jogo[nomeKey], definido:true };
+
+  const origemKey = lado===1 ? 'origem1' : 'origem2';
+  const origemPerdedorKey = lado===1 ? 'origemPerdedor1' : 'origemPerdedor2';
+  const queremosPerdedor = !!jogo[origemPerdedorKey];
+  const origemId = jogo[origemKey] || jogo[origemPerdedorKey];
+  if(!origemId) return { sigla:null, nome:'A definir', definido:false, label:'A definir' };
+
+  const jogoOrigem = copaJogoPorId(origemId);
+  if(!jogoOrigem) return { sigla:null, nome:'A definir', definido:false, label:'A definir' };
+
+  const ladoA = copaResolveLado(jogoOrigem, 1);
+  const ladoB = copaResolveLado(jogoOrigem, 2);
+
+  // Se o jogo de origem já tem um vencedor calculado (placar preenchido), usa o time real.
+  const vencedor = copaVencedorJogo(jogoOrigem);
+  if(vencedor){
+    const perdedor = vencedor.sigla === ladoA.sigla ? ladoB : ladoA;
+    const alvo = queremosPerdedor ? perdedor : vencedor;
+    return { sigla:alvo.sigla, nome:alvo.nome, definido:true };
+  }
+
+  // Ainda não definido: monta o texto "Vencedor de X x Y" (ou "Perdedor de X x Y")
+  const nomeA = ladoA.definido ? ladoA.nome : ladoA.label;
+  const nomeB = ladoB.definido ? ladoB.nome : ladoB.label;
+  const prefixo = queremosPerdedor ? 'Perdedor de' : 'Vencedor de';
+  return { sigla:null, nome:null, definido:false, label:`${prefixo} ${nomeA} x ${nomeB}` };
+}
+// Retorna {sigla, nome} do vencedor de um jogo, ou null se ainda não há placar definido.
+function copaVencedorJogo(jogo){
+  const ladoA = copaResolveLado(jogo, 1);
+  const ladoB = copaResolveLado(jogo, 2);
+  if(!ladoA.definido || !ladoB.definido) return null;
+  if(jogo.placar1==null || jogo.placar2==null) return null;
+  if(jogo.placar1 > jogo.placar2) return { sigla:ladoA.sigla, nome:ladoA.nome };
+  if(jogo.placar2 > jogo.placar1) return { sigla:ladoB.sigla, nome:ladoB.nome };
+  // empate sem pênaltis registrados ainda não define vencedor
+  if(jogo.penaltis1!=null && jogo.penaltis2!=null){
+    if(jogo.penaltis1 > jogo.penaltis2) return { sigla:ladoA.sigla, nome:ladoA.nome };
+    if(jogo.penaltis2 > jogo.penaltis1) return { sigla:ladoB.sigla, nome:ladoB.nome };
+  }
+  return null;
+}
+// Monta um card visual de confronto (jogo já decidido ou ainda "Vencedor de X x Y").
+function copaCardConfronto(jogo, hoje){
+  const ladoA = copaResolveLado(jogo, 1);
+  const ladoB = copaResolveLado(jogo, 2);
+  const dt = jogo.hora ? new Date(jogo.data+'T'+jogo.hora) : new Date(jogo.data+'T12:00');
+  const label = dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + (jogo.hora ? ' · '+jogo.hora : '');
+  const isBra = ladoA.sigla==='BRA' || ladoB.sigla==='BRA';
+  const jaPassou = dt < hoje;
+  const nomeA = ladoA.definido ? ladoA.nome : ladoA.label;
+  const nomeB = ladoB.definido ? ladoB.nome : ladoB.label;
+  const bandeiraA = ladoA.definido ? bandeiraCss(ladoA.sigla, ladoA.nome) : '<span style="font-size:18px;">❓</span>';
+  const bandeiraB = ladoB.definido ? bandeiraCss(ladoB.sigla, ladoB.nome) : '<span style="font-size:18px;">❓</span>';
+  return `<div style="background:rgba(255,255,255,0.04);border:1px solid ${isBra?'rgba(255,215,0,0.4)':'rgba(255,255,255,0.08)'};border-radius:8px;padding:10px;${jaPassou?'opacity:0.55;':''}">
+    <div style="font-size:10px;color:${isBra?'#FFD700':'var(--texto-3)'};margin-bottom:6px;font-weight:700;">${jogo.fase||''} · ${label}</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+      <div style="text-align:center;max-width:90px;"><div style="font-size:22px;">${bandeiraA}</div><div style="font-size:${ladoA.definido?'10px':'9px'};font-weight:700;margin-top:3px;line-height:1.25;">${escapeHtml(nomeA)}</div></div>
+      <div style="font-size:11px;color:var(--texto-3);font-weight:700;">VS</div>
+      <div style="text-align:center;max-width:90px;"><div style="font-size:22px;">${bandeiraB}</div><div style="font-size:${ladoB.definido?'10px':'9px'};font-weight:700;margin-top:3px;line-height:1.25;">${escapeHtml(nomeB)}</div></div>
+    </div>
+    <div style="font-size:10px;color:var(--texto-3);text-align:center;margin-top:6px;">${escapeHtml(jogo.cidade||'')}</div>
+  </div>`;
+}
+
+// Retorna os próximos N confrontos (de qualquer fase, em ordem cronológica) a partir de "hoje".
+// Usado no card resumido do dashboard para nunca ficar vazio enquanto o mata-mata não terminar.
+function copaProximosConfrontos(hoje, limite){
+  return copaTodosJogosMataMata()
+    .filter(j=>{
+      const dt = j.hora ? new Date(j.data+'T'+j.hora) : new Date(j.data+'T23:59');
+      return dt >= hoje;
+    })
+    .sort((a,b)=>{
+      const da = a.hora ? new Date(a.data+'T'+a.hora) : new Date(a.data+'T23:59');
+      const db = b.hora ? new Date(b.data+'T'+b.hora) : new Date(b.data+'T23:59');
+      return da-db;
+    })
+    .slice(0, limite);
+}
+
 Pages.partCopa = function(){
   App.setTopbar('Copa do Mundo 2026', 'Tabela de grupos e próximos jogos');
   const hoje = new Date();
@@ -2709,29 +2836,36 @@ Pages.partCopa = function(){
     </div>`;
   }).join('');
 
-  const proxJogos = COPA_2026.filter(j=> new Date(j.data+'T'+j.hora) >= hoje)
+  // Próximos jogos da fase atual (16 avos / fase eliminatória inicial)
+  const proxJogos16 = COPA_2026.filter(j=> new Date(j.data+'T'+j.hora) >= hoje)
     .sort((a,b)=> new Date(a.data+'T'+a.hora) - new Date(b.data+'T'+b.hora));
 
-  const cardProximos = proxJogos.length ? `
+  const cardProximos = proxJogos16.length ? `
     <div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(0,40,80,0.5),rgba(0,20,50,0.3));border:1px solid rgba(255,215,0,0.2);">
       <div style="font-family:'Archivo Black',sans-serif;font-size:13px;color:#FFD700;margin-bottom:12px;">⚡ PRÓXIMOS JOGOS</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">
-        ${proxJogos.map(j=>{
-          const dt = new Date(j.data+'T'+j.hora);
-          const label = dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' · ' + j.hora;
-          const isBra = j.time1==='BRA'||j.time2==='BRA';
-          return `<div style="background:rgba(255,255,255,0.04);border:1px solid ${isBra?'rgba(255,215,0,0.4)':'rgba(255,255,255,0.08)'};border-radius:8px;padding:10px;">
-            <div style="font-size:10px;color:${isBra?'#FFD700':'var(--texto-3)'};margin-bottom:6px;font-weight:700;">${j.fase||''} · ${label}</div>
-            <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
-              <div style="text-align:center;"><div style="font-size:26px;">${bandeiraCss(j.time1,j.nome1)}</div><div style="font-size:10px;font-weight:700;margin-top:3px;">${j.nome1}</div></div>
-              <div style="font-size:11px;color:var(--texto-3);font-weight:700;">VS</div>
-              <div style="text-align:center;"><div style="font-size:26px;">${bandeiraCss(j.time2,j.nome2)}</div><div style="font-size:10px;font-weight:700;margin-top:3px;">${j.nome2}</div></div>
-            </div>
-            <div style="font-size:10px;color:var(--texto-3);text-align:center;margin-top:6px;">${j.cidade}</div>
-          </div>`;
-        }).join('')}
+        ${proxJogos16.map(j=>copaCardConfronto(j, hoje)).join('')}
       </div>
     </div>` : '';
+
+  // Seções do chaveamento do mata-mata: oitavas, quartas, semis, 3º lugar e final.
+  // Aparecem sempre, mesmo antes dos confrontos serem 100% conhecidos — exibindo
+  // "Vencedor de X x Y" enquanto o jogo de origem não tiver resultado registrado.
+  function secaoFase(titulo, jogos){
+    if(!jogos.length) return '';
+    return `
+    <div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(0,40,80,0.35),rgba(0,20,50,0.2));border:1px solid rgba(255,255,255,0.08);">
+      <div style="font-family:'Archivo Black',sans-serif;font-size:13px;color:#FFD700;margin-bottom:12px;">🔜 ${escapeHtml(titulo)}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">
+        ${jogos.map(j=>copaCardConfronto(j, hoje)).join('')}
+      </div>
+    </div>`;
+  }
+
+  const secaoOitavas = secaoFase('OITAVAS DE FINAL · 4 a 7 de julho', COPA_2026_OITAVAS);
+  const secaoQuartas = secaoFase('QUARTAS DE FINAL · 9 a 11 de julho', COPA_2026_QUARTAS);
+  const secaoSemis   = secaoFase('SEMIFINAIS · 14 e 15 de julho', COPA_2026_SEMIS);
+  const secaoFinais  = secaoFase('3º LUGAR (18/07) E FINAL (19/07)', COPA_2026_FINAIS);
 
   document.getElementById('content').innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding:12px 16px;background:linear-gradient(135deg,rgba(0,40,80,0.5),rgba(0,20,50,0.3));border-radius:10px;border:1px solid rgba(255,215,0,0.2);">
@@ -2742,6 +2876,10 @@ Pages.partCopa = function(){
       </div>
     </div>
     ${cardProximos}
+    ${secaoOitavas}
+    ${secaoQuartas}
+    ${secaoSemis}
+    ${secaoFinais}
     <div style="font-size:12px;color:var(--texto-3);margin-bottom:12px;font-weight:700;">TABELA DE GRUPOS <span style="color:var(--verde);margin-left:8px;">● classificado</span></div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;">
       ${tabela}
