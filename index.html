@@ -211,13 +211,13 @@ body{
 }
 .login-card{
   position:relative;
-  z-index:2;
+  z-index:5;
   width:min(390px,96vw);
   background:linear-gradient(
     to bottom,
     #161B22 0%,
-    #161B22 75%,
-    rgba(22,27,34,0.0) 100%
+    #161B22 72%,
+    rgba(22,27,34,0) 100%
   );
   border:1px solid var(--linha);
   border-bottom:none;
@@ -342,8 +342,7 @@ body{
   transform:translateX(-50%);
   width:min(420px,95vw);
   pointer-events:none;
-  z-index:10;
-  filter:drop-shadow(0 -10px 30px rgba(0,0,0,0.4));
+  z-index:1;
 }
 
 /* Card de login desce por cima do mascote */
@@ -1118,7 +1117,7 @@ const Auth = {
         <video autoplay loop muted playsinline class="login-mascote-bg">
           <source src="./mascote.mp4" type="video/mp4">
         </video>
-        <div class="login-card" style="position:relative;z-index:1;">
+        <div class="login-card">
           <div class="login-badge">
             <div style="font-size:32px;margin-bottom:4px;">⚽</div>
             <div class="title font-display">BOLÃO<span> CENTRAL</span></div>
