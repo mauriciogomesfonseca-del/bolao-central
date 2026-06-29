@@ -3133,6 +3133,7 @@ Pages.partDashboard = async function(user){
 
   // Força reload de tudo para garantir dados frescos
   await Promise.all([
+    Store.reloadBoloes(),
     Store.reloadJogos(),
     Store.reloadPalpites(),
     Store.reloadPagamentos(),
@@ -3141,16 +3142,20 @@ Pages.partDashboard = async function(user){
 
   const db = Store.data;
 
-  // Busca o bolão que tem jogos do usuário, não apenas o primeiro ativo
+  // Busca o bolão ativo mais recente para exibir no dashboard
+  const bolaoAtivo = db.boloes.find(b=>b.status==='ativo') || db.boloes[0];
+
+  // Busca todos os bolões onde o usuário tem palpites (para mostrar resultados)
   const meusPalpites = db.palpites.filter(p=>p.usuarioId===user.id);
   const meusBolaoIds = [...new Set(
     meusPalpites.map(p=>{ const j=db.jogos.find(jj=>jj.id===p.jogoId); return j?j.bolaoId:null; }).filter(Boolean)
   )];
-  const bolao = meusBolaoIds.length
-    ? db.boloes.find(b=>meusBolaoIds.includes(b.id))
-    : (db.boloes.find(b=>b.status==='ativo') || db.boloes[0]);
 
-  const ranking = bolao ? Logic.rankingDoBolao(bolao.id,'geral') : [];
+  const bolao = bolaoAtivo;
+
+  // Ranking: usa o bolão onde o usuário tem palpites; se não tiver, usa o ativo
+  const bolaoRanking = db.boloes.find(b=>meusBolaoIds.includes(b.id)) || bolao;
+  const ranking = bolaoRanking ? Logic.rankingDoBolao(bolaoRanking.id,'geral') : [];
   const minhaLinha = ranking.find(r=>r.usuario.id===user.id);
 
   // Busca pagamento do usuário no bolão correto
@@ -3160,6 +3165,45 @@ Pages.partDashboard = async function(user){
   const proximosJogos = db.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora)).slice(0,3);
   const minhasNotifs = db.notificacoes.filter(n=>n.usuarioId===user.id).slice(0,4);
 
+  // Calcula ganhadores de jogos finalizados em todos os bolões do usuário
+  const cardGanhadores = (() => {
+    if(!meusBolaoIds.length) return '';
+    const blocos = meusBolaoIds.map(bid=>{
+      const b = db.boloes.find(x=>x.id===bid);
+      const jogosFinalizados = db.jogos.filter(j=>j.bolaoId===bid && j.status==='finalizado');
+      if(!jogosFinalizados.length) return '';
+      const linhas = jogosFinalizados.map(j=>{
+        const res = Pages._calcularGanhadoresJogo(j);
+        if(!res) return '';
+        const euGanhei = res.ganhadores.some(g=>g.usuario&&g.usuario.id===user.id);
+        if(res.ganhadores.length===0){
+          return `<div style="padding:8px 0;border-bottom:1px solid var(--linha);font-size:12px;">
+            <span style="font-weight:700;">${escapeHtml(j.mandante)} ${j.placarMandante}×${j.placarVisitante} ${escapeHtml(j.visitante)}</span>
+            <span style="color:var(--texto-3);margin-left:8px;">Ninguém acertou · prêmio acumulado ${fmtMoney(res.premioTotal)}</span>
+          </div>`;
+        }
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--linha);font-size:12px;">
+          <div style="font-weight:700;margin-bottom:4px;">${escapeHtml(j.mandante)} ${j.placarMandante}×${j.placarVisitante} ${escapeHtml(j.visitante)}</div>
+          ${res.ganhadores.map(g=>`<div style="display:flex;justify-content:space-between;${g.usuario&&g.usuario.id===user.id?'color:var(--amarelo);font-weight:700;':'color:var(--texto-2);'}">
+            <span>🏆 ${escapeHtml(g.usuario?g.usuario.nome:'—')}</span>
+            <span class="font-mono">${fmtMoney(res.premioPorGanhador)}</span>
+          </div>`).join('')}
+          ${euGanhei?`<div style="margin-top:4px;font-size:11px;color:var(--verde);font-weight:700;">🎉 Você acertou! Aguarde o contato do organizador.</div>`:''}
+        </div>`;
+      }).join('');
+      if(!linhas) return '';
+      return `<div style="margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:var(--texto-3);text-transform:uppercase;margin-bottom:6px;">${escapeHtml(b?b.nome:'Bolão')}</div>
+        ${linhas}
+      </div>`;
+    }).join('');
+    if(!blocos) return '';
+    return `<div class="card" style="margin-bottom:18px;border-left:3px solid var(--amarelo);">
+      <div class="section-title" style="margin-bottom:10px;">🏆 Resultados & Ganhadores</div>
+      ${blocos}
+    </div>`;
+  })();
+
   // Marca como lidas em segundo plano
   const naoLidas = minhasNotifs.filter(n=>!n.lida).map(n=>n.id);
   if(naoLidas.length) sb.from('notificacoes').update({lida:true}).in('id',naoLidas).then(()=>{
@@ -3168,11 +3212,12 @@ Pages.partDashboard = async function(user){
 
   document.getElementById('content').innerHTML = `
     <div id="card-instalar-app"></div>
+    ${cardGanhadores}
     <div class="grid grid-4" style="margin-bottom:22px;">
       <div class="stat-card">
         <div class="stat-label">Minha posição</div>
         <div class="stat-value">${minhaLinha ? '#'+minhaLinha.posicao : '—'}</div>
-        <div class="stat-sub">${bolao?bolao.nome:'Nenhum bolão ativo'}</div>
+        <div class="stat-sub">${bolaoRanking?bolaoRanking.nome:'Nenhum bolão ativo'}</div>
       </div>
       <div class="stat-card good">
         <div class="stat-label">Pontuação</div>
@@ -3217,14 +3262,14 @@ Pages.partDashboard = async function(user){
       </div>`;
     })()}
 
-    ${bolao && bolao.descricao ? `
+    ${bolaoRanking && bolaoRanking.descricao ? `
     <div class="card" style="margin-bottom:18px;border-left:3px solid var(--azul);">
-      <div class="section-title" style="margin-bottom:10px;">📋 Regulamento — ${escapeHtml(bolao.nome)}</div>
-      <div style="font-size:13px;color:var(--texto-2);line-height:1.8;white-space:pre-wrap;">${escapeHtml(bolao.descricao)}</div>
+      <div class="section-title" style="margin-bottom:10px;">📋 Regulamento — ${escapeHtml(bolaoRanking.nome)}</div>
+      <div style="font-size:13px;color:var(--texto-2);line-height:1.8;white-space:pre-wrap;">${escapeHtml(bolaoRanking.descricao)}</div>
     </div>` : ''}
 
     ${(()=>{
-      if(!bolao) return '';
+      if(!bolaoRanking) return '';
       const top3 = ranking.slice(0,3);
       const lider = top3[0];
       const minhaPosicao = minhaLinha ? minhaLinha.posicao : null;
@@ -3232,7 +3277,7 @@ Pages.partDashboard = async function(user){
       const totalPart = ranking.length;
       return `
       <div class="card" style="margin-bottom:18px;border-left:3px solid var(--amarelo);">
-        <div class="section-title" style="margin-bottom:12px;">🏆 Placar ao vivo — ${escapeHtml(bolao.nome)} <span class="right"><a href="#" id="link-turma" style="font-size:12px;">ver turma →</a></span></div>
+        <div class="section-title" style="margin-bottom:12px;">🏆 Placar ao vivo — ${escapeHtml(bolaoRanking.nome)} <span class="right"><a href="#" id="link-turma" style="font-size:12px;">ver turma →</a></span></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
           <div style="flex:1;min-width:100px;background:var(--bg-3);border-radius:8px;padding:10px;text-align:center;">
             <div style="font-size:11px;color:var(--texto-3);margin-bottom:4px;">Participantes</div>
