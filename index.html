@@ -1629,8 +1629,12 @@ const App = {
     if(!user){ Auth.render(); return; }
     this.route = 'dashboard';
     this.showLoading('Carregando seus dados...');
-    await Store.loadAll();
     this.render();
+
+setTimeout(async () => {
+    await Store.loadAll();
+    this.renderPage();
+}, 5000);
     // Não bloqueia a primeira renderização; quando terminar, re-renderiza
     // a página atual para refletir eventuais pagamentos marcados como atrasados.
     Logic.atualizarStatusPagamentosEmSegundoPlano().then(() => this.renderPage());
