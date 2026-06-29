@@ -100,34 +100,6 @@ body{
 }
 @keyframes pulse{0%{opacity:1;transform:scale(1);}50%{opacity:0.4;transform:scale(0.7);}100%{opacity:1;transform:scale(1);}}
 
-/* Bolinha de gol: aparece por alguns segundos sobre o placar quando ele muda,
-   chamando atenção para o gol que acabou de ser marcado. */
-.gol-badge{
-  display:inline-flex;align-items:center;justify-content:center;
-  min-width:20px;height:20px;padding:0 5px;
-  background:var(--verde);color:#0a1f12;
-  border-radius:999px;font-size:11px;font-weight:800;
-  animation:golPop 0.5s cubic-bezier(0.34,1.56,0.64,1), golFade 2.5s ease forwards;
-  margin-left:6px;
-}
-@keyframes golPop{
-  0%{transform:scale(0);}
-  60%{transform:scale(1.25);}
-  100%{transform:scale(1);}
-}
-@keyframes golFade{
-  0%,70%{opacity:1;}
-  100%{opacity:0;}
-}
-/* Placar que acabou de mudar pisca suavemente em verde para chamar atenção */
-.placar-mudou{
-  animation:placarFlash 1.2s ease;
-}
-@keyframes placarFlash{
-  0%{ background:rgba(34,197,94,0.35); }
-  100%{ background:transparent; }
-}
-
 .body-row{display:flex;flex:1;min-height:0;}
 .sidebar{
   width:204px;
@@ -1096,13 +1068,7 @@ const Store = {
 
   async reloadNotificacoes(){
     const { data, error } = await sb.from('notificacoes').select('*').order('criado_em', { ascending: false });
-    if(error){
-      console.error('Erro ao carregar notificações:', error);
-      this.ultimoErroNotificacoes = error.message;
-      this.data.notificacoes = this.data.notificacoes || []; // nunca deixa undefined
-      return;
-    }
-    this.ultimoErroNotificacoes = null;
+    if(error){ console.error('Erro ao carregar notificações:', error); return; }
     this.data.notificacoes = (data||[]).map(n=>({
       id: n.id,
       usuarioId: n.usuario_id,
@@ -1638,9 +1604,6 @@ const App = {
     // que dispara pop-up do sistema quando chega notificação nova.
     notifPedirPermissaoSeNecessario();
     notificacoesPollingIniciar();
-    // Placar em tempo real: liga o canal Realtime que propaga mudanças de
-    // placar (gols) instantaneamente para todos com o app aberto.
-    realtimeJogosIniciar();
   },
 
   showLoading(msg){
@@ -1666,7 +1629,6 @@ const App = {
     const user = Session.currentUser();
     if(user) Store.log(user.id, 'Logout realizado.');
     notificacoesPollingParar();
-    realtimeJogosParar();
     await Session.clear();
     Auth.render();
   },
@@ -1886,29 +1848,23 @@ function notifDispararPopup(titulo, mensagem){
 
 // Verifica periodicamente se há notificações novas (não vistas neste
 // dispositivo) destinadas ao usuário logado, e dispara pop-up para cada uma.
-// "primeiroPolling" controla se estamos na primeira verificação desde que o
-// app foi aberto nesta sessão — usado para não bombardear com pop-ups de
-// notificações antigas que já existiam antes de abrir o app agora.
-let notifPrimeiroPollingFeito = false;
 async function notificacoesVerificarNovas(){
   const user = Session.currentUser ? Session.currentUser() : null;
   if(!user) return;
 
   await Store.reloadNotificacoes();
   const minhas = Store.data.notificacoes.filter(n=>n.usuarioId===user.id);
+  if(!minhas.length) return;
 
   const vistos = notifIdsVistosCarregar();
   const novas = minhas.filter(n=>!vistos.has(n.id));
 
-  // Só a primeiríssima execução do polling nesta sessão é "silenciosa"
-  // (evita bombardear notificações antigas ao abrir o app). A partir da
-  // segunda execução em diante, qualquer notificação nova dispara pop-up
-  // — mesmo que seja a primeira notificação que esse usuário já recebeu.
-  const ehPrimeiroPolling = !notifPrimeiroPollingFeito;
-  notifPrimeiroPollingFeito = true;
+  // Na primeiríssima verificação (vistos vazio), não dispara pop-up de tudo
+  // que já existia antes — só marca como visto, para não bombardear notificações antigas.
+  const primeiraVez = vistos.size === 0;
 
   novas.forEach(n=>{
-    if(!ehPrimeiroPolling) notifDispararPopup(n.titulo, n.mensagem);
+    if(!primeiraVez) notifDispararPopup(n.titulo, n.mensagem);
     vistos.add(n.id);
   });
   notifIdsVistosSalvar(vistos);
@@ -1921,92 +1877,6 @@ function notificacoesPollingIniciar(){
 }
 function notificacoesPollingParar(){
   if(notificacoesPollingId){ clearInterval(notificacoesPollingId); notificacoesPollingId = null; }
-}
-
-// ---- PLACAR EM TEMPO REAL (Supabase Realtime) -----------------------------
-// Escuta mudanças na tabela "jogos" em tempo real: quando o admin atualiza o
-// placar (parcial, "em_andamento", ou final), todo participante com o app
-// aberto recebe a atualização na hora, sem precisar recarregar a página.
-// Também detecta gols (placar aumentou) e dispara notificação + badge visual.
-
-let canalJogosRealtime = null;
-
-// Ignora o "primeiro lote" de eventos que podem chegar só de reconectar o
-// canal (evita disparar notificação de gol "antiga" ao reabrir o app).
-let realtimeJogosPrimeiraSincronizacaoFeita = false;
-
-function realtimeJogosIniciar(){
-  if(canalJogosRealtime) return; // já está escutando
-
-  canalJogosRealtime = sb
-    .channel('jogos-placar-realtime')
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'jogos' }, (payload) => {
-      tratarAtualizacaoDeJogoEmTempoReal(payload.new, payload.old);
-    })
-    .subscribe();
-
-  // Após o primeiro pequeno intervalo, passamos a tratar futuras mudanças
-  // como "ao vivo" (disparando notificação de gol de verdade).
-  setTimeout(() => { realtimeJogosPrimeiraSincronizacaoFeita = true; }, 3000);
-}
-
-function realtimeJogosParar(){
-  if(canalJogosRealtime){ sb.removeChannel(canalJogosRealtime); canalJogosRealtime = null; }
-  realtimeJogosPrimeiraSincronizacaoFeita = false;
-}
-
-function tratarAtualizacaoDeJogoEmTempoReal(jogoNovoRaw, jogoAntigoRaw){
-  const db = Store.data;
-  const idx = db.jogos.findIndex(j=>j.id===jogoNovoRaw.id);
-  if(idx === -1) return; // jogo não está carregado nesta sessão (ex: outro bolão)
-
-  const jogoAntes = db.jogos[idx];
-  const placarMandanteAntes = jogoAntes.placarMandante;
-  const placarVisitanteAntes = jogoAntes.placarVisitante;
-
-  // Atualiza o jogo em memória com os dados novos do banco.
-  const jogoAtualizado = {
-    ...jogoAntes,
-    placarMandante: jogoNovoRaw.placar_mandante,
-    placarVisitante: jogoNovoRaw.placar_visitante,
-    status: jogoNovoRaw.status,
-  };
-  db.jogos[idx] = jogoAtualizado;
-
-  const houveGol = realtimeJogosPrimeiraSincronizacaoFeita &&
-    ((jogoAtualizado.placarMandante ?? 0) > (placarMandanteAntes ?? -1) ||
-     (jogoAtualizado.placarVisitante ?? 0) > (placarVisitanteAntes ?? -1));
-
-  if(houveGol){
-    const placarTexto = `${jogoAtualizado.mandante} ${jogoAtualizado.placarMandante} x ${jogoAtualizado.placarVisitante} ${jogoAtualizado.visitante}`;
-    notifDispararPopup('⚽ GOL!', placarTexto);
-    marcarGolNaTela(jogoAtualizado.id);
-  }
-
-  // Se a tela atual estiver mostrando esse jogo, re-renderiza pra refletir
-  // o novo placar imediatamente (sem esperar navegação/polling).
-  rerenderizarTelaAtualSeRelevante();
-}
-
-// Mostra o badge "⚽" pulsante sobre o placar do jogo na tela, se ela estiver visível.
-function marcarGolNaTela(jogoId){
-  document.querySelectorAll(`[data-placar-jogo="${jogoId}"]`).forEach(el=>{
-    el.classList.add('placar-mudou');
-    const existente = el.querySelector('.gol-badge');
-    if(existente) existente.remove();
-    const badge = document.createElement('span');
-    badge.className = 'gol-badge';
-    badge.textContent = '⚽';
-    el.appendChild(badge);
-    setTimeout(()=>{ badge.remove(); el.classList.remove('placar-mudou'); }, 2600);
-  });
-}
-
-// Re-renderiza a tela atual se ela depende dos dados de jogos (placar),
-// para refletir a atualização em tempo real sem precisar navegar.
-function rerenderizarTelaAtualSeRelevante(){
-  const telasComPlacar = ['dashboard','palpites','jogos','copa'];
-  if(telasComPlacar.includes(App.route)) App.renderPage();
 }
 
 // ---- PWA: SERVICE WORKER + INSTALAÇÃO -------------------------------------
@@ -2147,7 +2017,6 @@ sb.auth.onAuthStateChange((event, session) => {
   if(event === 'SIGNED_OUT'){
     Session._user = null;
     notificacoesPollingParar();
-    realtimeJogosParar();
     Auth.render();
   }
   if(event === 'TOKEN_REFRESHED'){
@@ -2170,7 +2039,6 @@ async function verificarSaudeDaSessao(){
   if(!sessaoValida){
     console.warn('[AUTH] Sessão expirada/inválida detectada — forçando logout.');
     notificacoesPollingParar();
-    realtimeJogosParar();
     Session._user = null;
     toast('Sua sessão expirou. Faça login novamente.', 'error');
     Auth.render();
@@ -2357,35 +2225,7 @@ Pages.adminNotificacoes = async function(){
   const participantes = db.usuarios.filter(u=>u.perfil==='participante');
 
   const render = () => {
-    const notifs = db.notificacoes || [];
-
-    if(Store.ultimoErroNotificacoes){
-      document.getElementById('content').innerHTML = `
-        <div class="empty-state">
-          <div class="icon">⚠️</div>
-          <div class="msg">Erro ao carregar notificações</div>
-          <div style="font-size:12px;color:var(--texto-3);margin-top:6px;">${escapeHtml(Store.ultimoErroNotificacoes)}</div>
-          <button class="btn btn-outline" id="btn-tentar-novamente-notif" style="margin-top:12px;">Tentar novamente</button>
-        </div>
-      `;
-      document.getElementById('btn-tentar-novamente-notif').onclick = () => Pages.adminNotificacoes();
-      return;
-    }
-
-    // Agrupa notificações do mesmo "envio" (mesmo título, mensagem e instante
-    // de criação — já que um envio para "todos" insere 1 linha por
-    // participante, todas com o mesmo timestamp exato). Isso evita mostrar
-    // N cópias idênticas no histórico e permite excluir todas de uma vez.
-    const gruposPorChave = new Map();
-    notifs.forEach(n=>{
-      const chave = `${n.titulo}|${n.mensagem}|${n.criadoEm}`;
-      if(!gruposPorChave.has(chave)){
-        gruposPorChave.set(chave, { titulo:n.titulo, mensagem:n.mensagem, criadoEm:n.criadoEm, itens:[] });
-      }
-      gruposPorChave.get(chave).itens.push(n);
-    });
-    const gruposNotif = Array.from(gruposPorChave.values())
-      .sort((a,b)=> new Date(b.criadoEm) - new Date(a.criadoEm));
+    const notifs = db.notificacoes;
     document.getElementById('content').innerHTML = `
       <div class="grid grid-2" style="align-items:start;">
 
@@ -2412,45 +2252,23 @@ Pages.adminNotificacoes = async function(){
 
         <!-- Histórico -->
         <div class="card">
-          <div class="section-title" style="margin-bottom:14px;">Histórico <span style="font-size:12px;color:var(--texto-3);">(${gruposNotif.length} ${gruposNotif.length===1?'envio':'envios'})</span></div>
-          ${gruposNotif.length ? gruposNotif.slice(0,20).map(grupo=>{
-            const data = grupo.criadoEm ? new Date(grupo.criadoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
-            const qtdLidas = grupo.itens.filter(n=>n.lida).length;
-            const destinoLabel = grupo.itens.length === 1
-              ? (db.usuarios.find(x=>x.id===grupo.itens[0].usuarioId)?.nome || 'Participante')
-              : `${grupo.itens.length} participantes`;
+          <div class="section-title" style="margin-bottom:14px;">Histórico <span style="font-size:12px;color:var(--texto-3);">(${notifs.length} enviadas)</span></div>
+          ${notifs.length ? notifs.slice(0,20).map(n=>{
+            const u = db.usuarios.find(x=>x.id===n.usuarioId);
+            const data = n.criadoEm ? new Date(n.criadoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
             return `<div style="padding:10px 0;border-bottom:1px solid var(--linha);">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:8px;">
-                <span style="font-weight:700;font-size:13px;">${escapeHtml(grupo.titulo)}</span>
-                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-                  <span style="font-size:11px;color:var(--texto-3);">${data}</span>
-                  <button class="btn-excluir-notif" data-ids="${grupo.itens.map(n=>n.id).join(',')}" title="Excluir notificação" style="background:none;border:none;color:var(--vermelho,#ef4444);cursor:pointer;font-size:14px;padding:2px 4px;">🗑</button>
-                </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span style="font-weight:700;font-size:13px;">${escapeHtml(n.titulo)}</span>
+                <span style="font-size:11px;color:var(--texto-3);">${data}</span>
               </div>
-              <div style="font-size:12px;color:var(--texto-2);margin-bottom:4px;">${escapeHtml(grupo.mensagem)}</div>
-              <div style="font-size:11px;color:var(--texto-3);">Para: ${escapeHtml(destinoLabel)} · ${qtdLidas}/${grupo.itens.length} lida(s)</div>
+              <div style="font-size:12px;color:var(--texto-2);margin-bottom:4px;">${escapeHtml(n.mensagem)}</div>
+              <div style="font-size:11px;color:var(--texto-3);">Para: ${u ? escapeHtml(u.nome) : 'Todos'} ${n.lida ? '✓ lida' : '• não lida'}</div>
             </div>`;
           }).join('') : `<div class="empty-state"><div class="icon">🔔</div><div class="msg">Nenhuma notificação enviada</div></div>`}
         </div>
 
       </div>
     `;
-
-    document.querySelectorAll('.btn-excluir-notif').forEach(btn=>{
-      btn.onclick = async () => {
-        const ids = btn.getAttribute('data-ids').split(',');
-        const confirmMsg = ids.length > 1
-          ? `Excluir esta notificação? Ela foi enviada para ${ids.length} participantes e todas as cópias serão removidas. Essa ação não pode ser desfeita.`
-          : 'Excluir esta notificação? Essa ação não pode ser desfeita.';
-        if(!confirm(confirmMsg)) return;
-        btn.disabled = true;
-        const { error } = await sb.from('notificacoes').delete().in('id', ids);
-        if(error){ toast('Erro ao excluir: ' + error.message, 'error'); btn.disabled = false; return; }
-        toast(ids.length > 1 ? `Notificação excluída (${ids.length} cópias removidas).` : 'Notificação excluída.');
-        await Store.reloadNotificacoes();
-        render();
-      };
-    });
 
     document.getElementById('btn-enviar-notif').onclick = async () => {
       const dest = document.getElementById('notif-dest').value;
@@ -2573,8 +2391,7 @@ Pages._sumulaEditavel = function(j){
   const db = Store.data;
   const bolao = db.boloes.find(b=>b.id===j.bolaoId);
   const finalizado = j.status==='finalizado';
-  const emAndamento = j.status==='em_andamento';
-  const isLive = !finalizado && (emAndamento || (j.dataHora && new Date(j.dataHora) <= new Date()));
+  const isLive = !finalizado && j.dataHora && new Date(j.dataHora) <= new Date();
   return `
   <div class="sumula">
     <div class="sumula-head">
@@ -2583,7 +2400,7 @@ Pages._sumulaEditavel = function(j){
     </div>
     <div class="sumula-body">
       <div class="sumula-team">${bandeira(j.mandanteSigla, j.mandante)}<div class="name">${escapeHtml(j.mandante)}</div></div>
-      <div class="placar-box" data-placar-jogo="${j.id}">
+      <div class="placar-box">
         <input type="number" min="0" class="placar-input font-mono" data-jogo="${j.id}" data-lado="mandante" value="${j.placarMandante??''}" placeholder="-">
         <span class="placar-sep">×</span>
         <input type="number" min="0" class="placar-input font-mono" data-jogo="${j.id}" data-lado="visitante" value="${j.placarVisitante??''}" placeholder="-">
@@ -2591,11 +2408,10 @@ Pages._sumulaEditavel = function(j){
       <div class="sumula-team">${bandeira(j.visitanteSigla, j.visitante)}<div class="name">${escapeHtml(j.visitante)}</div></div>
     </div>
     <div class="sumula-foot">
-      <span>${j.dataHora ? new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Sem data'} · ${finalizado?'<strong style="color:var(--azul);">Finalizado</strong>':(emAndamento?'<strong style="color:var(--verde);">Em andamento</strong>':'Agendado')}</span>
-      <span class="flex-row" style="gap:6px;flex-wrap:wrap;">
+      <span>${j.dataHora ? new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Sem data'} · ${finalizado?'<strong style="color:var(--azul);">Finalizado</strong>':'Agendado'}</span>
+      <span class="flex-row" style="gap:6px;">
         <button class="btn btn-sm btn-outline" data-ver-palpites="${j.id}">👁 Palpites</button>
         <button class="btn btn-sm btn-outline" data-edit-jogo="${j.id}">Editar</button>
-        ${!finalizado ? `<button class="btn btn-sm btn-outline" data-atualizar-placar="${j.id}" style="border-color:var(--verde);color:var(--verde);">⚽ Atualizar placar</button>` : ''}
         <button class="btn btn-sm btn-primary" data-salvar-placar="${j.id}">Salvar resultado</button>
         <button class="btn btn-sm btn-danger" data-del-jogo="${j.id}">×</button>
       </span>
@@ -2604,34 +2420,6 @@ Pages._sumulaEditavel = function(j){
 };
 
 Pages._bindSumulaEvents = function(){
-  // Atualiza o placar parcial sem encerrar o jogo (status vira/permanece 'em_andamento').
-  // Usado pelo admin para refletir gols em tempo real durante a partida.
-  document.querySelectorAll('[data-atualizar-placar]').forEach(btn=>{
-    btn.onclick = async () => {
-      const jogoId = btn.dataset.atualizarPlacar;
-      const inM = document.querySelector(`[data-jogo="${jogoId}"][data-lado="mandante"]`);
-      const inV = document.querySelector(`[data-jogo="${jogoId}"][data-lado="visitante"]`);
-      if(inM.value==='' || inV.value===''){ toast('Informe os dois placares.', 'error'); return; }
-      const placarMandante = parseInt(inM.value,10);
-      const placarVisitante = parseInt(inV.value,10);
-
-      btn.disabled = true; const textoOriginal = btn.textContent; btn.textContent = 'Atualizando...';
-
-      const { error } = await sb.from('jogos').update({
-        placar_mandante: placarMandante,
-        placar_visitante: placarVisitante,
-        status: 'em_andamento',
-      }).eq('id', jogoId);
-
-      btn.disabled = false; btn.textContent = textoOriginal;
-      if(error){ toast('Erro ao atualizar placar: ' + error.message, 'error'); return; }
-
-      toast('⚽ Placar atualizado em tempo real!');
-      await Store.reloadJogos();
-      Pages.adminJogos();
-    };
-  });
-
   document.querySelectorAll('[data-salvar-placar]').forEach(btn=>{
     btn.onclick = async () => {
       const jogoId = btn.dataset.salvarPlacar;
@@ -3391,15 +3179,12 @@ Pages.partTurma = async function(user){
   // Cards por jogo
   const cardsJogos = jogos.length ? jogos.map(j=>{
     const finalizado = j.status === 'finalizado';
-    const emAndamento = j.status === 'em_andamento';
     const temResultado = j.placarMandante !== null && j.placarVisitante !== null;
     const palpitesDoJogo = db.palpites.filter(p=>p.jogoId===j.id);
     const qtdApostaram = [...new Set(palpitesDoJogo.map(p=>p.usuarioId))].length;
 
     const statusLabel = finalizado
-      ? `<span data-placar-jogo="${j.id}" style="color:var(--azul-2);font-size:12px;font-weight:700;">✓ ${j.placarMandante} × ${j.placarVisitante}</span>`
-      : emAndamento
-      ? `<span data-placar-jogo="${j.id}" style="display:inline-flex;align-items:center;gap:6px;"><span class="live-badge"><span class="pulse"></span>Ao vivo</span><strong style="color:var(--verde);font-size:13px;">${j.placarMandante ?? 0} × ${j.placarVisitante ?? 0}</strong></span>`
+      ? `<span style="color:var(--azul-2);font-size:12px;font-weight:700;">✓ ${j.placarMandante} × ${j.placarVisitante}</span>`
       : j.dataHora && new Date(j.dataHora) <= new Date()
       ? `<span class="live-badge"><span class="pulse"></span>Ao vivo</span>`
       : `<span style="color:var(--texto-3);font-size:12px;">${j.dataHora ? new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'sem data'}</span>`;
