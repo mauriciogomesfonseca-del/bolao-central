@@ -1632,8 +1632,19 @@ const App = {
     this.render();
 
 setTimeout(async () => {
+    athis.render();
+
+requestAnimationFrame(async () => {
     await Store.loadAll();
     this.renderPage();
+
+    Logic.atualizarStatusPagamentosEmSegundoPlano()
+        .then(() => this.renderPage());
+
+    notifPedirPermissaoSeNecessario();
+    notificacoesPollingIniciar();
+    realtimeJogosIniciar();
+});
 }, 5000);
     // Não bloqueia a primeira renderização; quando terminar, re-renderiza
     // a página atual para refletir eventuais pagamentos marcados como atrasados.
@@ -2161,9 +2172,24 @@ if (splashVideo) {
   }, 7000);
 }
 
-  App.showLoading('Conectando...');
-  await Session.init();
-  App.boot();
+// Aguarda o vídeo terminar
+splashVideo.addEventListener('ended', async () => {
+
+  // Fade
+  splashEl.style.transition = 'opacity .5s ease';
+  splashEl.style.opacity = '0';
+
+  setTimeout(async () => {
+
+    splashEl.remove();
+
+    // Só agora começa a carregar o aplicativo
+    App.showLoading('Conectando...');
+    await Session.init();
+    await App.boot();
+
+  }, 500);
+
 });
 
 // Mantém a sessão sincronizada caso o token expire/renove em segundo plano,
