@@ -2378,11 +2378,16 @@ Pages.adminNotificacoes = async function(){
     // N cópias idênticas no histórico e permite excluir todas de uma vez.
     const gruposPorChave = new Map();
     notifs.forEach(n=>{
-      const chave = `${n.titulo}|${n.mensagem}|${n.criadoEm}`;
+      // Agrupa por título+mensagem — timestamps podem diferir ligeiramente
+      // entre as linhas do mesmo envio em lote
+      const chave = `${n.titulo}|${n.mensagem}`;
       if(!gruposPorChave.has(chave)){
         gruposPorChave.set(chave, { titulo:n.titulo, mensagem:n.mensagem, criadoEm:n.criadoEm, itens:[] });
       }
-      gruposPorChave.get(chave).itens.push(n);
+      // Usa o timestamp mais recente do grupo
+      const g = gruposPorChave.get(chave);
+      if(new Date(n.criadoEm) > new Date(g.criadoEm)) g.criadoEm = n.criadoEm;
+      g.itens.push(n);
     });
     const gruposNotif = Array.from(gruposPorChave.values())
       .sort((a,b)=> new Date(b.criadoEm) - new Date(a.criadoEm));
@@ -3036,8 +3041,10 @@ Pages.configuracoes = function(){
 // PÁGINAS — PARTICIPANTE
 // =====================================================================
 
-Pages.partDashboard = function(user){
+Pages.partDashboard = async function(user){
   App.setTopbar(`Olá, ${user.nome.split(' ')[0]}!`, 'Acompanhe seus palpites, pontuação e pagamentos');
+  // Garante notificações atualizadas antes de renderizar
+  await Store.reloadNotificacoes();
   const db = Store.data;
   const bolao = db.boloes.find(b=>b.status==='ativo') || db.boloes[0];
   const ranking = bolao ? Logic.rankingDoBolao(bolao.id,'geral') : [];
@@ -3045,11 +3052,13 @@ Pages.partDashboard = function(user){
   const meuPagamento = db.pagamentos.find(p=>p.usuarioId===user.id && (!bolao || p.bolaoId===bolao.id));
   const proximosJogos = db.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora)).slice(0,3);
   const minhasNotifs = db.notificacoes.filter(n=>n.usuarioId===user.id).slice(0,4);
-  // Marca como lidas em segundo plano
+  // Marca como lidas após exibir (delay de 3s para garantir que o usuário viu)
   const naoLidas = minhasNotifs.filter(n=>!n.lida).map(n=>n.id);
-  if(naoLidas.length) sb.from('notificacoes').update({lida:true}).in('id',naoLidas).then(()=>{
-    naoLidas.forEach(id=>{ const n=db.notificacoes.find(x=>x.id===id); if(n) n.lida=true; });
-  });
+  if(naoLidas.length) setTimeout(()=>{
+    sb.from('notificacoes').update({lida:true}).in('id',naoLidas).then(()=>{
+      naoLidas.forEach(id=>{ const n=db.notificacoes.find(x=>x.id===id); if(n) n.lida=true; });
+    });
+  }, 3000);
 
   document.getElementById('content').innerHTML = `
     <div id="card-instalar-app"></div>
