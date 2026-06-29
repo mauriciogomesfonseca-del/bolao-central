@@ -2352,6 +2352,21 @@ Pages.adminNotificacoes = async function(){
 
   const render = () => {
     const notifs = db.notificacoes;
+
+    // Agrupa notificações do mesmo "envio" (mesmo título, mensagem e instante
+    // de criação — já que um envio para "todos" insere 1 linha por
+    // participante, todas com o mesmo timestamp exato). Isso evita mostrar
+    // N cópias idênticas no histórico e permite excluir todas de uma vez.
+    const gruposPorChave = new Map();
+    notifs.forEach(n=>{
+      const chave = `${n.titulo}|${n.mensagem}|${n.criadoEm}`;
+      if(!gruposPorChave.has(chave)){
+        gruposPorChave.set(chave, { titulo:n.titulo, mensagem:n.mensagem, criadoEm:n.criadoEm, itens:[] });
+      }
+      gruposPorChave.get(chave).itens.push(n);
+    });
+    const gruposNotif = Array.from(gruposPorChave.values())
+      .sort((a,b)=> new Date(b.criadoEm) - new Date(a.criadoEm));
     document.getElementById('content').innerHTML = `
       <div class="grid grid-2" style="align-items:start;">
 
@@ -2378,20 +2393,23 @@ Pages.adminNotificacoes = async function(){
 
         <!-- Histórico -->
         <div class="card">
-          <div class="section-title" style="margin-bottom:14px;">Histórico <span style="font-size:12px;color:var(--texto-3);">(${notifs.length} enviadas)</span></div>
-          ${notifs.length ? notifs.slice(0,20).map(n=>{
-            const u = db.usuarios.find(x=>x.id===n.usuarioId);
-            const data = n.criadoEm ? new Date(n.criadoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+          <div class="section-title" style="margin-bottom:14px;">Histórico <span style="font-size:12px;color:var(--texto-3);">(${gruposNotif.length} ${gruposNotif.length===1?'envio':'envios'})</span></div>
+          ${gruposNotif.length ? gruposNotif.slice(0,20).map(grupo=>{
+            const data = grupo.criadoEm ? new Date(grupo.criadoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+            const qtdLidas = grupo.itens.filter(n=>n.lida).length;
+            const destinoLabel = grupo.itens.length === 1
+              ? (db.usuarios.find(x=>x.id===grupo.itens[0].usuarioId)?.nome || 'Participante')
+              : `${grupo.itens.length} participantes`;
             return `<div style="padding:10px 0;border-bottom:1px solid var(--linha);">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:8px;">
-                <span style="font-weight:700;font-size:13px;">${escapeHtml(n.titulo)}</span>
+                <span style="font-weight:700;font-size:13px;">${escapeHtml(grupo.titulo)}</span>
                 <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
                   <span style="font-size:11px;color:var(--texto-3);">${data}</span>
-                  <button class="btn-excluir-notif" data-id="${n.id}" title="Excluir notificação" style="background:none;border:none;color:var(--vermelho,#ef4444);cursor:pointer;font-size:14px;padding:2px 4px;">🗑</button>
+                  <button class="btn-excluir-notif" data-ids="${grupo.itens.map(n=>n.id).join(',')}" title="Excluir notificação" style="background:none;border:none;color:var(--vermelho,#ef4444);cursor:pointer;font-size:14px;padding:2px 4px;">🗑</button>
                 </div>
               </div>
-              <div style="font-size:12px;color:var(--texto-2);margin-bottom:4px;">${escapeHtml(n.mensagem)}</div>
-              <div style="font-size:11px;color:var(--texto-3);">Para: ${u ? escapeHtml(u.nome) : 'Todos'} ${n.lida ? '✓ lida' : '• não lida'}</div>
+              <div style="font-size:12px;color:var(--texto-2);margin-bottom:4px;">${escapeHtml(grupo.mensagem)}</div>
+              <div style="font-size:11px;color:var(--texto-3);">Para: ${escapeHtml(destinoLabel)} · ${qtdLidas}/${grupo.itens.length} lida(s)</div>
             </div>`;
           }).join('') : `<div class="empty-state"><div class="icon">🔔</div><div class="msg">Nenhuma notificação enviada</div></div>`}
         </div>
@@ -2401,12 +2419,15 @@ Pages.adminNotificacoes = async function(){
 
     document.querySelectorAll('.btn-excluir-notif').forEach(btn=>{
       btn.onclick = async () => {
-        const id = btn.getAttribute('data-id');
-        if(!confirm('Excluir esta notificação? Essa ação não pode ser desfeita.')) return;
+        const ids = btn.getAttribute('data-ids').split(',');
+        const confirmMsg = ids.length > 1
+          ? `Excluir esta notificação? Ela foi enviada para ${ids.length} participantes e todas as cópias serão removidas. Essa ação não pode ser desfeita.`
+          : 'Excluir esta notificação? Essa ação não pode ser desfeita.';
+        if(!confirm(confirmMsg)) return;
         btn.disabled = true;
-        const { error } = await sb.from('notificacoes').delete().eq('id', id);
+        const { error } = await sb.from('notificacoes').delete().in('id', ids);
         if(error){ toast('Erro ao excluir: ' + error.message, 'error'); btn.disabled = false; return; }
-        toast('Notificação excluída.');
+        toast(ids.length > 1 ? `Notificação excluída (${ids.length} cópias removidas).` : 'Notificação excluída.');
         await Store.reloadNotificacoes();
         render();
       };
