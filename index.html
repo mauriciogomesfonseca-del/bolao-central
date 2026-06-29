@@ -1957,12 +1957,42 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 // Mantém a sessão sincronizada caso o token expire/renove em segundo plano,
 // ou caso a pessoa faça logout em outra aba.
-sb.auth.onAuthStateChange((event) => {
+sb.auth.onAuthStateChange((event, session) => {
   if(event === 'SIGNED_OUT'){
     Session._user = null;
     notificacoesPollingParar();
     Auth.render();
   }
+  if(event === 'TOKEN_REFRESHED'){
+    // Sessão renovada com sucesso — nada a fazer, só log silencioso.
+    console.log('[AUTH] Token renovado com sucesso.');
+  }
+});
+
+// Detecta sessão "zumbi": quando o refresh token falha (ex: expirou ou foi
+// revogado), o Supabase às vezes não dispara SIGNED_OUT automaticamente,
+// e o app continua rodando com uma sessão inválida — fazendo o RLS do
+// banco silenciosamente devolver menos dados do que deveria (ex: listas
+// de bolões/pagamentos vindo incompletas para o admin).
+// Verificamos isso periodicamente e, se a sessão estiver morta, forçamos
+// um logout limpo com aviso, para a pessoa logar de novo e resolver.
+async function verificarSaudeDaSessao(){
+  if(!Session.currentUser()) return; // não está logado, nada a verificar
+  const { data, error } = await sb.auth.getSession();
+  const sessaoValida = !error && data && data.session;
+  if(!sessaoValida){
+    console.warn('[AUTH] Sessão expirada/inválida detectada — forçando logout.');
+    notificacoesPollingParar();
+    Session._user = null;
+    toast('Sua sessão expirou. Faça login novamente.', 'error');
+    Auth.render();
+  }
+}
+// Checa a saúde da sessão a cada 5 minutos, e também sempre que o app
+// volta a ficar visível (ex: usuário voltou pro app depois de minimizar).
+setInterval(verificarSaudeDaSessao, 5*60*1000);
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') verificarSaudeDaSessao();
 });
 // =====================================================================
 // PÁGINAS — ADMINISTRADOR

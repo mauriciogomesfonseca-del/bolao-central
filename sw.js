@@ -49,6 +49,9 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
+          // Respostas 206 (parciais, comuns em vídeo/áudio com range request)
+          // não podem ser colocadas no Cache API — pulamos o cache nesse caso.
+          if (res.status === 206) return res;
           const resClone = res.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
           return res;
@@ -63,6 +66,7 @@ self.addEventListener('fetch', (event) => {
       if (cached) return cached;
       return fetch(req)
         .then((res) => {
+          if (res.status === 206) return res;
           const resClone = res.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
           return res;
