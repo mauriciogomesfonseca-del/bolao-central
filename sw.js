@@ -2,7 +2,12 @@
 // Objetivo principal: tornar o site instalável como PWA (requisito do Chrome/Android).
 // Faz um cache simples do "shell" do app para abrir mais rápido e funcionar offline básico.
 
-const CACHE_NAME = 'bolao-central-v1';
+// IMPORTANTE: sempre que publicar uma alteração neste arquivo (sw.js) ou no
+// index.html, incremente a versão abaixo (ex: 'v1' -> 'v2'). Isso faz o
+// navegador detectar o sw.js como "diferente" e disparar o fluxo de
+// atualização (banner "Nova versão disponível" no app), além de descartar
+// o cache antigo automaticamente no evento 'activate'.
+const CACHE_NAME = 'bolao-central-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

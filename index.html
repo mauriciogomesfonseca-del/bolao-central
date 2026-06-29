@@ -1882,12 +1882,68 @@ function notificacoesPollingParar(){
 // ---- PWA: SERVICE WORKER + INSTALAÇÃO -------------------------------------
 // Registra o Service Worker o quanto antes (necessário para o navegador
 // considerar o site "instalável" como app).
+let swRegistration = null;
+let swEsperandoAtivacao = null; // guarda o worker novo que está pronto, esperando o usuário confirmar
+
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(err=>{
+    navigator.serviceWorker.register('./sw.js').then((reg)=>{
+      swRegistration = reg;
+
+      // Caso já exista um worker esperando no momento do registro
+      // (ex: a pessoa abriu o app depois de uma atualização ter sido publicada).
+      if(reg.waiting) mostrarBannerAtualizacao(reg.waiting);
+
+      // Detecta quando uma nova versão do sw.js é encontrada e instalada.
+      reg.addEventListener('updatefound', () => {
+        const novoWorker = reg.installing;
+        if(!novoWorker) return;
+        novoWorker.addEventListener('statechange', () => {
+          // 'installed' + já existe um controller ativo = é uma ATUALIZAÇÃO
+          // (não a primeira instalação), então vale avisar o usuário.
+          if(novoWorker.state === 'installed' && navigator.serviceWorker.controller){
+            mostrarBannerAtualizacao(novoWorker);
+          }
+        });
+      });
+
+      // Verifica periodicamente se há uma versão nova publicada no servidor
+      // (útil para quem deixa o app/PWA aberto por muito tempo sem recarregar).
+      setInterval(() => { reg.update().catch(()=>{}); }, 15*60*1000);
+    }).catch(err=>{
       console.error('Falha ao registrar Service Worker:', err);
     });
+
+    // Quando o novo Service Worker assume o controle (depois do SKIP_WAITING),
+    // recarrega a página automaticamente para usar a versão nova.
+    let jaRecarregou = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if(jaRecarregou) return;
+      jaRecarregou = true;
+      window.location.reload();
+    });
   });
+}
+
+// Mostra o banner "Nova versão disponível" no topo do app.
+function mostrarBannerAtualizacao(worker){
+  swEsperandoAtivacao = worker;
+  if(document.getElementById('banner-atualizar-app')) return; // já está mostrando
+
+  const banner = document.createElement('div');
+  banner.id = 'banner-atualizar-app';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10000;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;font-size:13px;box-shadow:0 2px 12px rgba(0,0,0,0.3);';
+  banner.innerHTML = `
+    <span>🔄 Nova versão do app disponível.</span>
+    <button id="btn-atualizar-app" style="background:#fff;color:#1d4ed8;border:none;border-radius:6px;padding:6px 14px;font-weight:700;font-size:12px;cursor:pointer;">Atualizar agora</button>
+  `;
+  document.body.prepend(banner);
+  document.getElementById('btn-atualizar-app').onclick = () => {
+    if(swEsperandoAtivacao){
+      swEsperandoAtivacao.postMessage('SKIP_WAITING');
+    }
+    banner.innerHTML = '<span>Atualizando...</span>';
+  };
 }
 
 // Captura o prompt nativo de instalação do Chrome/Android e guarda para
