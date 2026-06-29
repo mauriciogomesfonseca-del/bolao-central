@@ -2462,9 +2462,7 @@ Pages.adminNotificacoes = async function(){
       const btn = document.getElementById('btn-enviar-notif');
       btn.disabled = true; btn.textContent = 'Enviando...';
 
-    await Store.reloadUsuarios();
-      const todosParticipantes = Store.data.usuarios.filter(u => u.perfil === 'participante');
-      const destinatarios = dest === 'todos' ? todosParticipantes.map(u=>u.id) : [dest];
+      const destinatarios = dest === 'todos' ? participantes.map(u=>u.id) : [dest];
       const inserts = destinatarios.map(uid=>({ usuario_id: uid, titulo, mensagem }));
 
       const { error } = await sb.from('notificacoes').insert(inserts);
