@@ -2129,6 +2129,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     </video>
   `;
   document.body.appendChild(splashEl);
+  const splashVideo = splashEl.querySelector('video');
+  if(splashVideo){
+    splashVideo.load();
+    splashVideo.play().catch(()=>{});
+  }
   // Fade out suave antes de remover
   setTimeout(() => {
     splashEl.style.transition = 'opacity 0.5s ease';
