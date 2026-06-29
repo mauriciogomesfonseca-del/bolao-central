@@ -1096,7 +1096,13 @@ const Store = {
 
   async reloadNotificacoes(){
     const { data, error } = await sb.from('notificacoes').select('*').order('criado_em', { ascending: false });
-    if(error){ console.error('Erro ao carregar notificações:', error); return; }
+    if(error){
+      console.error('Erro ao carregar notificações:', error);
+      this.ultimoErroNotificacoes = error.message;
+      this.data.notificacoes = this.data.notificacoes || []; // nunca deixa undefined
+      return;
+    }
+    this.ultimoErroNotificacoes = null;
     this.data.notificacoes = (data||[]).map(n=>({
       id: n.id,
       usuarioId: n.usuario_id,
@@ -2351,7 +2357,20 @@ Pages.adminNotificacoes = async function(){
   const participantes = db.usuarios.filter(u=>u.perfil==='participante');
 
   const render = () => {
-    const notifs = db.notificacoes;
+    const notifs = db.notificacoes || [];
+
+    if(Store.ultimoErroNotificacoes){
+      document.getElementById('content').innerHTML = `
+        <div class="empty-state">
+          <div class="icon">⚠️</div>
+          <div class="msg">Erro ao carregar notificações</div>
+          <div style="font-size:12px;color:var(--texto-3);margin-top:6px;">${escapeHtml(Store.ultimoErroNotificacoes)}</div>
+          <button class="btn btn-outline" id="btn-tentar-novamente-notif" style="margin-top:12px;">Tentar novamente</button>
+        </div>
+      `;
+      document.getElementById('btn-tentar-novamente-notif').onclick = () => Pages.adminNotificacoes();
+      return;
+    }
 
     // Agrupa notificações do mesmo "envio" (mesmo título, mensagem e instante
     // de criação — já que um envio para "todos" insere 1 linha por
