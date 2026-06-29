@@ -2134,12 +2134,28 @@ window.addEventListener('DOMContentLoaded', async () => {
     splashVideo.load();
     splashVideo.play().catch(()=>{});
   }
-  // Fade out suave antes de remover
-  setTimeout(() => {
+ // Aguarda o vídeo terminar para remover a splash
+if (splashVideo) {
+  splashVideo.addEventListener('ended', () => {
     splashEl.style.transition = 'opacity 0.5s ease';
     splashEl.style.opacity = '0';
-    setTimeout(() => splashEl.remove(), 500);
-  }, 4000);
+
+    setTimeout(() => {
+      splashEl.remove();
+    }, 500);
+  });
+
+  // Segurança: se houver algum problema e o vídeo não terminar,
+  // remove a splash após 7 segundos.
+  setTimeout(() => {
+    if (document.body.contains(splashEl)) {
+      splashEl.style.transition = 'opacity 0.5s ease';
+      splashEl.style.opacity = '0';
+
+      setTimeout(() => splashEl.remove(), 500);
+    }
+  }, 7000);
+}
 
   App.showLoading('Conectando...');
   await Session.init();
