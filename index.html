@@ -1692,6 +1692,20 @@ const App = {
     const db = Store.data;
     const proxJogo = db.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora))[0];
 
+    // Função para atualizar o ticker com dados frescos (chamada após reloads)
+    App._atualizarTicker = () => {
+      const s2 = Logic.dashboardStats();
+      const db2 = Store.data;
+      const prox = db2.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora))[0];
+      const tkItem = document.querySelectorAll('.tk-item');
+      if(tkItem.length >= 4){
+        tkItem[0].innerHTML = prox ? `Próximo: ${BANDEIRAS[(prox.mandanteSigla||'').toUpperCase()]||''}${escapeHtml(prox.mandante)} × ${escapeHtml(prox.visitante)}${BANDEIRAS[(prox.visitanteSigla||'').toUpperCase()]||''}` : 'Sem jogos agendados';
+        tkItem[1].innerHTML = `Participantes <span class="tk-val">${s2.participantesAtivos}</span>`;
+        tkItem[2].innerHTML = `Jogos finalizados <span class="tk-val">${s2.jogosFinalizados}/${s2.jogosCadastrados}</span>`;
+        tkItem[3].innerHTML = `Arrecadado <span class="tk-val">${fmtMoney(s2.pagamentosRecebidos)}</span>`;
+      }
+    };
+
     const root = document.getElementById('app');
     root.innerHTML = `
       <div class="ticker-bar">
@@ -3113,15 +3127,39 @@ Pages.configuracoes = function(){
 // PÁGINAS — PARTICIPANTE
 // =====================================================================
 
-Pages.partDashboard = function(user){
+Pages.partDashboard = async function(user){
   App.setTopbar(`Olá, ${user.nome.split(' ')[0]}!`, 'Acompanhe seus palpites, pontuação e pagamentos');
+  document.getElementById('content').innerHTML = '<div class="empty-state"><div class="msg">Carregando...</div></div>';
+
+  // Força reload de tudo para garantir dados frescos
+  await Promise.all([
+    Store.reloadJogos(),
+    Store.reloadPalpites(),
+    Store.reloadPagamentos(),
+    Store.reloadNotificacoes(),
+  ]);
+
   const db = Store.data;
-  const bolao = db.boloes.find(b=>b.status==='ativo') || db.boloes[0];
+
+  // Busca o bolão que tem jogos do usuário, não apenas o primeiro ativo
+  const meusPalpites = db.palpites.filter(p=>p.usuarioId===user.id);
+  const meusBolaoIds = [...new Set(
+    meusPalpites.map(p=>{ const j=db.jogos.find(jj=>jj.id===p.jogoId); return j?j.bolaoId:null; }).filter(Boolean)
+  )];
+  const bolao = meusBolaoIds.length
+    ? db.boloes.find(b=>meusBolaoIds.includes(b.id))
+    : (db.boloes.find(b=>b.status==='ativo') || db.boloes[0]);
+
   const ranking = bolao ? Logic.rankingDoBolao(bolao.id,'geral') : [];
   const minhaLinha = ranking.find(r=>r.usuario.id===user.id);
-  const meuPagamento = db.pagamentos.find(p=>p.usuarioId===user.id && (!bolao || p.bolaoId===bolao.id));
+
+  // Busca pagamento do usuário no bolão correto
+  const meuPagamento = db.pagamentos.find(p=>p.usuarioId===user.id && p.bolaoId===bolao?.id)
+    || db.pagamentos.find(p=>p.usuarioId===user.id);
+
   const proximosJogos = db.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora)).slice(0,3);
   const minhasNotifs = db.notificacoes.filter(n=>n.usuarioId===user.id).slice(0,4);
+
   // Marca como lidas em segundo plano
   const naoLidas = minhasNotifs.filter(n=>!n.lida).map(n=>n.id);
   if(naoLidas.length) sb.from('notificacoes').update({lida:true}).in('id',naoLidas).then(()=>{
@@ -3241,6 +3279,8 @@ Pages.partDashboard = function(user){
   const lt = document.getElementById('link-turma'); if(lt) lt.onclick=(e)=>{e.preventDefault(); App.navigate('turma');};
   const lc = document.getElementById('link-copa'); if(lc) lc.onclick=(e)=>{e.preventDefault(); App.navigate('copa');};
   App.atualizarBotaoInstalar();
+  // Atualiza o ticker com dados frescos após os reloads
+  if(App._atualizarTicker) App._atualizarTicker();
 };
 
 // ---- RESOLUÇÃO DO CHAVEAMENTO DO MATA-MATA --------------------------------
