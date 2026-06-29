@@ -2571,12 +2571,63 @@ Pages.adminJogos = function(){
   Pages._bindSumulaEvents();
 };
 
+Pages._calcularGanhadoresJogo = function(j){
+  const db = Store.data;
+  if(j.status !== 'finalizado' || j.placarMandante === null || j.placarVisitante === null) return null;
+  const palpites = db.palpites.filter(p =>
+    p.jogoId === j.id &&
+    p.placarMandante === j.placarMandante &&
+    p.placarVisitante === j.placarVisitante
+  );
+  if(!palpites.length) return { ganhadores: [], premioTotal: 0, premioPorGanhador: 0, totalPalpites: db.palpites.filter(p=>p.jogoId===j.id).length };
+  const totalPalpites = db.palpites.filter(p=>p.jogoId===j.id).length;
+  const VALOR_PALPITE = 10;
+  const premioTotal = Math.round(totalPalpites * VALOR_PALPITE * 0.85 * 100) / 100;
+  const premioPorGanhador = Math.round((premioTotal / palpites.length) * 100) / 100;
+  const ganhadores = palpites.map(p => {
+    const u = db.usuarios.find(u=>u.id===p.usuarioId);
+    return { usuario: u, palpite: p };
+  });
+  return { ganhadores, premioTotal, premioPorGanhador, totalPalpites };
+};
+
 Pages._sumulaEditavel = function(j){
   const db = Store.data;
   const bolao = db.boloes.find(b=>b.id===j.bolaoId);
   const finalizado = j.status==='finalizado';
   const emAndamento = j.status==='em_andamento';
   const isLive = !finalizado && (emAndamento || (j.dataHora && new Date(j.dataHora) <= new Date()));
+
+  // Bloco de ganhadores (só exibe se finalizado)
+  let blocoGanhadores = '';
+  if(finalizado){
+    const res = Pages._calcularGanhadoresJogo(j);
+    if(res){
+      const totalPalpites = res.totalPalpites;
+      const VALOR_PALPITE = 10;
+      const premioTotal = res.premioTotal;
+      if(res.ganhadores.length === 0){
+        blocoGanhadores = `
+        <div style="padding:10px 14px;border-top:1px solid var(--linha);background:rgba(0,0,0,0.15);">
+          <div style="font-size:11px;font-weight:700;color:var(--texto-3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">🏆 Ganhadores do placar exato</div>
+          <div style="font-size:12px;color:var(--texto-3);">Ninguém acertou o placar exato · ${totalPalpites} palpite(s) · Prêmio acumulado: <strong style="color:var(--amarelo);">${fmtMoney(premioTotal)}</strong></div>
+        </div>`;
+      } else {
+        blocoGanhadores = `
+        <div style="padding:10px 14px;border-top:1px solid var(--linha);background:rgba(255,215,0,0.06);">
+          <div style="font-size:11px;font-weight:700;color:var(--amarelo);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">🏆 Ganhadores do placar exato</div>
+          <div style="font-size:12px;color:var(--texto-2);margin-bottom:6px;">${totalPalpites} palpite(s) · Prêmio total: <strong style="color:var(--verde);">${fmtMoney(premioTotal)}</strong> · <strong style="color:var(--verde);">${fmtMoney(res.premioPorGanhador)}</strong> por ganhador</div>
+          ${res.ganhadores.map(g=>`
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--linha);">
+              <span style="font-weight:700;font-size:13px;">🥇 ${escapeHtml(g.usuario?g.usuario.nome:'—')}</span>
+              <span class="font-mono" style="color:var(--verde);font-weight:700;">${fmtMoney(res.premioPorGanhador)}</span>
+            </div>
+          `).join('')}
+        </div>`;
+      }
+    }
+  }
+
   return `
   <div class="sumula">
     <div class="sumula-head">
@@ -2592,6 +2643,7 @@ Pages._sumulaEditavel = function(j){
       </div>
       <div class="sumula-team">${bandeira(j.visitanteSigla, j.visitante)}<div class="name">${escapeHtml(j.visitante)}</div></div>
     </div>
+    ${blocoGanhadores}
     <div class="sumula-foot">
       <span>${j.dataHora ? new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Sem data'} · ${finalizado?'<strong style="color:var(--azul);">Finalizado</strong>':(emAndamento?'<strong style="color:var(--verde);">Em andamento</strong>':'Agendado')}</span>
       <span class="flex-row" style="gap:6px;flex-wrap:wrap;">
@@ -3476,7 +3528,7 @@ Pages.partPalpites = function(user){
           const meusPalpites = db.palpites.filter(p=>p.jogoId===j.id && p.usuarioId===user.id)
             .sort((a,b)=>a.numeroPalpite-b.numeroPalpite);
           const total = meusPalpites.length;
-          const jogoEmAndamento = j.status==='em_andamento' || (j.dataHora && new Date(j.dataHora) <= new Date());
+          const jogoEmAndamento = j.status==='em_andamento' || (j.dataHora && new Date(j.dataHora).getTime() - Date.now() <= 30*60*1000);
           const podeAdicionar = total < LIMITE_PALPITES && !jogoEmAndamento;
 
           return `
@@ -3507,7 +3559,7 @@ Pages.partPalpites = function(user){
               }).join('')}
             </div>` : ''}
             <div class="sumula-foot">
-              <span style="font-size:11px;color:var(--texto-2);">${jogoEmAndamento ? `<span style="color:var(--vermelho,#ef4444);font-weight:700;">🔒 Jogo em andamento</span>` : podeAdicionar ? `Aposte até ${LIMITE_PALPITES}x neste jogo` : `Limite de ${LIMITE_PALPITES} palpites atingido`}</span>
+              <span style="font-size:11px;color:var(--texto-2);">${jogoEmAndamento ? `<span style="color:var(--vermelho,#ef4444);font-weight:700;">🔒 Apostas encerradas</span>` : podeAdicionar ? `Aposte até ${LIMITE_PALPITES}x · encerra 30min antes` : `Limite de ${LIMITE_PALPITES} palpites atingido`}</span>
               ${podeAdicionar ? `<button class="btn btn-primary btn-sm" data-enviar="${j.id}">+ Apostar</button>` : ''}
             </div>
           </div>`;
@@ -3537,8 +3589,8 @@ Pages.partPalpites = function(user){
 
         if(pm==='' || pv===''){ toast('Informe o placar dos dois times.', 'error'); liberar(); return; }
 
-        if(jogo && jogo.dataHora && Date.now() >= new Date(jogo.dataHora).getTime()){
-          toast('Este jogo já começou — não é possível mais apostar.', 'error'); liberar(); return;
+        if(jogo && jogo.dataHora && Date.now() >= new Date(jogo.dataHora).getTime() - 30*60*1000){
+          toast('Apostas encerradas — prazo limite é 30 minutos antes do jogo.', 'error'); liberar(); return;
         }
 
         // Verifica limite no cliente antes de ir ao banco
@@ -3607,12 +3659,15 @@ Pages.partPalpites = function(user){
                 <td style="color:var(--texto-3);">não apostou</td>
                 <td><span class="pts-pill">0 pts</span></td>
               </tr>`;
-              return meusPalpites.map((p,i)=>`<tr>
+              return meusPalpites.map((p,i)=>{
+                const acertouExato = j.placarMandante === p.placarMandante && j.placarVisitante === p.placarVisitante;
+                const res = acertouExato ? Pages._calcularGanhadoresJogo(j) : null;
+                return `<tr>
                 <td>${i===0?escapeHtml(j.mandante)+' × '+escapeHtml(j.visitante):'↳ aposta '+(i+1)}</td>
                 <td class="font-mono">${i===0?j.placarMandante+' × '+j.placarVisitante:'—'}</td>
                 <td class="font-mono" style="color:var(--verde);">${p.placarMandante} × ${p.placarVisitante}</td>
-                <td><span class="pts-pill">${p.pontos||0} pts</span></td>
-              </tr>`).join('');
+                <td>${acertouExato ? `<span style="color:var(--amarelo);font-weight:700;">🏆 ${res ? fmtMoney(res.premioPorGanhador) : ''}</span>` : `<span class="pts-pill">${p.pontos||0} pts</span>`}</td>
+              </tr>`}).join('');
             }).join('') : `<tr><td colspan="4"><div class="empty-state"><div class="msg">Nenhum resultado ainda</div></div></td></tr>`}
           </tbody>
         </table>
