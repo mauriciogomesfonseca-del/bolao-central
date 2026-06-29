@@ -1620,6 +1620,8 @@ const App = {
     { key:'ranking', label:'Ranking', icon:'★' },
     { key:'pagamentos', label:'Meu Pagamento', icon:'$' },
     { key:'sorteios', label:'Sorteios & Rifas', icon:'⊙' },
+    { section:'🎉 Diversão' },
+    { key:'diversao', label:'Modo Diversão', icon:'🎉' },
     { section:'Conta' },
     { key:'perfil', label:'Meu Perfil', icon:'☷' },
   ],
@@ -1792,6 +1794,7 @@ const App = {
       ranking: Pages.ranking,
       pagamentos: Pages.partPagamentos,
       sorteios: Pages.sorteios,
+      diversao: Pages.modoDiversao,
       perfil: Pages.partPerfil,
     };
 
@@ -2874,6 +2877,67 @@ Pages.adminPagamentos = function(){
   const db = Store.data;
   const fin = Logic.resumoFinanceiro();
 
+  // Agrupa pagamentos por participante para exibição
+  const porParticipante = [];
+  const vistos = new Set();
+  const ordenados = [...db.pagamentos].sort((a,b)=>{
+    const ordem = { em_analise:0, pendente:1, atrasado:1, pago:2, isento:2 };
+    return (ordem[a.status]??9) - (ordem[b.status]??9);
+  });
+  ordenados.forEach(p=>{
+    if(!vistos.has(p.usuarioId)){
+      vistos.add(p.usuarioId);
+      porParticipante.push({ usuarioId: p.usuarioId, pagamentos: [] });
+    }
+    porParticipante.find(g=>g.usuarioId===p.usuarioId).pagamentos.push(p);
+  });
+
+  const linhasDesktop = porParticipante.map(g=>{
+    const u = db.usuarios.find(x=>x.id===g.usuarioId);
+    return g.pagamentos.map((p, i)=>{
+      const palpite = p.palpiteId ? db.palpites.find(pl=>pl.id===p.palpiteId) : null;
+      const jogo = palpite ? db.jogos.find(j=>j.id===palpite.jogoId) : null;
+      return `<tr style="${i===0&&g.pagamentos.length>1?'border-top:2px solid var(--linha);':''}">
+        <td style="font-weight:600;">${i===0 ? escapeHtml(u?u.nome:'—') : '<span style="color:var(--texto-3);font-size:12px;">↳ aposta '+(i+1)+'</span>'}</td>
+        <td>${jogo ? escapeHtml(jogo.mandante)+' x '+escapeHtml(jogo.visitante) : '<span class="text-muted">sem vínculo</span>'}</td>
+        <td class="font-mono" style="font-size:11px;">${palpite ? palpite.placarMandante+'x'+palpite.placarVisitante+' · '+escapeHtml(palpite.codigoVerificacao||'') : '—'}</td>
+        <td class="font-mono">${fmtMoney(p.valorInscricao)}</td>
+        <td>${Pages._badgePagamento(p.status)}</td>
+        <td class="flex-row">
+          ${p.comprovanteUrl ? `<button class="btn btn-outline btn-sm" data-ver-comp="${p.id}">Ver comprovante</button>` : ''}
+          ${p.status!=='pago' ? `<button class="btn btn-secondary btn-sm" data-marcar-pago="${p.id}">Confirmar</button>` : ''}
+        </td>
+      </tr>`;
+    }).join('');
+  }).join('');
+
+  const cardsMobile = porParticipante.map(g=>{
+    const u = db.usuarios.find(x=>x.id===g.usuarioId);
+    const totalPago = g.pagamentos.filter(p=>p.status==='pago').reduce((s,p)=>s+p.valorInscricao,0);
+    const pendentes = g.pagamentos.filter(p=>p.status!=='pago');
+    return `<div class="card" style="margin-bottom:10px;">
+      <div class="flex-row" style="justify-content:space-between;margin-bottom:8px;">
+        <span style="font-weight:700;">${escapeHtml(u?u.nome:'—')}</span>
+        <span style="font-size:12px;color:var(--texto-3);">${g.pagamentos.length} palpite(s)</span>
+      </div>
+      ${g.pagamentos.map((p,i)=>{
+        const palpite = p.palpiteId ? db.palpites.find(pl=>pl.id===p.palpiteId) : null;
+        const jogo = palpite ? db.jogos.find(j=>j.id===palpite.jogoId) : null;
+        return `<div style="padding:6px 0;border-bottom:1px solid var(--linha);font-size:12px;">
+          <div class="flex-row" style="justify-content:space-between;">
+            <span>${jogo ? escapeHtml(jogo.mandante)+' x '+escapeHtml(jogo.visitante) : '—'}</span>
+            ${Pages._badgePagamento(p.status)}
+          </div>
+          <div class="flex-row" style="gap:6px;margin-top:6px;">
+            ${p.comprovanteUrl ? `<button class="btn btn-outline btn-sm" data-ver-comp="${p.id}" style="flex:1;">Ver comprovante</button>` : ''}
+            ${p.status!=='pago' ? `<button class="btn btn-secondary btn-sm" data-marcar-pago="${p.id}" style="flex:1;">✓ Confirmar</button>` : '<span style="color:var(--verde);font-size:12px;font-weight:700;">✓ Pago</span>'}
+          </div>
+        </div>`;
+      }).join('')}
+      <div style="margin-top:8px;font-size:12px;color:var(--texto-2);">Total pago: <strong class="font-mono" style="color:var(--verde);">${fmtMoney(totalPago)}</strong></div>
+    </div>`;
+  }).join('');
+
   document.getElementById('content').innerHTML = `
     <div class="grid grid-4" style="margin-bottom:20px;">
       <div class="stat-card good"><div class="stat-label">Total arrecadado</div><div class="stat-value" style="font-size:20px;">${fmtMoney(fin.totalArrecadado)}</div></div>
@@ -2881,56 +2945,13 @@ Pages.adminPagamentos = function(){
       <div class="stat-card"><div class="stat-label">Pagantes</div><div class="stat-value">${fin.pagantes}</div></div>
       <div class="stat-card alert"><div class="stat-label">Inadimplentes</div><div class="stat-value">${fin.inadimplentes}</div></div>
     </div>
-    <!-- Desktop: tabela -->
     <div class="card card-flush table-scroll pagto-desktop">
       <table>
         <thead><tr><th>Participante</th><th>Jogo</th><th>Palpite</th><th>Valor</th><th>Status</th><th></th></tr></thead>
-        <tbody>
-          ${db.pagamentos.length ? [...db.pagamentos].sort((a,b)=>{
-              const ordem = { em_analise:0, pendente:1, atrasado:1, pago:2, isento:2 };
-              return (ordem[a.status]??9) - (ordem[b.status]??9);
-            }).map(p=>{
-            const u = db.usuarios.find(x=>x.id===p.usuarioId);
-            const palpite = p.palpiteId ? db.palpites.find(pl=>pl.id===p.palpiteId) : null;
-            const jogo = palpite ? db.jogos.find(j=>j.id===palpite.jogoId) : null;
-            return `<tr>
-              <td style="font-weight:600;">${escapeHtml(u?u.nome:'—')}</td>
-              <td>${jogo ? escapeHtml(jogo.mandante)+' x '+escapeHtml(jogo.visitante) : '<span class="text-muted">sem vínculo</span>'}</td>
-              <td class="font-mono" style="font-size:11px;">${palpite ? palpite.placarMandante+'x'+palpite.placarVisitante+' · '+escapeHtml(palpite.codigoVerificacao||'') : '—'}</td>
-              <td class="font-mono">${fmtMoney(p.valorInscricao)}</td>
-              <td>${Pages._badgePagamento(p.status)}</td>
-              <td class="flex-row">
-                ${p.comprovanteUrl ? `<button class="btn btn-outline btn-sm" data-ver-comp="${p.id}">Ver comprovante</button>` : ''}
-                ${p.status!=='pago' ? `<button class="btn btn-secondary btn-sm" data-marcar-pago="${p.id}">Confirmar</button>` : ''}
-              </td>
-            </tr>`;
-          }).join('') : `<tr><td colspan="6"><div class="empty-state"><div class="msg">Nenhum pagamento registrado</div></div></td></tr>`}
-        </tbody>
+        <tbody>${linhasDesktop || `<tr><td colspan="6"><div class="empty-state"><div class="msg">Nenhum pagamento registrado</div></div></td></tr>`}</tbody>
       </table>
     </div>
-    <!-- Mobile: cards -->
-    <div class="pagto-mobile">
-      ${db.pagamentos.length ? [...db.pagamentos].sort((a,b)=>{
-          const ordem = { em_analise:0, pendente:1, atrasado:1, pago:2, isento:2 };
-          return (ordem[a.status]??9) - (ordem[b.status]??9);
-        }).map(p=>{
-        const u = db.usuarios.find(x=>x.id===p.usuarioId);
-        const palpite = p.palpiteId ? db.palpites.find(pl=>pl.id===p.palpiteId) : null;
-        const jogo = palpite ? db.jogos.find(j=>j.id===palpite.jogoId) : null;
-        return `<div class="card" style="margin-bottom:10px;">
-          <div class="flex-row" style="justify-content:space-between;margin-bottom:8px;">
-            <span style="font-weight:700;">${escapeHtml(u?u.nome:'—')}</span>
-            ${Pages._badgePagamento(p.status)}
-          </div>
-          ${jogo ? `<div style="font-size:12px;color:var(--texto-2);margin-bottom:4px;">${escapeHtml(jogo.mandante)} x ${escapeHtml(jogo.visitante)}</div>` : ''}
-          <div style="font-size:13px;font-weight:700;color:var(--verde);margin-bottom:10px;" class="font-mono">${fmtMoney(p.valorInscricao)}</div>
-          <div class="flex-row" style="gap:8px;">
-            ${p.comprovanteUrl ? `<button class="btn btn-outline btn-sm" data-ver-comp="${p.id}" style="flex:1;">Ver comprovante</button>` : ''}
-            ${p.status!=='pago' ? `<button class="btn btn-secondary btn-sm" data-marcar-pago="${p.id}" style="flex:1;">✓ Confirmar pagamento</button>` : '<span style="color:var(--verde);font-size:12px;font-weight:700;">✓ Pago</span>'}
-          </div>
-        </div>`;
-      }).join('') : `<div class="empty-state"><div class="msg">Nenhum pagamento registrado</div></div>`}
-    </div>
+    <div class="pagto-mobile">${cardsMobile || `<div class="empty-state"><div class="msg">Nenhum pagamento registrado</div></div>`}</div>
   `;
 
   document.querySelectorAll('[data-ver-comp]').forEach(el=> el.onclick = async () => {
@@ -2955,12 +2976,11 @@ Pages.adminPagamentos = function(){
       forma_pagamento: p.formaPagamento || 'PIX',
     }).eq('id', p.id);
 
-    if(error){ toast('Erro ao confirmar pagamento: ' + error.message, 'error'); el.disabled=false; el.textContent='Marcar pago'; return; }
+    if(error){ toast('Erro ao confirmar pagamento: ' + error.message, 'error'); el.disabled=false; el.textContent='Confirmar'; return; }
 
     Store.log(Session.currentUser().id, `Pagamento de participante marcado como pago.`);
     toast('Pagamento confirmado.');
     await Store.reloadPagamentos();
-    // Atualiza em memória para refletir imediatamente na tela do participante
     const idx = Store.data.pagamentos.findIndex(x=>x.id===p.id);
     if(idx !== -1) Store.data.pagamentos[idx].status = 'pago';
     Pages.adminPagamentos();
@@ -3717,6 +3737,147 @@ Pages.partPagamentos = function(user){
   `;
   document.querySelectorAll('[data-pagar]').forEach(btn=>{
     btn.onclick = () => App.openModal('confirmar-pagamento-participante', meus.find(p=>p.id===btn.dataset.pagar));
+  });
+};
+
+// ---------------------- MODO DIVERSÃO 🎉 ----------------------
+Pages.modoDiversao = function(user){
+  App.setTopbar('🎉 Modo Diversão', 'Aposte nos jogos da Copa só pela emoção — sem cobrança!');
+  const db = Store.data;
+  const CHAVE = 'diversao_palpites'; // localStorage key
+
+  // Carrega palpites do Modo Diversão do localStorage
+  function carregarPalpites(){
+    try{ return JSON.parse(localStorage.getItem(CHAVE) || '{}'); }catch(e){ return {}; }
+  }
+  function salvarPalpite(jogoId, mandante, visitante){
+    const todos = carregarPalpites();
+    if(!todos[jogoId]) todos[jogoId] = [];
+    todos[jogoId].push({ m: mandante, v: visitante, ts: Date.now() });
+    localStorage.setItem(CHAVE, JSON.stringify(todos));
+  }
+
+  // Todos os jogos Copa ainda não finalizados: do banco + mata-mata
+  const hoje = new Date();
+  const jogosBanco = db.jogos.filter(j => j.status !== 'finalizado')
+    .sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora));
+
+  const jogosCopa = copaTodosJogosMataMata().filter(j=>{
+    const dt = j.hora ? new Date(j.data+'T'+j.hora) : new Date(j.data+'T23:59');
+    return dt >= hoje;
+  }).sort((a,b)=>{
+    const da = a.hora ? new Date(a.data+'T'+a.hora) : new Date(a.data+'T23:59');
+    const db2 = b.hora ? new Date(b.data+'T'+b.hora) : new Date(b.data+'T23:59');
+    return da-db2;
+  });
+
+  const palpites = carregarPalpites();
+
+  const renderJogoBanco = (j) => {
+    const meus = palpites[j.id] || [];
+    const bloqueado = j.status==='em_andamento' || (j.dataHora && new Date(j.dataHora).getTime() - Date.now() <= 30*60*1000);
+    return `
+    <div class="card" style="background:linear-gradient(135deg,rgba(30,215,96,0.05),rgba(30,215,96,0.01));border:1px solid rgba(30,215,96,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:11px;font-weight:700;color:var(--verde);text-transform:uppercase;">${escapeHtml(j.rodada||'Bolão')}</span>
+        <span style="font-size:11px;color:var(--texto-3);">${j.dataHora ? new Date(j.dataHora).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;">
+        <div style="text-align:center;flex:1;">${bandeira(j.mandanteSigla,j.mandante)}<div style="font-size:12px;font-weight:700;margin-top:4px;">${escapeHtml(j.mandante||'A definir')}</div></div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <input type="number" min="0" class="placar-input font-mono" id="dm-m-${j.id}" placeholder="-" style="width:44px;" ${bloqueado?'disabled':''}>
+          <span style="color:var(--texto-3);">×</span>
+          <input type="number" min="0" class="placar-input font-mono" id="dm-v-${j.id}" placeholder="-" style="width:44px;" ${bloqueado?'disabled':''}>
+        </div>
+        <div style="text-align:center;flex:1;">${bandeira(j.visitanteSigla,j.visitante)}<div style="font-size:12px;font-weight:700;margin-top:4px;">${escapeHtml(j.visitante||'A definir')}</div></div>
+      </div>
+      ${meus.length ? `<div style="font-size:11px;color:var(--texto-3);margin-bottom:8px;">Seus palpites: ${meus.map(p=>`<span class="font-mono" style="color:var(--verde);">${p.m}×${p.v}</span>`).join(' · ')}</div>` : ''}
+      ${bloqueado
+        ? `<div style="text-align:center;font-size:12px;color:var(--vermelho);font-weight:700;">🔒 Apostas encerradas</div>`
+        : `<button class="btn btn-primary btn-sm btn-block" data-dm-apostar="${j.id}" data-tipo="banco">🎯 Apostar de graça!</button>`}
+    </div>`;
+  };
+
+  const renderJogoCopa = (j) => {
+    const ladoA = copaResolveLado(j, 1);
+    const ladoB = copaResolveLado(j, 2);
+    const nomeA = ladoA.definido ? ladoA.nome : (ladoA.label||'A definir');
+    const nomeB = ladoB.definido ? ladoB.nome : (ladoB.label||'A definir');
+    const siglaA = ladoA.sigla||'';
+    const siglaB = ladoB.sigla||'';
+    const dt = j.hora ? new Date(j.data+'T'+j.hora) : new Date(j.data+'T23:59');
+    const bloqueado = dt - Date.now() <= 30*60*1000;
+    const chaveId = 'copa_'+j.id;
+    const meus = palpites[chaveId] || [];
+    return `
+    <div class="card" style="background:linear-gradient(135deg,rgba(255,215,0,0.05),rgba(255,215,0,0.01));border:1px solid rgba(255,215,0,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:11px;font-weight:700;color:var(--amarelo);text-transform:uppercase;">${escapeHtml(j.fase||'Copa 2026')}</span>
+        <span style="font-size:11px;color:var(--texto-3);">${dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}${j.hora?' · '+j.hora:''}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;">
+        <div style="text-align:center;flex:1;">${siglaA ? bandeiraCss(siglaA,nomeA) : '<span style="font-size:22px;">❓</span>'}<div style="font-size:11px;font-weight:700;margin-top:4px;line-height:1.3;">${escapeHtml(nomeA)}</div></div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <input type="number" min="0" class="placar-input font-mono" id="dm-m-${chaveId}" placeholder="-" style="width:44px;" ${bloqueado?'disabled':''}>
+          <span style="color:var(--texto-3);">×</span>
+          <input type="number" min="0" class="placar-input font-mono" id="dm-v-${chaveId}" placeholder="-" style="width:44px;" ${bloqueado?'disabled':''}>
+        </div>
+        <div style="text-align:center;flex:1;">${siglaB ? bandeiraCss(siglaB,nomeB) : '<span style="font-size:22px;">❓</span>'}<div style="font-size:11px;font-weight:700;margin-top:4px;line-height:1.3;">${escapeHtml(nomeB)}</div></div>
+      </div>
+      ${meus.length ? `<div style="font-size:11px;color:var(--texto-3);margin-bottom:8px;">Seus palpites: ${meus.map(p=>`<span class="font-mono" style="color:var(--amarelo);">${p.m}×${p.v}</span>`).join(' · ')}</div>` : ''}
+      ${bloqueado
+        ? `<div style="text-align:center;font-size:12px;color:var(--vermelho);font-weight:700;">🔒 Apostas encerradas</div>`
+        : `<button class="btn btn-sm btn-block" style="background:rgba(255,215,0,0.15);color:var(--amarelo);border:1px solid rgba(255,215,0,0.3);" data-dm-apostar="${chaveId}" data-tipo="copa">🎯 Apostar de graça!</button>`}
+    </div>`;
+  };
+
+  // Ranking diversão (localStorage)
+  const rankingDiv = () => {
+    const todos = carregarPalpites();
+    const total = Object.values(todos).reduce((s,arr)=>s+arr.length,0);
+    return total ? `<div style="font-size:12px;color:var(--texto-3);margin-bottom:16px;">Você já fez <strong style="color:var(--verde);">${total}</strong> palpite(s) no Modo Diversão 🎉</div>` : '';
+  };
+
+  document.getElementById('content').innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(255,215,0,0.08),rgba(30,215,96,0.04));border:1px solid rgba(255,215,0,0.2);border-radius:10px;padding:16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+      <span style="font-size:32px;">🎉</span>
+      <div>
+        <div style="font-family:'Archivo Black',sans-serif;font-size:15px;color:var(--amarelo);">MODO DIVERSÃO</div>
+        <div style="font-size:12px;color:var(--texto-2);margin-top:2px;">Aposte nos jogos sem pagar nada · só pela emoção de acertar o placar!</div>
+      </div>
+    </div>
+    ${rankingDiv()}
+    ${jogosBanco.length ? `
+    <div style="font-size:12px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">⚽ Jogos do seu bolão</div>
+    <div class="grid grid-3" style="margin-bottom:24px;" id="dm-jogos-banco">
+      ${jogosBanco.map(renderJogoBanco).join('')}
+    </div>` : ''}
+    <div style="font-size:12px;font-weight:700;color:var(--amarelo);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">🏆 Próximos jogos da Copa 2026</div>
+    <div class="grid grid-3" id="dm-jogos-copa">
+      ${jogosCopa.length ? jogosCopa.map(renderJogoCopa).join('') : '<div class="empty-state"><div class="icon">🏆</div><div class="msg">Nenhum jogo futuro encontrado</div></div>'}
+    </div>
+  `;
+
+  document.querySelectorAll('[data-dm-apostar]').forEach(btn=>{
+    btn.onclick = () => {
+      const id = btn.dataset.dmApostar;
+      const tipo = btn.dataset.tipo;
+      const inM = document.getElementById(`dm-m-${id}`);
+      const inV = document.getElementById(`dm-v-${id}`);
+      if(!inM||!inV||inM.value===''||inV.value===''){
+        toast('Informe o placar dos dois times.','error'); return;
+      }
+      const m = parseInt(inM.value,10), v = parseInt(inV.value,10);
+      salvarPalpite(id, m, v);
+      toast(`🎉 Palpite ${m}×${v} registrado! Boa sorte!`);
+      inM.value=''; inV.value='';
+      // Mostra histórico inline sem re-renderizar tudo
+      const hist = document.createElement('div');
+      hist.style.cssText='font-size:11px;color:var(--texto-3);margin-bottom:8px;';
+      const todos = carregarPalpites()[id]||[];
+      hist.innerHTML = `Seus palpites: ${todos.map(p=>`<span class="font-mono" style="color:${tipo==='copa'?'var(--amarelo)':'var(--verde)'};">${p.m}×${p.v}</span>`).join(' · ')}`;
+      btn.parentElement.insertBefore(hist, btn);
+    };
   });
 };
 
