@@ -427,11 +427,33 @@ body{
   border:1px solid var(--linha);
   border-radius:var(--radius);
   padding:18px;
-  transition:border-color .15s;
+  transition:border-color .15s, transform .18s ease, box-shadow .18s ease;
 }
 .card-flush{padding:0;overflow:hidden;}
 .card-flush.table-scroll{overflow-x:auto;}
 @media (max-width:860px){.card-flush.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}}
+
+/* Efeito hover sutil — só em dispositivos com mouse, não afeta toque/mobile */
+@media (hover:hover){
+  .card:hover{transform:translateY(-2px);box-shadow:0 8px 20px -8px rgba(0,0,0,0.45);border-color:var(--azul);}
+  .mini-stat:hover, .stat-card:hover, .podio-item:hover{transform:translateY(-2px);box-shadow:0 6px 16px -8px rgba(0,0,0,0.5);}
+}
+.mini-stat, .stat-card, .podio-item{transition:transform .18s ease, box-shadow .18s ease;}
+
+/* Animação leve de entrada — opacity+translate, GPU-friendly, sem JS */
+@keyframes fadeInUp{
+  from{opacity:0;transform:translateY(8px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.anim-in{animation:fadeInUp .35s ease both;}
+.anim-in.d1{animation-delay:.04s;}
+.anim-in.d2{animation-delay:.08s;}
+.anim-in.d3{animation-delay:.12s;}
+.anim-in.d4{animation-delay:.16s;}
+@media (prefers-reduced-motion:reduce){
+  .anim-in{animation:none;}
+  .card:hover, .mini-stat:hover, .stat-card:hover, .podio-item:hover{transform:none;}
+}
 
 .stat-card{
   background:var(--card);
@@ -450,6 +472,49 @@ body{
 .stat-label{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--texto-2);font-weight:700;margin-bottom:7px;}
 .stat-value{font-family:'Space Mono',monospace;font-size:26px;font-weight:700;color:var(--texto);}
 .stat-sub{font-size:11px;color:var(--texto-3);margin-top:4px;}
+
+/* ---------- PAINEL DO BOLÃO (podium + números-chave) ---------- */
+.painel-bolao{
+  margin-bottom:18px;
+  border-left:3px solid var(--amarelo);
+}
+.podio-row{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-bottom:14px;
+}
+.podio-item{
+  background:var(--bg-3);
+  border-radius:8px;
+  padding:12px 8px;
+  text-align:center;
+  position:relative;
+  border:1px solid transparent;
+}
+.podio-item.eu{border-color:var(--azul);background:var(--azul-bg);}
+.podio-item .podio-medalha{font-size:22px;line-height:1;margin-bottom:4px;}
+.podio-item .podio-nome{font-size:11px;font-weight:700;color:var(--texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.podio-item .podio-pts{font-family:'Space Mono',monospace;font-size:13px;color:var(--texto-2);margin-top:2px;}
+.painel-numeros{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(90px,1fr));
+  gap:8px;
+}
+.painel-num-item{
+  background:var(--bg-3);
+  border-radius:8px;
+  padding:9px 8px;
+  text-align:center;
+}
+.painel-num-item .num-label{font-size:9.5px;text-transform:uppercase;letter-spacing:0.03em;color:var(--texto-3);font-weight:700;margin-bottom:3px;white-space:nowrap;}
+.painel-num-item .num-valor{font-family:'Space Mono',monospace;font-size:15px;font-weight:800;color:var(--texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* Regulamento recolhível — usa <details> nativo, sem JS extra */
+.regulamento-toggle summary{cursor:pointer;list-style:none;}
+.regulamento-toggle summary::-webkit-details-marker{display:none;}
+.regulamento-toggle summary .seta{display:inline-block;transition:transform .15s ease;font-size:11px;color:var(--texto-3);}
+.regulamento-toggle[open] summary .seta{transform:rotate(90deg);}
 
 /* ---------- MINI-STATS COMPACTOS (dashboard) ---------- */
 .mini-stats{
@@ -3196,6 +3261,18 @@ Pages.partDashboard = async function(user){
   const ranking = bolaoRanking ? await Logic.rankingDoBolao(bolaoRanking.id,'geral') : [];
   const minhaLinha = ranking.find(r=>r.usuario.id===user.id);
 
+  // ---- Dados do "Painel do Bolão" (visão geral leve, sem custo extra de rede) ----
+  const jogosDoBolaoAtual = bolaoRanking ? db.jogos.filter(j=>j.bolaoId===bolaoRanking.id) : [];
+  const jogosEncerrados = jogosDoBolaoAtual.filter(j=>j.status==='finalizado').length;
+  const jogosRestantes = jogosDoBolaoAtual.length - jogosEncerrados;
+  const proxJogoBolao = jogosDoBolaoAtual.filter(j=>j.status!=='finalizado')
+    .sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora))[0];
+  const ultimoFinalizadoBolao = jogosDoBolaoAtual.filter(j=>j.status==='finalizado')
+    .sort((a,b)=>new Date(b.dataHora)-new Date(a.dataHora))[0];
+  const rodadaAtual = (proxJogoBolao && proxJogoBolao.rodada) || (ultimoFinalizadoBolao && ultimoFinalizadoBolao.rodada) || '—';
+  const finBolao = bolaoRanking ? Logic.resumoFinanceiro(bolaoRanking.id) : {totalArrecadado:0};
+  const premiacaoEstimada = Math.round((finBolao.totalArrecadado||0) * 0.85 * 100) / 100;
+
   const proximosJogos = db.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora)).slice(0,3);
   const minhasNotifs = db.notificacoes.filter(n=>n.usuarioId===user.id).slice(0,4);
 
@@ -3234,7 +3311,7 @@ Pages.partDashboard = async function(user){
     }));
     const blocosJoined = blocos.join('');
     if(!blocosJoined) return '';
-    return `<div class="card" style="margin-bottom:18px;border-left:3px solid var(--amarelo);">
+    return `<div class="card anim-in" style="margin-bottom:18px;border-left:3px solid var(--amarelo);">
       <div class="section-title" style="margin-bottom:10px;">🏆 Resultados & Ganhadores</div>
       ${blocosJoined}
     </div>`;
@@ -3253,7 +3330,7 @@ Pages.partDashboard = async function(user){
   document.getElementById('content').innerHTML = `
     <div id="card-instalar-app"></div>
     ${cardGanhadores}
-    <div class="mini-stats">
+    <div class="mini-stats anim-in">
       <div class="mini-stat">
         <div class="mini-label">Posição</div>
         <div class="mini-value">${minhaLinha ? '#'+minhaLinha.posicao : '—'}</div>
@@ -3278,7 +3355,7 @@ Pages.partDashboard = async function(user){
       const brasilGrupo = COPA_2026_GRUPOS.find(g=>g.grupo==='C');
       const brasilPos = brasilGrupo ? brasilGrupo.seleções.findIndex(s=>s.sigla==='BRA')+1 : null;
       return `
-      <div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(0,40,80,0.6),rgba(0,20,50,0.4));border:1px solid rgba(255,215,0,0.2);position:relative;overflow:hidden;">
+      <div class="card anim-in d2" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(0,40,80,0.6),rgba(0,20,50,0.4));border:1px solid rgba(255,215,0,0.2);position:relative;overflow:hidden;">
         <div style="position:absolute;top:-10px;right:-10px;font-size:80px;opacity:0.06;pointer-events:none;">🏆</div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;align-items:center;gap:10px;">
@@ -3299,53 +3376,67 @@ Pages.partDashboard = async function(user){
     })()}
 
     ${bolaoRanking && bolaoRanking.descricao ? `
-    <div class="card" style="margin-bottom:18px;border-left:3px solid var(--azul);">
-      <div class="section-title" style="margin-bottom:10px;">📋 Regulamento — ${escapeHtml(bolaoRanking.nome)}</div>
-      <div style="font-size:13px;color:var(--texto-2);line-height:1.8;white-space:pre-wrap;">${escapeHtml(bolaoRanking.descricao)}</div>
-    </div>` : ''}
+    <details class="card regulamento-toggle anim-in" style="margin-bottom:18px;border-left:3px solid var(--azul);">
+      <summary class="section-title" style="margin-bottom:0;display:flex;align-items:center;gap:6px;"><span class="seta">▶</span> 📋 Regulamento — ${escapeHtml(bolaoRanking.nome)}</summary>
+      <div style="font-size:13px;color:var(--texto-2);line-height:1.8;white-space:pre-wrap;margin-top:12px;">${escapeHtml(bolaoRanking.descricao)}</div>
+    </details>` : ''}
 
     ${(()=>{
       if(!bolaoRanking) return '';
       const top3 = ranking.slice(0,3);
-      const lider = top3[0];
-      const minhaPosicao = minhaLinha ? minhaLinha.posicao : null;
-      const diffLider = lider && minhaLinha ? lider.pontuacao - minhaLinha.pontuacao : 0;
+      const medals = ['🥇','🥈','🥉'];
       const totalPart = ranking.length;
       return `
-      <div class="card" style="margin-bottom:18px;border-left:3px solid var(--amarelo);">
-        <div class="section-title" style="margin-bottom:12px;">🏆 Ranking Parcial — ${escapeHtml(bolaoRanking.nome)} <span class="right"><a href="#" id="link-turma" style="font-size:12px;">ver turma →</a></span></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-          <div style="flex:1;min-width:100px;background:var(--bg-3);border-radius:8px;padding:10px;text-align:center;">
-            <div style="font-size:11px;color:var(--texto-3);margin-bottom:4px;">Participantes</div>
-            <div style="font-size:22px;font-weight:800;">${totalPart}</div>
+      <div class="card painel-bolao anim-in d1">
+        <div class="section-title" style="margin-bottom:12px;">🏆 Painel do Bolão — ${escapeHtml(bolaoRanking.nome)} <span class="right"><a href="#" id="link-turma" style="font-size:12px;">ver turma →</a></span></div>
+
+        <div class="podio-row">
+          ${[0,1,2].map(i=>{
+            const r = top3[i];
+            if(!r) return `<div class="podio-item" style="opacity:0.4;"><div class="podio-medalha">${medals[i]}</div><div class="podio-nome">—</div><div class="podio-pts">0 pts</div></div>`;
+            const isMe = r.usuario.id === user.id;
+            return `<div class="podio-item ${isMe?'eu':''}">
+              <div class="podio-medalha">${medals[i]}</div>
+              <div class="podio-nome">${escapeHtml(r.usuario.nome.split(' ')[0])}${isMe?' (você)':''}</div>
+              <div class="podio-pts">${r.pontuacao} pts</div>
+            </div>`;
+          }).join('')}
+        </div>
+
+        <div class="painel-numeros">
+          <div class="painel-num-item">
+            <div class="num-label">Participantes</div>
+            <div class="num-valor">${totalPart}</div>
           </div>
-          <div style="flex:1;min-width:100px;background:var(--bg-3);border-radius:8px;padding:10px;text-align:center;">
-            <div style="font-size:11px;color:var(--texto-3);margin-bottom:4px;">Minha posição</div>
-            <div style="font-size:22px;font-weight:800;color:var(--azul);">${minhaPosicao ? '#'+minhaPosicao : '—'}</div>
+          <div class="painel-num-item">
+            <div class="num-label">Arrecadado</div>
+            <div class="num-valor" style="color:var(--verde);">${fmtMoney(finBolao.totalArrecadado)}</div>
           </div>
-          <div style="flex:1;min-width:100px;background:var(--bg-3);border-radius:8px;padding:10px;text-align:center;">
-            <div style="font-size:11px;color:var(--texto-3);margin-bottom:4px;">Distância do líder</div>
-            <div style="font-size:22px;font-weight:800;color:${diffLider===0?'var(--verde)':'var(--amarelo)'};">${diffLider===0&&minhaLinha?'👑':'-'+diffLider+' pts'}</div>
+          <div class="painel-num-item">
+            <div class="num-label">Premiação</div>
+            <div class="num-valor" style="color:var(--amarelo);">${fmtMoney(premiacaoEstimada)}</div>
+          </div>
+          <div class="painel-num-item">
+            <div class="num-label">Encerrados</div>
+            <div class="num-valor">${jogosEncerrados}</div>
+          </div>
+          <div class="painel-num-item">
+            <div class="num-label">Restantes</div>
+            <div class="num-valor">${jogosRestantes}</div>
+          </div>
+          <div class="painel-num-item">
+            <div class="num-label">Rodada</div>
+            <div class="num-valor" style="font-size:12px;">${escapeHtml(String(rodadaAtual))}</div>
           </div>
         </div>
-        <div style="font-size:12px;color:var(--texto-3);margin-bottom:6px;">Top 3</div>
-        ${top3.map((r,i)=>{
-          const medals = ['🥇','🥈','🥉'];
-          const isMe = r.usuario.id === user.id;
-          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--linha);${isMe?'font-weight:700;color:var(--azul);':''}">
-            <span style="font-size:16px;">${medals[i]}</span>
-            <span style="flex:1;">${escapeHtml(r.usuario.nome)}${isMe?' (você)':''}</span>
-            <span class="font-mono">${r.pontuacao} pts</span>
-          </div>`;
-        }).join('')}
       </div>`;
     })()}
     <div class="grid grid-2">
-      <div class="card">
+      <div class="card anim-in d3">
         <div class="section-title">Próximos jogos para palpitar <span class="right"><a href="#" id="link-palpitar">palpitar →</a></span></div>
         ${proximosJogos.length ? proximosJogos.map(j=>Pages._sumulaMini(j)).join('') : `<div class="empty-state"><div class="icon">⚽</div><div class="msg">Nenhum jogo agendado</div></div>`}
       </div>
-      <div class="card">
+      <div class="card anim-in d4">
         <div class="section-title">Notificações</div>
         ${minhasNotifs.length ? minhasNotifs.map(n=>`
           <div style="padding:10px 0;border-bottom:1px solid var(--linha);">
