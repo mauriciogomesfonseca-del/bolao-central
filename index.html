@@ -41,97 +41,6 @@
   --radius:8px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-/* ===================================================================
-   MÓDULO NOVO — ENGAJAMENTO (Dashboard Premium, Ranking, Hall da Fama,
-   Conquistas, Feed, Mascote, Pagamentos, Campeão). 100% aditivo:
-   nenhuma classe abaixo é usada na tela de login (.login-*).
-   =================================================================== */
-@keyframes eg-fade-in{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
-@keyframes eg-pop{0%{transform:scale(0.85);opacity:0;}70%{transform:scale(1.04);}100%{transform:scale(1);opacity:1;}}
-@keyframes eg-shine{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
-@keyframes eg-bounce-soft{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
-@keyframes eg-confetti-fall{0%{transform:translateY(-10vh) rotate(0deg);opacity:1;}100%{transform:translateY(110vh) rotate(540deg);opacity:0.9;}}
-@keyframes eg-pulse-ring{0%{box-shadow:0 0 0 0 rgba(30,215,96,0.45);}100%{box-shadow:0 0 0 10px rgba(30,215,96,0);}}
-
-.eg-card{animation:eg-fade-in 0.35s ease both;}
-.eg-card-hover{transition:transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;}
-.eg-card-hover:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,0.28);border-color:var(--azul-2);}
-
-.eg-stat-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px;}
-.eg-stat{background:var(--bg-3);border:1px solid var(--linha);border-radius:10px;padding:14px;animation:eg-fade-in 0.35s ease both;transition:transform 0.15s ease,border-color 0.15s ease;}
-.eg-stat:hover{transform:translateY(-2px);border-color:var(--azul-2);}
-.eg-stat .eg-stat-icon{font-size:18px;margin-bottom:6px;display:block;}
-.eg-stat .eg-stat-label{font-size:10.5px;color:var(--texto-3);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;}
-.eg-stat .eg-stat-value{font-family:'Space Mono',monospace;font-weight:700;font-size:19px;color:var(--texto);}
-.eg-stat .eg-stat-sub{font-size:11px;color:var(--texto-2);margin-top:2px;}
-
-.eg-podium{display:flex;align-items:flex-end;gap:8px;justify-content:center;margin:14px 0 18px;}
-.eg-podium .eg-pod-col{flex:1;max-width:140px;text-align:center;}
-.eg-podium .eg-pod-bar{border-radius:8px 8px 0 0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:10px 6px;color:#1a1a1a;font-weight:800;animation:eg-pop 0.4s ease both;}
-.eg-podium .eg-pod-1 .eg-pod-bar{height:96px;background:linear-gradient(180deg,#FFE08A,#D4A537);}
-.eg-podium .eg-pod-2 .eg-pod-bar{height:74px;background:linear-gradient(180deg,#E3E8EE,#AAB4C0);}
-.eg-podium .eg-pod-3 .eg-pod-bar{height:58px;background:linear-gradient(180deg,#E8B98C,#C07F44);}
-.eg-podium .eg-pod-name{font-size:11.5px;font-weight:700;margin-top:6px;color:var(--texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.eg-podium .eg-pod-pts{font-size:10.5px;color:var(--texto-2);}
-.eg-podium .eg-pod-medal{font-size:22px;}
-
-.eg-arrow-up{color:var(--verde);font-weight:800;}
-.eg-arrow-down{color:var(--vermelho);font-weight:800;}
-.eg-arrow-same{color:var(--texto-3);}
-
-.eg-badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
-.eg-badge{background:var(--bg-3);border:1px solid var(--linha);border-radius:10px;padding:14px;text-align:center;animation:eg-fade-in 0.3s ease both;transition:transform 0.15s ease;}
-.eg-badge:hover{transform:translateY(-2px);}
-.eg-badge.locked{opacity:0.38;filter:grayscale(0.6);}
-.eg-badge .eg-badge-icon{font-size:30px;margin-bottom:6px;}
-.eg-badge .eg-badge-nome{font-size:12.5px;font-weight:700;color:var(--texto);}
-.eg-badge .eg-badge-desc{font-size:10.5px;color:var(--texto-3);margin-top:3px;line-height:1.4;}
-.eg-badge .eg-badge-data{font-size:9.5px;color:var(--verde);margin-top:6px;font-family:'Space Mono',monospace;}
-
-.eg-feed{display:flex;flex-direction:column;gap:0;}
-.eg-feed-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--linha);animation:eg-fade-in 0.25s ease both;}
-.eg-feed-item:last-child{border-bottom:none;}
-.eg-feed-icon{font-size:16px;flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--azul-bg);display:flex;align-items:center;justify-content:center;}
-.eg-feed-text{font-size:12.5px;color:var(--texto-2);line-height:1.4;}
-.eg-feed-text strong{color:var(--texto);}
-.eg-feed-time{font-size:10.5px;color:var(--texto-3);margin-top:2px;}
-
-.eg-glow{position:relative;overflow:hidden;}
-.eg-glow::after{content:'';position:absolute;top:0;left:-150%;width:80%;height:100%;
-  background:linear-gradient(120deg,transparent,rgba(255,255,255,0.07),transparent);
-  animation:eg-shine 3.2s ease-in-out infinite;}
-
-.eg-progress-wrap{background:var(--bg-3);border-radius:999px;height:10px;overflow:hidden;border:1px solid var(--linha);}
-.eg-progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--verde-2),var(--verde));transition:width 0.6s ease;}
-
-.eg-mascote-bubble{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(61,125,216,0.12),rgba(30,215,96,0.06));
-  border:1px solid rgba(61,125,216,0.25);border-radius:12px;padding:10px 14px;margin-bottom:16px;animation:eg-fade-in 0.4s ease both;}
-.eg-mascote-avatar{font-size:26px;animation:eg-bounce-soft 2.4s ease-in-out infinite;flex-shrink:0;}
-.eg-mascote-fala{font-size:12.5px;color:var(--texto);line-height:1.4;}
-
-.eg-hall-card{background:var(--bg-3);border:1px solid var(--linha);border-radius:12px;padding:18px;text-align:center;animation:eg-fade-in 0.3s ease both;transition:transform 0.15s ease,border-color 0.15s ease;}
-.eg-hall-card:hover{transform:translateY(-3px);border-color:var(--amarelo);}
-.eg-hall-card .eg-hall-icon{font-size:30px;margin-bottom:8px;}
-.eg-hall-card .eg-hall-label{font-size:10.5px;color:var(--texto-3);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;}
-.eg-hall-card .eg-hall-nome{font-size:14.5px;font-weight:700;color:var(--texto);}
-.eg-hall-card .eg-hall-valor{font-family:'Space Mono',monospace;font-size:12px;color:var(--amarelo);margin-top:4px;}
-
-.eg-champion-wrap{text-align:center;padding:30px 16px;position:relative;overflow:hidden;}
-.eg-champion-trofeu{font-size:64px;animation:eg-pop 0.6s ease both, eg-bounce-soft 2.6s ease-in-out 0.6s infinite;}
-.eg-champion-nome{font-family:'Archivo Black',sans-serif;font-size:24px;color:var(--amarelo);margin-top:10px;}
-.eg-champion-sub{font-size:13px;color:var(--texto-2);margin-top:4px;}
-.eg-confetti{position:fixed;top:0;width:8px;height:14px;z-index:9999;pointer-events:none;animation:eg-confetti-fall linear forwards;}
-
-.eg-share-btn{display:inline-flex;align-items:center;gap:6px;}
-
-.eg-live-ring{animation:eg-pulse-ring 1.6s infinite;}
-
-@media(max-width:640px){
-  .eg-stat-strip{grid-template-columns:repeat(2,1fr);}
-  .eg-podium .eg-pod-col{max-width:100px;}
-  .eg-badge-grid{grid-template-columns:repeat(2,1fr);}
-}
-
 body{
   font-family:'Source Sans 3',sans-serif;
   background:var(--bg);
@@ -541,6 +450,41 @@ body{
 .stat-label{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--texto-2);font-weight:700;margin-bottom:7px;}
 .stat-value{font-family:'Space Mono',monospace;font-size:26px;font-weight:700;color:var(--texto);}
 .stat-sub{font-size:11px;color:var(--texto-3);margin-top:4px;}
+
+/* ---------- MINI-STATS COMPACTOS (dashboard) ---------- */
+.mini-stats{
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  margin-bottom:18px;
+  padding-bottom:2px;
+}
+.mini-stats::-webkit-scrollbar{display:none;}
+.mini-stat{
+  flex:1 1 0;
+  min-width:78px;
+  background:var(--card);
+  border:1px solid var(--linha);
+  border-radius:var(--radius);
+  padding:9px 10px;
+  position:relative;
+  overflow:hidden;
+  text-align:center;
+}
+.mini-stat::before{
+  content:"";position:absolute;top:0;left:0;width:100%;height:2px;
+  background:var(--azul);
+}
+.mini-stat.alert::before{background:var(--vermelho);}
+.mini-stat.good::before{background:var(--verde);}
+.mini-stat .mini-label{font-size:9px;text-transform:uppercase;letter-spacing:0.04em;color:var(--texto-3);font-weight:700;margin-bottom:3px;white-space:nowrap;}
+.mini-stat .mini-value{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--texto);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+@media (max-width:480px){
+  .mini-stat{min-width:68px;padding:8px 6px;}
+  .mini-stat .mini-value{font-size:13px;}
+}
 
 .section-title{
   font-family:'Archivo Black',sans-serif;
@@ -1674,309 +1618,6 @@ const Logic = {
   },
 };
 // =====================================================================
-// MÓDULO NOVO — ENGAJAMENTO
-// Tudo aqui é aditivo: lê Store.data (já carregado via Supabase) e usa
-// localStorage só para coisas puramente locais de UI (ex.: lembrar a
-// posição anterior no ranking para desenhar a seta). Não cria nem
-// depende de nenhuma tabela nova no banco.
-// =====================================================================
-const Engagement = {
-
-  // ---------- RANKING COM TENDÊNCIA (seta sobe/desce) ----------
-  _chaveTendencia(bolaoId){ return `bolao_tendencia_${bolaoId}`; },
-
-  aplicarTendencia(bolaoId, linhas){
-    const chave = this._chaveTendencia(bolaoId);
-    let anterior = {};
-    try{ anterior = JSON.parse(localStorage.getItem(chave) || '{}'); }catch(e){ anterior = {}; }
-
-    const comTendencia = linhas.map(l=>{
-      const posAnterior = anterior[l.usuario.id];
-      let tendencia = 'same';
-      if(posAnterior !== undefined){
-        if(l.posicao < posAnterior) tendencia = 'up';
-        else if(l.posicao > posAnterior) tendencia = 'down';
-      }
-      return { ...l, tendencia, posicaoAnterior: posAnterior !== undefined ? posAnterior : null };
-    });
-
-    const novoSnapshot = {};
-    comTendencia.forEach(l=>{ novoSnapshot[l.usuario.id] = l.posicao; });
-    try{ localStorage.setItem(chave, JSON.stringify(novoSnapshot)); }catch(e){}
-
-    return comTendencia;
-  },
-
-  setaTendencia(t){
-    if(t==='up') return '<span class="eg-arrow-up" title="Subiu de posição">▲</span>';
-    if(t==='down') return '<span class="eg-arrow-down" title="Caiu de posição">▼</span>';
-    return '<span class="eg-arrow-same" title="Sem mudança">–</span>';
-  },
-
-  medalha(posicao){
-    if(posicao===1) return '🥇';
-    if(posicao===2) return '🥈';
-    if(posicao===3) return '🥉';
-    return '';
-  },
-
-  // ---------- HALL DA FAMA ----------
-  async hallDaFama(){
-    const db = Store.data;
-    const jogosPorId = Object.fromEntries(db.jogos.map(j=>[j.id,j]));
-    const jogosFinalizados = db.jogos.filter(j=>j.status==='finalizado');
-
-    // Pontuação: usamos a mesma fonte oficial do ranking (view ranking_publico
-    // via Logic.rankingDoBolao), e não o campo palpites.pontos diretamente —
-    // esse campo não reflete o cálculo oficial de pontos.
-    const pontuacaoPorUsuario = {};
-    for(const b of db.boloes){
-      const linhasBolao = await Logic.rankingDoBolao(b.id, 'geral');
-      linhasBolao.forEach(l=>{
-        pontuacaoPorUsuario[l.usuario.id] = (pontuacaoPorUsuario[l.usuario.id]||0) + (l.pontuacao||0);
-      });
-    }
-
-    // Placares exatos e sequência: comparamos diretamente o placar do palpite
-    // com o placar final do jogo (não depende do campo palpites.pontos).
-    const participantes = db.usuarios.filter(u=>u.perfil==='participante');
-    const porUsuario = {};
-    participantes.forEach(u=>{
-      porUsuario[u.id] = { usuario:u, pontuacao: pontuacaoPorUsuario[u.id]||0, placaresExatos:0, sequenciaAtual:0, melhorSequencia:0 };
-    });
-
-    const palpitesFinalizados = db.palpites
-      .filter(p => jogosPorId[p.jogoId] && jogosPorId[p.jogoId].status==='finalizado')
-      .sort((a,b)=> new Date(jogosPorId[a.jogoId].dataHora||0) - new Date(jogosPorId[b.jogoId].dataHora||0));
-
-    palpitesFinalizados.forEach(p=>{
-      const linha = porUsuario[p.usuarioId];
-      if(!linha) return;
-      const jogo = jogosPorId[p.jogoId];
-      const exato = jogo.placarMandante===p.placarMandante && jogo.placarVisitante===p.placarVisitante;
-      if(exato){
-        linha.placaresExatos++;
-        linha.sequenciaAtual++;
-      } else {
-        linha.sequenciaAtual = 0;
-      }
-      if(linha.sequenciaAtual > linha.melhorSequencia) linha.melhorSequencia = linha.sequenciaAtual;
-    });
-
-    const linhas = Object.values(porUsuario);
-
-    // Quando ninguém tem valor (> 0) em uma categoria, não escolhemos um
-    // "vencedor" arbitrário — retornamos null para exibir "Ainda sem dados".
-    const liderPor = (campo) => {
-      const ordenado = [...linhas].sort((a,b)=> b[campo]-a[campo]);
-      return (ordenado[0] && ordenado[0][campo] > 0) ? ordenado[0] : null;
-    };
-
-    const maiorPontuacao = liderPor('pontuacao');
-    const maisExatos = liderPor('placaresExatos');
-    const maiorSequencia = liderPor('melhorSequencia');
-
-    const pagamentosPagos = db.pagamentos.filter(p=>p.status==='pago');
-    const premioPorUsuario = {};
-    pagamentosPagos.forEach(p=>{ premioPorUsuario[p.usuarioId] = (premioPorUsuario[p.usuarioId]||0) + (p.valorPago||0); });
-    let maiorPremioUserId = null, maiorPremioValor = 0;
-    Object.entries(premioPorUsuario).forEach(([uid,v])=>{ if(v>maiorPremioValor){ maiorPremioValor=v; maiorPremioUserId=uid; } });
-    const maiorPremio = maiorPremioUserId ? db.usuarios.find(u=>u.id===maiorPremioUserId) : null;
-
-    const maisAntigo = [...participantes].sort((a,b)=> (a.dataCadastro||'9999').localeCompare(b.dataCadastro||'9999'))[0];
-
-    const maiorCampeao = maiorPontuacao;
-
-    return { maiorCampeao, maiorPontuacao, maisExatos, maiorSequencia, maiorPremio, maiorPremioValor, maisAntigo, jogosFinalizados: jogosFinalizados.length };
-  },
-
-  // ---------- CONQUISTAS / MEDALHAS ----------
-  conquistasDoUsuario(userId){
-    const db = Store.data;
-    const jogosPorId = Object.fromEntries(db.jogos.map(j=>[j.id,j]));
-    const meusPalpites = db.palpites
-      .filter(p=>p.usuarioId===userId && jogosPorId[p.jogoId] && jogosPorId[p.jogoId].status==='finalizado')
-      .sort((a,b)=> new Date(a.criadoEm||0) - new Date(b.criadoEm||0));
-
-    const exatos = meusPalpites.filter(p=>{
-      const j = jogosPorId[p.jogoId];
-      return j.placarMandante===p.placarMandante && j.placarVisitante===p.placarVisitante;
-    });
-
-    const resultadoBate = (p, j) => {
-      const sinal = (x) => x>0?1:(x<0?-1:0);
-      return sinal(p.placarMandante - p.placarVisitante) === sinal(j.placarMandante - j.placarVisitante);
-    };
-
-    let seqAtual = 0, melhorSeq = 0;
-    meusPalpites.forEach(p=>{
-      const j = jogosPorId[p.jogoId];
-      if(resultadoBate(p, j)){ seqAtual++; melhorSeq = Math.max(melhorSeq, seqAtual); }
-      else { seqAtual = 0; }
-    });
-
-    const meusBoloesIds = new Set(meusPalpites.map(p=> jogosPorId[p.jogoId].bolaoId));
-    const meusPagamentosPagos = db.pagamentos.filter(p=>p.usuarioId===userId && p.status==='pago');
-
-    const fmtDataCurta = (iso) => iso ? new Date(iso).toLocaleDateString('pt-BR') : '';
-
-    const lista = [
-      {
-        icone:'🎯', nome:'Primeiro placar exato', descricao:'Acertou o placar exato de um jogo pela primeira vez.',
-        conquistada: exatos.length>=1, data: exatos.length>=1 ? fmtDataCurta(exatos[0].criadoEm) : null,
-      },
-      {
-        icone:'⚽', nome:'10 placares corretos', descricao:'Acertou o placar exato de 10 jogos.',
-        conquistada: exatos.length>=10, data: exatos.length>=10 ? fmtDataCurta(exatos[9].criadoEm) : null,
-      },
-      {
-        icone:'🔥', nome:'5 acertos consecutivos', descricao:'Acertou o resultado de 5 jogos seguidos.',
-        conquistada: melhorSeq>=5, data: melhorSeq>=5 ? fmtDataCurta(meusPalpites[meusPalpites.length-1]?.criadoEm) : null,
-      },
-      {
-        icone:'💰', nome:'Primeiro prêmio ganho', descricao:'Recebeu o primeiro pagamento confirmado de um bolão.',
-        conquistada: meusPagamentosPagos.length>=1, data: meusPagamentosPagos.length>=1 ? fmtDataCurta(meusPagamentosPagos[0].dataPagamento) : null,
-      },
-      {
-        icone:'⭐', nome:'Participou de 5 bolões', descricao:'Enviou palpites em 5 bolões diferentes.',
-        conquistada: meusBoloesIds.size>=5, data: meusBoloesIds.size>=5 ? fmtDataCurta(new Date().toISOString()) : null,
-      },
-      {
-        icone:'👑', nome:'Líder do ranking', descricao:'Está atualmente em 1º lugar em algum bolão.',
-        conquistada: false, data: null,
-      },
-    ];
-
-    return lista;
-  },
-
-  async marcarConquistaLider(userId, lista){
-    const db = Store.data;
-    let souLider = false;
-    for(const b of db.boloes){
-      const r = await Logic.rankingDoBolao(b.id, 'geral');
-      if(r[0] && r[0].usuario.id===userId && r[0].pontuacao>0){ souLider = true; break; }
-    }
-    const item = lista.find(x=>x.nome==='Líder do ranking');
-    if(item){ item.conquistada = souLider; if(souLider && !item.data) item.data='agora'; }
-    return lista;
-  },
-
-  // ---------- FEED DE ATIVIDADES ----------
-  feedAtividades(limite){
-    const db = Store.data;
-    const jogosPorId = Object.fromEntries(db.jogos.map(j=>[j.id,j]));
-    const usuariosPorId = Object.fromEntries(db.usuarios.map(u=>[u.id,u]));
-    const eventos = [];
-
-    db.palpites.forEach(p=>{
-      const j = jogosPorId[p.jogoId];
-      if(!j || j.status!=='finalizado') return;
-      const exato = j.placarMandante===p.placarMandante && j.placarVisitante===p.placarVisitante;
-      if(exato){
-        const u = usuariosPorId[p.usuarioId];
-        eventos.push({ icone:'🎯', data:p.atualizadoEm||p.criadoEm,
-          texto:`<strong>${escapeHtml(u?u.nome:'Alguém')}</strong> acertou o placar exato de ${escapeHtml(j.mandante)} ${j.placarMandante}×${j.placarVisitante} ${escapeHtml(j.visitante)}.` });
-      }
-    });
-
-    db.usuarios.filter(u=>u.perfil==='participante').forEach(u=>{
-      eventos.push({ icone:'👋', data:u.dataCadastro,
-        texto:`<strong>${escapeHtml(u.nome)}</strong> entrou no bolão.` });
-    });
-
-    db.pagamentos.filter(p=>p.status==='pago' && p.dataPagamento).forEach(p=>{
-      const u = usuariosPorId[p.usuarioId];
-      eventos.push({ icone:'💰', data:p.dataPagamento,
-        texto:`Pagamento de <strong>${escapeHtml(u?u.nome:'um participante')}</strong> foi confirmado.` });
-    });
-
-    db.jogos.filter(j=>j.status==='finalizado').forEach(j=>{
-      eventos.push({ icone:'⚽', data:j.dataHora,
-        texto:`Resultado atualizado: <strong>${escapeHtml(j.mandante)} ${j.placarMandante}×${j.placarVisitante} ${escapeHtml(j.visitante)}</strong>.` });
-    });
-
-    db.boloes.forEach(b=>{
-      eventos.push({ icone:'🏆', data:b.dataInicio,
-        texto:`Novo bolão disponível: <strong>${escapeHtml(b.nome)}</strong>.` });
-    });
-
-    eventos.sort((a,b)=> new Date(b.data||0) - new Date(a.data||0));
-    return eventos.slice(0, limite||15);
-  },
-
-  tempoRelativo(iso){
-    if(!iso) return '';
-    const diffMs = Date.now() - new Date(iso).getTime();
-    const min = Math.floor(diffMs/60000);
-    if(min < 1) return 'agora há pouco';
-    if(min < 60) return `há ${min} min`;
-    const h = Math.floor(min/60);
-    if(h < 24) return `há ${h}h`;
-    const d = Math.floor(h/24);
-    return `há ${d}d`;
-  },
-
-  // ---------- MASCOTE INTELIGENTE (balão de texto interno — não mexe no vídeo do login) ----------
-  mascoteMensagem(user, ctx){
-    ctx = ctx || {};
-    const dicas = [];
-    if(ctx.proximoFechamentoMin !== undefined && ctx.proximoFechamentoMin !== null && ctx.proximoFechamentoMin <= 60 && ctx.proximoFechamentoMin >= 0){
-      dicas.push(`⏰ Falta menos de 1 hora para fechar os palpites do próximo jogo — não esquece!`);
-    }
-    if(ctx.tendencia === 'up'){
-      dicas.push(`🚀 Você subiu no ranking! Continua assim, ${user.nome.split(' ')[0]}!`);
-    } else if(ctx.tendencia === 'down'){
-      dicas.push(`💪 Você caiu uma posição no ranking — bora recuperar no próximo jogo!`);
-    }
-    if(ctx.souLider){
-      dicas.push(`👑 Você é o líder do bolão agora! Defenda essa posição.`);
-    }
-    if(dicas.length===0){
-      const padrao = [
-        `Olá, ${user.nome.split(' ')[0]}! Bora conferir os próximos jogos? ⚽`,
-        `Dica: acompanhe o Hall da Fama pra ver os recordes do bolão. 🏆`,
-        `Não esqueça de palpitar antes do fechamento dos jogos! ✍️`,
-      ];
-      dicas.push(padrao[Math.floor(Math.random()*padrao.length)]);
-    }
-    return dicas[0];
-  },
-
-  // ---------- COMPARTILHAMENTO ----------
-  async compartilhar(titulo, texto, url){
-    url = url || window.location.href;
-    if(navigator.share){
-      try{ await navigator.share({ title: titulo, text: texto, url }); return; }
-      catch(e){ return; }
-    }
-    try{
-      await navigator.clipboard.writeText(`${titulo}\n${texto}\n${url}`);
-      toast('Link copiado para a área de transferência!');
-    }catch(e){
-      toast('Não foi possível compartilhar neste navegador.', 'error');
-    }
-  },
-
-  // ---------- CONFETE (tela do campeão) ----------
-  dispararConfete(qtd){
-    qtd = qtd || 60;
-    const cores = ['#FFC857','#1ED760','#3D7DD8','#FF4757','#E3E8EE'];
-    for(let i=0;i<qtd;i++){
-      const el = document.createElement('div');
-      el.className = 'eg-confetti';
-      el.style.left = Math.random()*100 + 'vw';
-      el.style.background = cores[Math.floor(Math.random()*cores.length)];
-      el.style.animationDuration = (2.2 + Math.random()*1.6) + 's';
-      el.style.animationDelay = (Math.random()*0.6) + 's';
-      el.style.opacity = String(0.7 + Math.random()*0.3);
-      document.body.appendChild(el);
-      setTimeout(()=> el.remove(), 4500);
-    }
-  },
-};
-
-// =====================================================================
 // APP SHELL — sidebar, navegação, boot
 // =====================================================================
 const App = {
@@ -1994,9 +1635,6 @@ const App = {
     { key:'ranking', label:'Ranking', icon:'★' },
     { key:'sorteios', label:'Sorteios & Rifas', icon:'⊙' },
     { key:'notificacoes', label:'Notificações', icon:'🔔' },
-    { section: '🏆 Comunidade' },
-    { key:'hall', label:'Hall da Fama', icon:'🏛️' },
-    { key:'estatisticas', label:'Estatísticas', icon:'📊' },
     { section: 'Sistema' },
     { key:'relatorios', label:'Relatórios', icon:'▤' },
     { key:'auditoria', label:'Auditoria', icon:'⌗' },
@@ -2011,10 +1649,6 @@ const App = {
     { key:'ranking', label:'Ranking', icon:'★' },
     { key:'pagamentos', label:'Meu Pagamento', icon:'$' },
     { key:'sorteios', label:'Sorteios & Rifas', icon:'⊙' },
-    { section:'🏆 Comunidade' },
-    { key:'hall', label:'Hall da Fama', icon:'🏛️' },
-    { key:'conquistas', label:'Conquistas', icon:'🎖️' },
-    { key:'estatisticas', label:'Estatísticas', icon:'📊' },
     { section:'🎉 Diversão' },
     { key:'diversao', label:'Modo Diversão', icon:'🎉' },
     { section:'Conta' },
@@ -2195,9 +1829,6 @@ const App = {
       relatorios: Pages.relatorios,
       auditoria: Pages.auditoria,
       configuracoes: Pages.configuracoes,
-      hall: Pages.hallDaFama,
-      estatisticas: Pages.estatisticas,
-      campeao: Pages.telaCampeao,
     } : {
       dashboard: Pages.partDashboard,
       palpites: Pages.partPalpites,
@@ -2208,10 +1839,6 @@ const App = {
       sorteios: Pages.sorteios,
       diversao: Pages.modoDiversao,
       perfil: Pages.partPerfil,
-      hall: Pages.hallDaFama,
-      conquistas: Pages.conquistas,
-      estatisticas: Pages.estatisticas,
-      campeao: Pages.telaCampeao,
     };
 
     const fn = routes[this.route] || routes.dashboard;
@@ -3367,20 +2994,6 @@ Pages.adminPagamentos = function(){
       <div class="stat-card"><div class="stat-label">Pagantes</div><div class="stat-value">${fin.pagantes}</div></div>
       <div class="stat-card alert"><div class="stat-label">Inadimplentes</div><div class="stat-value">${fin.inadimplentes}</div></div>
     </div>
-    ${(()=>{
-      const meta = fin.totalArrecadado + fin.totalPendente;
-      const pct = meta>0 ? Math.round((fin.totalArrecadado/meta)*100) : 0;
-      return `
-      <div class="card eg-card" style="margin-bottom:18px;">
-        <div class="section-title" style="margin-bottom:8px;">💰 Progresso de arrecadação</div>
-        <div class="eg-progress-wrap" style="margin-bottom:8px;"><div class="eg-progress-fill" style="width:${pct}%;"></div></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--texto-2);">
-          <span>Arrecadado: <strong style="color:var(--verde);">${fmtMoney(fin.totalArrecadado)}</strong></span>
-          <span>Meta (arrecadado + pendente): <strong>${fmtMoney(meta)}</strong></span>
-          <span>${pct}% concluído</span>
-        </div>
-      </div>`;
-    })()}
     <div class="card card-flush table-scroll pagto-desktop">
       <table>
         <thead><tr><th>Participante</th><th>Jogo</th><th>Palpite</th><th>Valor</th><th>Status</th><th></th></tr></thead>
@@ -3580,8 +3193,7 @@ Pages.partDashboard = async function(user){
 
   // Ranking: usa o bolão onde o usuário tem palpites; se não tiver, usa o ativo
   const bolaoRanking = db.boloes.find(b=>meusBolaoIds.includes(b.id)) || bolao;
-  let ranking = bolaoRanking ? await Logic.rankingDoBolao(bolaoRanking.id,'geral') : [];
-  if(bolaoRanking) ranking = Engagement.aplicarTendencia(bolaoRanking.id, ranking);
+  const ranking = bolaoRanking ? await Logic.rankingDoBolao(bolaoRanking.id,'geral') : [];
   const minhaLinha = ranking.find(r=>r.usuario.id===user.id);
 
   const proximosJogos = db.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora)).slice(0,3);
@@ -3640,39 +3252,23 @@ Pages.partDashboard = async function(user){
 
   document.getElementById('content').innerHTML = `
     <div id="card-instalar-app"></div>
-    <div id="eg-mascote-dashboard"></div>
-    ${(()=>{
-      const jogosRestantes = db.jogos.filter(j=>j.status!=='finalizado').length;
-      const jogosEncerrados = db.jogos.filter(j=>j.status==='finalizado').length;
-      const rodadaAtual = (proximosJogos[0] && proximosJogos[0].rodada) || (db.jogos.find(j=>j.status==='em_andamento')||{}).rodada || '—';
-      return `
-      <div class="eg-stat-strip">
-        <div class="eg-stat"><span class="eg-stat-icon">⏳</span><div class="eg-stat-label">Jogos restantes</div><div class="eg-stat-value">${jogosRestantes}</div></div>
-        <div class="eg-stat"><span class="eg-stat-icon">✅</span><div class="eg-stat-label">Jogos encerrados</div><div class="eg-stat-value">${jogosEncerrados}</div></div>
-        <div class="eg-stat"><span class="eg-stat-icon">📅</span><div class="eg-stat-label">Rodada atual</div><div class="eg-stat-value" style="font-size:14px;">${escapeHtml(String(rodadaAtual))}</div></div>
-      </div>`;
-    })()}
     ${cardGanhadores}
-    <div class="grid grid-4" style="margin-bottom:22px;">
-      <div class="stat-card">
-        <div class="stat-label">Minha posição</div>
-        <div class="stat-value">${minhaLinha ? '#'+minhaLinha.posicao : '—'}</div>
-        <div class="stat-sub">${bolaoRanking?bolaoRanking.nome:'Nenhum bolão ativo'}</div>
+    <div class="mini-stats">
+      <div class="mini-stat">
+        <div class="mini-label">Posição</div>
+        <div class="mini-value">${minhaLinha ? '#'+minhaLinha.posicao : '—'}</div>
       </div>
-      <div class="stat-card good">
-        <div class="stat-label">Pontuação</div>
-        <div class="stat-value">${minhaLinha ? minhaLinha.pontuacao : 0}</div>
-        <div class="stat-sub">${minhaLinha?minhaLinha.acertos+' acerto(s)':''}</div>
+      <div class="mini-stat good">
+        <div class="mini-label">Pontos</div>
+        <div class="mini-value">${minhaLinha ? minhaLinha.pontuacao : 0}</div>
       </div>
-      <div class="stat-card ${meuPagamento && meuPagamento.status!=='pago' ? 'alert':''}">
-        <div class="stat-label">Minha inscrição</div>
-        <div class="stat-value" style="font-size:18px;">${meuPagamento ? Pages._badgePagamento(meuPagamento.status) : '<span style="font-size:12px;color:var(--texto-3);">Sem palpite ainda</span>'}</div>
-        <div class="stat-sub">${meuPagamento? fmtMoney(meuPagamento.valorInscricao) : (bolao?escapeHtml(bolao.nome):'')}</div>
+      <div class="mini-stat ${meuPagamento && meuPagamento.status!=='pago' ? 'alert':''}">
+        <div class="mini-label">Inscrição</div>
+        <div class="mini-value" style="font-size:12px;">${meuPagamento ? Pages._badgePagamento(meuPagamento.status) : '—'}</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Aproveitamento</div>
-        <div class="stat-value">${minhaLinha?minhaLinha.aproveitamento:0}%</div>
-        <div class="stat-sub">${minhaLinha?minhaLinha.jogosPalpitados+' palpite(s) enviados':''}</div>
+      <div class="mini-stat">
+        <div class="mini-label">Aprovei.</div>
+        <div class="mini-value">${minhaLinha?minhaLinha.aproveitamento:0}%</div>
       </div>
     </div>
     <!-- Card Copa do Mundo 2026 -->
@@ -3717,7 +3313,7 @@ Pages.partDashboard = async function(user){
       const totalPart = ranking.length;
       return `
       <div class="card" style="margin-bottom:18px;border-left:3px solid var(--amarelo);">
-        <div class="section-title" style="margin-bottom:12px;">🏆 Placar ao vivo — ${escapeHtml(bolaoRanking.nome)} <span class="right"><a href="#" id="link-turma" style="font-size:12px;">ver turma →</a></span></div>
+        <div class="section-title" style="margin-bottom:12px;">🏆 Ranking Parcial — ${escapeHtml(bolaoRanking.nome)} <span class="right"><a href="#" id="link-turma" style="font-size:12px;">ver turma →</a></span></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
           <div style="flex:1;min-width:100px;background:var(--bg-3);border-radius:8px;padding:10px;text-align:center;">
             <div style="font-size:11px;color:var(--texto-3);margin-bottom:4px;">Participantes</div>
@@ -3728,8 +3324,8 @@ Pages.partDashboard = async function(user){
             <div style="font-size:22px;font-weight:800;color:var(--azul);">${minhaPosicao ? '#'+minhaPosicao : '—'}</div>
           </div>
           <div style="flex:1;min-width:100px;background:var(--bg-3);border-radius:8px;padding:10px;text-align:center;">
-            <div style="font-size:11px;color:var(--texto-3);margin-bottom:4px;">Pontos atrás do líder</div>
-            <div style="font-size:${diffLider===0&&minhaLinha?'15px':'22px'};font-weight:800;color:${diffLider===0?'var(--verde)':'var(--amarelo)'};">${!minhaLinha?'—':(diffLider===0?'Você lidera! 👑':diffLider+' pts atrás')}</div>
+            <div style="font-size:11px;color:var(--texto-3);margin-bottom:4px;">Distância do líder</div>
+            <div style="font-size:22px;font-weight:800;color:${diffLider===0?'var(--verde)':'var(--amarelo)'};">${diffLider===0&&minhaLinha?'👑':'-'+diffLider+' pts'}</div>
           </div>
         </div>
         <div style="font-size:12px;color:var(--texto-3);margin-bottom:6px;">Top 3</div>
@@ -3759,20 +3355,6 @@ Pages.partDashboard = async function(user){
         `).join('') : `<div class="empty-state"><div class="icon">🔔</div><div class="msg">Sem notificações</div></div>`}
       </div>
     </div>
-    <div class="card eg-card" style="margin-top:18px;">
-      <div class="section-title" style="margin-bottom:6px;">📰 Feed de atividades</div>
-      <div class="eg-feed">
-        ${Engagement.feedAtividades(8).map(ev=>`
-          <div class="eg-feed-item">
-            <div class="eg-feed-icon">${ev.icone}</div>
-            <div>
-              <div class="eg-feed-text">${ev.texto}</div>
-              <div class="eg-feed-time">${Engagement.tempoRelativo(ev.data)}</div>
-            </div>
-          </div>
-        `).join('') || `<div class="empty-state"><div class="msg">Sem atividades recentes</div></div>`}
-      </div>
-    </div>
   `;
   const lk = document.getElementById('link-palpitar'); if(lk) lk.onclick=(e)=>{e.preventDefault(); App.navigate('palpites');};
   const lt = document.getElementById('link-turma'); if(lt) lt.onclick=(e)=>{e.preventDefault(); App.navigate('turma');};
@@ -3780,24 +3362,6 @@ Pages.partDashboard = async function(user){
   App.atualizarBotaoInstalar();
   // Atualiza o ticker com dados frescos após os reloads
   if(App._atualizarTicker) App._atualizarTicker();
-
-  // Mascote inteligente — balão de texto simples, independente do vídeo
-  // do mascote usado na tela de login (que não é tocado aqui).
-  const mascoteEl = document.getElementById('eg-mascote-dashboard');
-  if(mascoteEl){
-    const proxJogoUsuario = proximosJogos[0];
-    const minutosParaFechar = proxJogoUsuario ? Math.round((new Date(proxJogoUsuario.dataHora).getTime() - Date.now())/60000) : null;
-    const mensagem = Engagement.mascoteMensagem(user, {
-      proximoFechamentoMin: minutosParaFechar,
-      tendencia: minhaLinha ? minhaLinha.tendencia : null,
-      souLider: minhaLinha && minhaLinha.posicao===1,
-    });
-    mascoteEl.innerHTML = `
-      <div class="eg-mascote-bubble">
-        <div class="eg-mascote-avatar">🦁</div>
-        <div class="eg-mascote-fala">${escapeHtml(mensagem)}</div>
-      </div>`;
-  }
 };
 
 // ---- RESOLUÇÃO DO CHAVEAMENTO DO MATA-MATA --------------------------------
@@ -4270,19 +3834,7 @@ Pages.partPagamentos = function(user){
   const ordem = { pendente:0, atrasado:0, em_analise:1, pago:2, isento:2 };
   const ordenados = [...meus].sort((a,b)=> (ordem[a.status]??9) - (ordem[b.status]??9));
 
-  const totalPago = meus.filter(p=>p.status==='pago').reduce((s,p)=>s+(p.valorPago||0),0);
-  const totalDevido = meus.reduce((s,p)=>s+(p.valorInscricao||0),0);
-  const pctPago = totalDevido>0 ? Math.round((totalPago/totalDevido)*100) : 0;
-
   document.getElementById('content').innerHTML = `
-    ${meus.length ? `
-    <div class="card eg-card" style="margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-      <div style="flex:1;min-width:200px;">
-        <div style="font-size:12px;color:var(--texto-2);margin-bottom:6px;">Você já pagou ${fmtMoney(totalPago)} de ${fmtMoney(totalDevido)} (${pctPago}%)</div>
-        <div class="eg-progress-wrap"><div class="eg-progress-fill" style="width:${pctPago}%;"></div></div>
-      </div>
-      <button class="btn btn-outline btn-sm eg-share-btn" id="btn-compartilhar-convite">📤 Convidar amigo</button>
-    </div>` : ''}
     <div class="grid grid-3">
       ${ordenados.length ? ordenados.map(p=>{
         const palpite = db.palpites.find(pl=>pl.id===p.palpiteId);
@@ -4307,10 +3859,6 @@ Pages.partPagamentos = function(user){
   document.querySelectorAll('[data-pagar]').forEach(btn=>{
     btn.onclick = () => App.openModal('confirmar-pagamento-participante', meus.find(p=>p.id===btn.dataset.pagar));
   });
-  const btnConvite = document.getElementById('btn-compartilhar-convite');
-  if(btnConvite) btnConvite.onclick = () => {
-    Engagement.compartilhar('Bolão Central — venha apostar com a gente!', 'Entra no nosso bolão! Confira os jogos e dispute o ranking.');
-  };
 };
 
 // ---------------------- MODO DIVERSÃO 🎉 ----------------------
@@ -4454,75 +4002,9 @@ Pages.modoDiversao = function(user){
   });
 };
 
-Pages.partPerfil = async function(user){
-  App.setTopbar('Meu Perfil', 'Atualize seus dados pessoais e acompanhe seu desempenho');
-  document.getElementById('content').innerHTML = '<div class="empty-state"><div class="msg">Carregando perfil...</div></div>';
-  const db = Store.data;
-  const meusPalpites = db.palpites.filter(p=>p.usuarioId===user.id);
-  const jogosPorId = Object.fromEntries(db.jogos.map(j=>[j.id,j]));
-  const finalizados = meusPalpites.filter(p=> jogosPorId[p.jogoId] && jogosPorId[p.jogoId].status==='finalizado');
-  const sinal = (x) => x>0?1:(x<0?-1:0);
-  const resultadoBate = (p, j) => sinal(p.placarMandante - p.placarVisitante) === sinal(j.placarMandante - j.placarVisitante);
-  const acertos = finalizados.filter(p=> resultadoBate(p, jogosPorId[p.jogoId])).length;
-  const erros = finalizados.length - acertos;
-  const exatos = finalizados.filter(p=>{ const j=jogosPorId[p.jogoId]; return j.placarMandante===p.placarMandante && j.placarVisitante===p.placarVisitante; }).length;
-  // Pontuação total: soma da pontuação oficial (view ranking_publico) em todos os bolões do usuário —
-  // não usamos palpites.pontos diretamente pois esse campo não reflete o cálculo oficial.
-  let pontuacaoTotal = 0;
-  for(const b of db.boloes){
-    const linhasBolao = await Logic.rankingDoBolao(b.id, 'geral');
-    const minha = linhasBolao.find(l=>l.usuario.id===user.id);
-    if(minha) pontuacaoTotal += minha.pontuacao;
-  }
-  const aproveitamento = finalizados.length ? Math.round((acertos/finalizados.length)*100) : 0;
-  const meusBoloesIds = new Set(meusPalpites.map(p=> jogosPorId[p.jogoId]?.bolaoId).filter(Boolean));
-  let melhorSeq=0, seqAtual=0;
-  [...finalizados].sort((a,b)=> new Date(a.criadoEm||0)-new Date(b.criadoEm||0)).forEach(p=>{
-    if(resultadoBate(p, jogosPorId[p.jogoId])){ seqAtual++; melhorSeq=Math.max(melhorSeq,seqAtual); } else seqAtual=0;
-  });
-  const ultimosPalpites = [...meusPalpites].sort((a,b)=> new Date(b.criadoEm||0)-new Date(a.criadoEm||0)).slice(0,5);
-  const conquistasResumo = Engagement.conquistasDoUsuario(user.id).filter(b=>b.conquistada);
-
-  const initials = user.nome.split(' ').slice(0,2).map(s=>s[0]).join('').toUpperCase();
-
+Pages.partPerfil = function(user){
+  App.setTopbar('Meu Perfil', 'Atualize seus dados pessoais');
   document.getElementById('content').innerHTML = `
-    <div class="card eg-card" style="margin-bottom:18px;max-width:760px;">
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
-        <div class="avatar-mini" style="width:48px;height:48px;font-size:18px;">${initials}</div>
-        <div>
-          <div style="font-weight:700;font-size:16px;">${escapeHtml(user.nome)}</div>
-          <div class="text-muted">${meusBoloesIds.size} bolão(ões) · membro desde ${fmtDate(user.dataCadastro)}</div>
-        </div>
-      </div>
-      <div class="eg-stat-strip" style="margin-bottom:0;">
-        <div class="eg-stat"><div class="eg-stat-label">Pontuação total</div><div class="eg-stat-value">${pontuacaoTotal}</div></div>
-        <div class="eg-stat"><div class="eg-stat-label">Placares exatos</div><div class="eg-stat-value">${exatos}</div></div>
-        <div class="eg-stat"><div class="eg-stat-label">Acertos / Erros</div><div class="eg-stat-value" style="font-size:15px;">${acertos} / ${erros}</div></div>
-        <div class="eg-stat"><div class="eg-stat-label">Aproveitamento</div><div class="eg-stat-value">${aproveitamento}%</div></div>
-        <div class="eg-stat"><div class="eg-stat-label">Maior sequência</div><div class="eg-stat-value">${melhorSeq}</div></div>
-      </div>
-    </div>
-
-    <div class="card eg-card" style="margin-bottom:18px;max-width:760px;">
-      <div class="section-title" style="margin-bottom:10px;">🎖️ Medalhas conquistadas (${conquistasResumo.length}) <span class="right"><a href="#" id="link-ver-conquistas" style="font-size:12px;">ver todas →</a></span></div>
-      ${conquistasResumo.length ? `<div class="eg-badge-grid">${conquistasResumo.map(b=>`
-        <div class="eg-badge">
-          <div class="eg-badge-icon">${b.icone}</div>
-          <div class="eg-badge-nome">${escapeHtml(b.nome)}</div>
-        </div>`).join('')}</div>` : `<div class="empty-state"><div class="msg">Nenhuma medalha ainda — comece a palpitar!</div></div>`}
-    </div>
-
-    <div class="card eg-card" style="margin-bottom:18px;max-width:760px;">
-      <div class="section-title" style="margin-bottom:10px;">🕘 Últimos palpites</div>
-      ${ultimosPalpites.length ? ultimosPalpites.map(p=>{
-        const j = jogosPorId[p.jogoId];
-        return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--linha);font-size:12.5px;">
-          <span>${j ? escapeHtml(j.mandante)+' x '+escapeHtml(j.visitante) : 'Jogo removido'}</span>
-          <span class="font-mono">${p.placarMandante} x ${p.placarVisitante}</span>
-        </div>`;
-      }).join('') : `<div class="empty-state"><div class="msg">Nenhum palpite enviado ainda</div></div>`}
-    </div>
-
     <div class="card" style="max-width:480px;">
       <form id="form-perfil">
         <div class="field"><label>Nome completo</label><input type="text" id="pf-nome" value="${escapeHtml(user.nome)}" required></div>
@@ -4539,8 +4021,6 @@ Pages.partPerfil = async function(user){
       <button class="btn btn-danger btn-sm" id="btn-excluir-conta">Excluir minha conta</button>
     </div>
   `;
-  const lvc = document.getElementById('link-ver-conquistas');
-  if(lvc) lvc.onclick = (e)=>{ e.preventDefault(); App.navigate('conquistas'); };
   document.getElementById('btn-excluir-conta').onclick = async () => {
     const confirmacao = prompt('Para confirmar, digite seu número de celular:');
     if(!confirmacao || confirmacao.replace(/\D/g,'') !== (user.telefone||'').replace(/\D/g,'')){
@@ -4611,53 +4091,22 @@ Pages.ranking = async function(user){
   }
   let periodo = 'geral';
   const draw = async () => {
-    let linhas = await Logic.rankingDoBolao(bolaoComJogos.id, periodo);
-    // Placares exatos por participante neste bolão — calculado localmente
-    // a partir dos palpites já carregados, sem precisar de coluna nova no banco.
-    const dbx = Store.data;
-    const jogosDoBolao = new Set(dbx.jogos.filter(j=>j.bolaoId===bolaoComJogos.id && j.status==='finalizado').map(j=>j.id));
-    const jogosPorId = Object.fromEntries(dbx.jogos.map(j=>[j.id,j]));
-    const exatosPorUsuario = {};
-    dbx.palpites.forEach(p=>{
-      if(!jogosDoBolao.has(p.jogoId)) return;
-      const j = jogosPorId[p.jogoId];
-      if(j.placarMandante===p.placarMandante && j.placarVisitante===p.placarVisitante){
-        exatosPorUsuario[p.usuarioId] = (exatosPorUsuario[p.usuarioId]||0) + 1;
-      }
-    });
-    linhas = linhas.map(l=> ({ ...l, placaresExatos: exatosPorUsuario[l.usuario.id]||0 }));
-    linhas = Engagement.aplicarTendencia(bolaoComJogos.id, linhas);
-    const top3 = linhas.slice(0,3);
+    const linhas = await Logic.rankingDoBolao(bolaoComJogos.id, periodo);
     document.getElementById('content').innerHTML = `
       <div class="tabs">
         <div class="tab ${periodo==='geral'?'active':''}" data-p="geral">Geral</div>
         <div class="tab ${periodo==='mensal'?'active':''}" data-p="mensal">Mensal</div>
       </div>
-      ${top3.length ? `
-      <div class="eg-podium">
-        ${[top3[1],top3[0],top3[2]].map((r,idx)=>{
-          if(!r) return '<div class="eg-pod-col"></div>';
-          const ordem = [2,1,3][idx];
-          return `<div class="eg-pod-col eg-pod-${ordem}">
-            <div class="eg-pod-medal">${Engagement.medalha(ordem)}</div>
-            <div class="eg-pod-bar"></div>
-            <div class="eg-pod-name">${escapeHtml(r.usuario.nome)}</div>
-            <div class="eg-pod-pts">${r.pontuacao} pts</div>
-          </div>`;
-        }).join('')}
-      </div>` : ''}
-      <div class="card card-flush eg-card">
+      <div class="card card-flush">
         <table>
-          <thead><tr><th>#</th><th></th><th>Participante</th><th>Pontuação</th><th>Acertos</th><th>Placares exatos</th><th>Erros</th><th>Aproveitamento</th></tr></thead>
+          <thead><tr><th>#</th><th>Participante</th><th>Pontuação</th><th>Acertos</th><th>Erros</th><th>Aproveitamento</th></tr></thead>
           <tbody>
             ${linhas.length ? linhas.map(l=>`
-              <tr class="${l.posicao<=3?'rank-'+l.posicao:''}" style="${user && l.usuario.id===user.id?'background:rgba(61,125,216,0.08);':''}">
+              <tr class="${l.posicao<=3?'rank-'+l.posicao:''}">
                 <td><span class="pos-badge">${l.posicao}</span></td>
-                <td>${Engagement.setaTendencia(l.tendencia)}</td>
-                <td style="font-weight:600;${user && l.usuario.id===user.id?'color:var(--amarelo);':''}">${Engagement.medalha(l.posicao)} ${escapeHtml(l.usuario.nome)}${user && l.usuario.id===user.id ? ' (você)' : ''}</td>
+                <td style="font-weight:600;${user && l.usuario.id===user.id?'color:var(--amarelo);':''}">${escapeHtml(l.usuario.nome)}${user && l.usuario.id===user.id ? ' (você)' : ''}</td>
                 <td><span class="pts-pill">${l.pontuacao}</span></td>
                 <td class="font-mono">${l.acertos}</td>
-                <td class="font-mono">${l.placaresExatos!==undefined?l.placaresExatos:'—'}</td>
                 <td class="font-mono">${l.erros}</td>
                 <td>
                   <div class="flex-row" style="gap:8px;">
@@ -4666,231 +4115,14 @@ Pages.ranking = async function(user){
                   </div>
                 </td>
               </tr>
-            `).join('') : `<tr><td colspan="8"><div class="empty-state"><div class="msg">Sem dados de ranking ainda</div></div></td></tr>`}
+            `).join('') : `<tr><td colspan="6"><div class="empty-state"><div class="msg">Sem dados de ranking ainda</div></div></td></tr>`}
           </tbody>
         </table>
       </div>
-      <div style="margin-top:14px;text-align:right;">
-        <button class="btn btn-outline btn-sm eg-share-btn" id="btn-compartilhar-ranking">📤 Compartilhar ranking</button>
-      </div>
     `;
     document.querySelectorAll('[data-p]').forEach(t=> t.onclick = () => { periodo = t.dataset.p; draw(); });
-    const btnShare = document.getElementById('btn-compartilhar-ranking');
-    if(btnShare) btnShare.onclick = () => {
-      const lider = linhas[0];
-      Engagement.compartilhar('Ranking — Bolão Central',
-        lider ? `${lider.usuario.nome} lidera o ranking com ${lider.pontuacao} pontos!` : 'Confira o ranking do Bolão Central!');
-    };
   };
   draw();
-};
-
-// =====================================================================
-// PÁGINA NOVA — HALL DA FAMA
-// =====================================================================
-Pages.hallDaFama = async function(user){
-  App.setTopbar('Hall da Fama', 'Os maiores recordes da história do Bolão Central');
-  document.getElementById('content').innerHTML = '<div class="empty-state"><div class="msg">Carregando recordes...</div></div>';
-  const h = await Engagement.hallDaFama();
-
-  const cardVazio = (icone, label) => `
-    <div class="eg-hall-card">
-      <div class="eg-hall-icon">${icone}</div>
-      <div class="eg-hall-label">${label}</div>
-      <div class="eg-hall-nome" style="color:var(--texto-3);">Ainda sem dados</div>
-    </div>`;
-
-  const cardUsuario = (icone, label, linha, valorFn) => {
-    if(!linha || !linha.usuario) return cardVazio(icone, label);
-    return `
-    <div class="eg-hall-card">
-      <div class="eg-hall-icon">${icone}</div>
-      <div class="eg-hall-label">${label}</div>
-      <div class="eg-hall-nome">${escapeHtml(linha.usuario.nome)}</div>
-      <div class="eg-hall-valor">${valorFn(linha)}</div>
-    </div>`;
-  };
-
-  document.getElementById('content').innerHTML = `
-    <div class="eg-badge-grid" style="margin-bottom:20px;">
-      ${cardUsuario('👑','Maior campeão', h.maiorCampeao, l=>`${l.pontuacao} pts acumulados`)}
-      ${cardUsuario('🏆','Maior pontuação da história', h.maiorPontuacao, l=>`${l.pontuacao} pts`)}
-      ${cardUsuario('🎯','Mais placares exatos', h.maisExatos, l=>`${l.placaresExatos} placar(es) exato(s)`)}
-      ${cardUsuario('🔥','Maior sequência de acertos', h.maiorSequencia, l=>`${l.melhorSequencia} acerto(s) seguidos`)}
-      ${h.maiorPremio ? cardUsuario('💰','Maior prêmio recebido', { usuario:h.maiorPremio }, ()=>fmtMoney(h.maiorPremioValor)) : cardVazio('💰','Maior prêmio recebido')}
-      ${h.maisAntigo ? cardUsuario('🕰️','Participante mais antigo', { usuario:h.maisAntigo }, l=>fmtDate(l.usuario.dataCadastro)) : cardVazio('🕰️','Participante mais antigo')}
-    </div>
-    <div class="card eg-card" style="text-align:center;">
-      <div style="font-size:13px;color:var(--texto-2);">${h.jogosFinalizados} jogo(s) já finalizado(s) no histórico do app.</div>
-      <button class="btn btn-outline btn-sm eg-share-btn" id="btn-compartilhar-hall" style="margin-top:10px;">📤 Compartilhar Hall da Fama</button>
-    </div>
-  `;
-  document.getElementById('btn-compartilhar-hall').onclick = () => {
-    const txt = h.maiorPontuacao && h.maiorPontuacao.usuario
-      ? `Recorde atual do Bolão Central: ${h.maiorPontuacao.usuario.nome} com ${h.maiorPontuacao.pontuacao} pontos!`
-      : 'Confira o Hall da Fama do Bolão Central!';
-    Engagement.compartilhar('Hall da Fama — Bolão Central', txt);
-  };
-};
-
-// =====================================================================
-// PÁGINA NOVA — CONQUISTAS (participante)
-// =====================================================================
-Pages.conquistas = async function(user){
-  App.setTopbar('Conquistas', 'Suas medalhas no Bolão Central');
-  document.getElementById('content').innerHTML = '<div class="empty-state"><div class="msg">Carregando conquistas...</div></div>';
-  let lista = Engagement.conquistasDoUsuario(user.id);
-  lista = await Engagement.marcarConquistaLider(user.id, lista);
-  const total = lista.length;
-  const ganhas = lista.filter(b=>b.conquistada).length;
-
-  document.getElementById('content').innerHTML = `
-    <div class="card eg-card" style="margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-      <div>
-        <div style="font-weight:700;font-size:14px;">${ganhas} de ${total} conquistadas</div>
-        <div class="text-muted">Continue palpitando para desbloquear todas as medalhas!</div>
-      </div>
-      <div class="eg-progress-wrap" style="width:160px;"><div class="eg-progress-fill" style="width:${Math.round((ganhas/total)*100)}%;"></div></div>
-    </div>
-    <div class="eg-badge-grid">
-      ${lista.map(b=>`
-        <div class="eg-badge ${b.conquistada?'':'locked'}">
-          <div class="eg-badge-icon">${b.icone}</div>
-          <div class="eg-badge-nome">${escapeHtml(b.nome)}</div>
-          <div class="eg-badge-desc">${escapeHtml(b.descricao)}</div>
-          ${b.conquistada ? `<div class="eg-badge-data">Conquistada${b.data?' em '+escapeHtml(b.data):''}</div>` : `<div class="eg-badge-data" style="color:var(--texto-3);">🔒 Bloqueada</div>`}
-        </div>
-      `).join('')}
-    </div>
-  `;
-};
-
-// =====================================================================
-// PÁGINA NOVA — ESTATÍSTICAS
-// =====================================================================
-Pages.estatisticas = function(user){
-  App.setTopbar('Estatísticas', 'Números e tendências dos palpites');
-  const db = Store.data;
-  const jogosPorId = Object.fromEntries(db.jogos.map(j=>[j.id,j]));
-
-  // Seleção mais apostada (mandante ou visitante escolhido como vencedor no palpite)
-  const contagemTime = {};
-  db.palpites.forEach(p=>{
-    const j = jogosPorId[p.jogoId]; if(!j) return;
-    let time = null;
-    if(p.placarMandante > p.placarVisitante) time = j.mandante;
-    else if(p.placarVisitante > p.placarMandante) time = j.visitante;
-    if(time) contagemTime[time] = (contagemTime[time]||0) + 1;
-  });
-  const topTimes = Object.entries(contagemTime).sort((a,b)=>b[1]-a[1]).slice(0,6);
-
-  // Resultado mais apostado (vitória mandante / empate / vitória visitante)
-  const contagemResultado = { 'Vitória mandante':0, 'Empate':0, 'Vitória visitante':0 };
-  db.palpites.forEach(p=>{
-    if(p.placarMandante > p.placarVisitante) contagemResultado['Vitória mandante']++;
-    else if(p.placarMandante < p.placarVisitante) contagemResultado['Vitória visitante']++;
-    else contagemResultado['Empate']++;
-  });
-
-  // Média de gols apostados
-  const totalGols = db.palpites.reduce((s,p)=> s + (p.placarMandante||0) + (p.placarVisitante||0), 0);
-  const mediaGols = db.palpites.length ? (totalGols/db.palpites.length).toFixed(1) : '0.0';
-
-  // Jogadores mais ativos (mais palpites enviados)
-  const usuariosPorId = Object.fromEntries(db.usuarios.map(u=>[u.id,u]));
-  const contagemUsuario = {};
-  db.palpites.forEach(p=>{ contagemUsuario[p.usuarioId] = (contagemUsuario[p.usuarioId]||0) + 1; });
-  const topUsuarios = Object.entries(contagemUsuario).sort((a,b)=>b[1]-a[1]).slice(0,6);
-
-  const maxTime = Math.max(1, ...topTimes.map(t=>t[1]));
-  const maxResultado = Math.max(1, ...Object.values(contagemResultado));
-  const maxUsuario = Math.max(1, ...topUsuarios.map(u=>u[1]));
-
-  const barraHtml = (label, valor, max, cor) => `
-    <div style="margin-bottom:10px;">
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
-        <span style="color:var(--texto-2);">${escapeHtml(label)}</span><span class="font-mono">${valor}</span>
-      </div>
-      <div class="eg-progress-wrap"><div class="eg-progress-fill" style="width:${Math.round((valor/max)*100)}%;background:${cor||'linear-gradient(90deg,var(--verde-2),var(--verde))'};"></div></div>
-    </div>`;
-
-  document.getElementById('content').innerHTML = `
-    <div class="eg-stat-strip">
-      <div class="eg-stat"><span class="eg-stat-icon">📨</span><div class="eg-stat-label">Total de palpites</div><div class="eg-stat-value">${db.palpites.length}</div></div>
-      <div class="eg-stat"><span class="eg-stat-icon">⚽</span><div class="eg-stat-label">Média de gols apostados</div><div class="eg-stat-value">${mediaGols}</div></div>
-      <div class="eg-stat"><span class="eg-stat-icon">👥</span><div class="eg-stat-label">Participantes ativos</div><div class="eg-stat-value">${db.usuarios.filter(u=>u.perfil==='participante'&&u.status==='ativo').length}</div></div>
-      <div class="eg-stat"><span class="eg-stat-icon">🎯</span><div class="eg-stat-label">Jogos finalizados</div><div class="eg-stat-value">${db.jogos.filter(j=>j.status==='finalizado').length}</div></div>
-    </div>
-    <div class="grid grid-2">
-      <div class="card eg-card">
-        <div class="section-title" style="margin-bottom:10px;">⭐ Seleção/time mais apostado</div>
-        ${topTimes.length ? topTimes.map(([nome,v])=>barraHtml(nome, v, maxTime)).join('') : '<div class="empty-state"><div class="msg">Sem dados ainda</div></div>'}
-      </div>
-      <div class="card eg-card">
-        <div class="section-title" style="margin-bottom:10px;">📌 Resultado mais apostado</div>
-        ${Object.entries(contagemResultado).map(([nome,v])=>barraHtml(nome, v, maxResultado, 'linear-gradient(90deg,var(--azul),var(--azul-2))')).join('')}
-      </div>
-      <div class="card eg-card" style="grid-column:1/-1;">
-        <div class="section-title" style="margin-bottom:10px;">🔥 Jogadores mais ativos</div>
-        ${topUsuarios.length ? topUsuarios.map(([uid,v])=>barraHtml(usuariosPorId[uid]?usuariosPorId[uid].nome:'—', v, maxUsuario, 'linear-gradient(90deg,var(--amarelo),#E0A93A)')).join('') : '<div class="empty-state"><div class="msg">Sem dados ainda</div></div>'}
-      </div>
-    </div>
-  `;
-};
-
-// =====================================================================
-// PÁGINA NOVA — TELA DO CAMPEÃO (acessível pelo Hall da Fama / Ranking)
-// =====================================================================
-Pages.telaCampeao = async function(user){
-  App.setTopbar('Tela do Campeão', 'Confira o último bolão finalizado');
-  document.getElementById('content').innerHTML = '<div class="empty-state"><div class="msg">Carregando...</div></div>';
-  const db = Store.data;
-  const bolaoFinalizado = [...db.boloes].filter(b=>b.status==='finalizado').sort((a,b)=> new Date(b.dataFim||0) - new Date(a.dataFim||0))[0];
-
-  if(!bolaoFinalizado){
-    document.getElementById('content').innerHTML = `<div class="empty-state"><div class="icon">🏆</div><div class="msg">Nenhum bolão finalizado ainda</div><div class="hint">Quando um bolão for encerrado, o campeão aparece aqui.</div></div>`;
-    return;
-  }
-
-  const ranking = await Logic.rankingDoBolao(bolaoFinalizado.id, 'geral');
-  const campeao = ranking[0];
-  if(!campeao){
-    document.getElementById('content').innerHTML = `<div class="empty-state"><div class="icon">🏆</div><div class="msg">Sem ranking disponível para este bolão</div></div>`;
-    return;
-  }
-
-  document.getElementById('content').innerHTML = `
-    <div class="card eg-card eg-glow" style="border:1px solid rgba(255,200,87,0.35);">
-      <div class="eg-champion-wrap">
-        <div class="eg-champion-trofeu">🏆</div>
-        <div class="eg-champion-nome">${escapeHtml(campeao.usuario.nome)}</div>
-        <div class="eg-champion-sub">Campeão(ã) de ${escapeHtml(bolaoFinalizado.nome)}</div>
-        <div style="margin-top:14px;display:flex;justify-content:center;gap:24px;flex-wrap:wrap;">
-          <div><div class="eg-stat-label">Pontuação</div><div class="eg-stat-value">${campeao.pontuacao} pts</div></div>
-          <div><div class="eg-stat-label">Aproveitamento</div><div class="eg-stat-value">${campeao.aproveitamento}%</div></div>
-        </div>
-        <button class="btn btn-primary eg-share-btn" id="btn-compartilhar-campeao" style="margin-top:18px;">📤 Compartilhar</button>
-      </div>
-    </div>
-    <div class="card eg-card" style="margin-top:18px;">
-      <div class="section-title" style="margin-bottom:10px;">Ranking final — ${escapeHtml(bolaoFinalizado.nome)}</div>
-      <div class="eg-podium">
-        ${ranking.slice(0,3).map((r,i)=>`
-          <div class="eg-pod-col eg-pod-${i+1}">
-            <div class="eg-pod-medal">${Engagement.medalha(i+1)}</div>
-            <div class="eg-pod-bar"></div>
-            <div class="eg-pod-name">${escapeHtml(r.usuario.nome)}</div>
-            <div class="eg-pod-pts">${r.pontuacao} pts</div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `;
-  Engagement.dispararConfete(70);
-  document.getElementById('btn-compartilhar-campeao').onclick = () => {
-    Engagement.compartilhar('Campeão do Bolão Central 🏆',
-      `${campeao.usuario.nome} é o campeão de ${bolaoFinalizado.nome} com ${campeao.pontuacao} pontos!`);
-  };
 };
 
 Pages.sorteios = function(user){
