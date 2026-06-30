@@ -1134,6 +1134,39 @@ const Map_ = {
 };
 
 // ---------------------------------------------------------------------
+// CORREÇÃO DE BUG RECORRENTE: as funções Store.reload* abaixo buscam dados
+// frescos do Supabase depois de toda escrita (salvar bolão, jogo, excluir
+// notificação, etc). Quando a sessão expira/renova no meio do uso, essa
+// LEITURA pode falhar (token ainda não revalidado) mesmo que a ESCRITA
+// anterior tenha funcionado — e antes isso era só um console.error
+// silencioso: a tela continuava mostrando dados antigos, dando a falsa
+// impressão de que "não salvou", quando na verdade salvou no Supabase e
+// só a tela não atualizou. As pessoas vinham contornando isso fazendo
+// logout/login manual. Agora isso é tratado automaticamente:
+// 1) se a leitura falhar por sinal de sessão/token, tenta renovar e
+//    refazer a leitura uma vez antes de desistir;
+// 2) se mesmo assim falhar, avisa com um toast (em vez de ficar mudo) e
+//    aciona a verificação de saúde da sessão imediatamente.
+async function supabaseComRetry(fn){
+  let resultado = await fn();
+  if(resultado && resultado.error){
+    const msg = `${resultado.error.message||''} ${resultado.error.code||''}`.toLowerCase();
+    if(/jwt|token|expired|invalid|401|403|pgrst301/.test(msg)){
+      const { error: refreshErr } = await sb.auth.refreshSession();
+      if(!refreshErr) resultado = await fn();
+    }
+  }
+  return resultado;
+}
+// Handler comum: loga, avisa a pessoa e força a checagem de sessão —
+// usado por todas as funções reload* abaixo em vez de um retorno mudo.
+function Store_tratarErroReload(label, error){
+  console.error(`Erro ao carregar ${label}:`, error);
+  toast(`Não foi possível atualizar "${label}". Verificando sua sessão...`, 'error');
+  if(typeof verificarSaudeDaSessao === 'function') verificarSaudeDaSessao();
+}
+
+// ---------------------------------------------------------------------
 // STORE — cache local em memória, sincronizado com o Supabase.
 // O resto do app lê Store.data.X de forma síncrona (igual antes);
 // as funções abaixo são responsáveis por buscar do Supabase e
@@ -1171,35 +1204,37 @@ const Store = {
   },
 
   async reloadUsuarios(){
-    const { data, error } = await sb.from('perfis').select('*').order('criado_em');
-    if(error){ console.error('Erro ao carregar usuários:', error); return; }
+    const { data, error } = await supabaseComRetry(() => sb.from('perfis').select('*').order('criado_em'));
+    if(error){ Store_tratarErroReload('usuários', error); return; }
     this.data.usuarios = (data||[]).map(Map_.usuario);
   },
 
   async reloadBoloes(){
-    const { data, error } = await sb.from('boloes').select('*').order('criado_em');
-    if(error){ console.error('[BOLAO] Erro ao carregar bolões:', error); return; }
+    const { data, error } = await supabaseComRetry(() => sb.from('boloes').select('*').order('criado_em'));
+    if(error){ Store_tratarErroReload('bolões', error); return; }
     this.data.boloes = (data||[]).map(Map_.bolao);
   },
 
   async reloadJogos(){
-    const { data, error } = await sb.from('jogos').select('*').order('data_hora');
-    if(error){ console.error('Erro ao carregar jogos:', error); return; }
+    const { data, error } = await supabaseComRetry(() => sb.from('jogos').select('*').order('data_hora'));
+    if(error){ Store_tratarErroReload('jogos', error); return; }
     this.data.jogos = (data||[]).map(Map_.jogo);
   },
 
   async reloadPalpites(){
-    const { data, error } = await sb.from('palpites').select('*');
-    if(error){ console.error('Erro ao carregar palpites:', error); return; }
+    const { data, error } = await supabaseComRetry(() => sb.from('palpites').select('*'));
+    if(error){ Store_tratarErroReload('palpites', error); return; }
     this.data.palpites = (data||[]).map(Map_.palpite);
   },
 
   async reloadNotificacoes(){
-    const { data, error } = await sb.from('notificacoes').select('*').order('criado_em', { ascending: false });
+    const { data, error } = await supabaseComRetry(() => sb.from('notificacoes').select('*').order('criado_em', { ascending: false }));
     if(error){
       console.error('Erro ao carregar notificações:', error);
       this.ultimoErroNotificacoes = error.message;
       this.data.notificacoes = this.data.notificacoes || []; // nunca deixa undefined
+      toast('Não foi possível atualizar as notificações. Verificando sua sessão...', 'error');
+      if(typeof verificarSaudeDaSessao === 'function') verificarSaudeDaSessao();
       return;
     }
     this.ultimoErroNotificacoes = null;
@@ -1214,14 +1249,14 @@ const Store = {
   },
 
   async reloadPagamentos(){
-    const { data, error } = await sb.from('pagamentos').select('*');
-    if(error){ console.error('Erro ao carregar pagamentos:', error); return; }
+    const { data, error } = await supabaseComRetry(() => sb.from('pagamentos').select('*'));
+    if(error){ Store_tratarErroReload('pagamentos', error); return; }
     this.data.pagamentos = (data||[]).map(Map_.pagamento);
   },
 
   async reloadSorteios(){
-    const { data: sorteios, error } = await sb.from('sorteios').select('*').order('criado_em');
-    if(error){ console.error('Erro ao carregar sorteios:', error); return; }
+    const { data: sorteios, error } = await supabaseComRetry(() => sb.from('sorteios').select('*').order('criado_em'));
+    if(error){ Store_tratarErroReload('sorteios', error); return; }
     const { data: cotas } = await sb.from('cotas').select('*');
     this.data.sorteios = (sorteios||[]).map(s => Map_.sorteio(s, (cotas||[]).filter(c=>c.sorteio_id===s.id)));
   },
@@ -2555,10 +2590,12 @@ Pages.adminNotificacoes = async function(){
           : 'Excluir esta notificação? Essa ação não pode ser desfeita.';
         if(!confirm(confirmMsg)) return;
         btn.disabled = true;
-        const { error } = await sb.from('notificacoes').delete().in('id', ids);
+        const { error } = await supabaseComRetry(() => sb.from('notificacoes').delete().in('id', ids));
         if(error){ toast('Erro ao excluir: ' + error.message, 'error'); btn.disabled = false; return; }
-        toast(ids.length > 1 ? `Notificação excluída (${ids.length} cópias removidas).` : 'Notificação excluída.');
         await Store.reloadNotificacoes();
+        if(!Store.ultimoErroNotificacoes){
+          toast(ids.length > 1 ? `Notificação excluída (${ids.length} cópias removidas).` : 'Notificação excluída.');
+        }
         render();
       };
     });
@@ -3271,7 +3308,11 @@ Pages.partDashboard = async function(user){
     .sort((a,b)=>new Date(b.dataHora)-new Date(a.dataHora))[0];
   const rodadaAtual = (proxJogoBolao && proxJogoBolao.rodada) || (ultimoFinalizadoBolao && ultimoFinalizadoBolao.rodada) || '—';
   const finBolao = bolaoRanking ? Logic.resumoFinanceiro(bolaoRanking.id) : {totalArrecadado:0};
-  const premiacaoEstimada = Math.round((finBolao.totalArrecadado||0) * 0.85 * 100) / 100;
+  // "Premiação" é um campo de texto definido pelo admin no cadastro do bolão
+  // (ex: "1º lugar: R$300, 2º: R$150...") — não um valor calculado.
+  // Antes essa caixa mostrava 85% do arrecadado, um número inventado que não
+  // refletia a premiação real cadastrada. Corrigido para usar o valor real.
+  const premiacaoTexto = (bolaoRanking && bolaoRanking.premiacao) ? bolaoRanking.premiacao : 'Não definida';
 
   const proximosJogos = db.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora)).slice(0,3);
   const minhasNotifs = db.notificacoes.filter(n=>n.usuarioId===user.id).slice(0,4);
@@ -3412,9 +3453,9 @@ Pages.partDashboard = async function(user){
             <div class="num-label">Arrecadado</div>
             <div class="num-valor" style="color:var(--verde);">${fmtMoney(finBolao.totalArrecadado)}</div>
           </div>
-          <div class="painel-num-item">
+          <div class="painel-num-item" style="${premiacaoTexto.length>14?'grid-column:span 2;':''}">
             <div class="num-label">Premiação</div>
-            <div class="num-valor" style="color:var(--amarelo);">${fmtMoney(premiacaoEstimada)}</div>
+            <div class="num-valor" style="color:var(--amarelo);font-size:${premiacaoTexto.length>14?'11px':'13px'};white-space:normal;line-height:1.3;">${escapeHtml(premiacaoTexto)}</div>
           </div>
           <div class="painel-num-item">
             <div class="num-label">Encerrados</div>
@@ -4546,15 +4587,15 @@ const Modals = {
 
       let error;
       if(editing){
-        ({ error } = await sb.from('boloes').update(linha).eq('id', bolao.id));
+        ({ error } = await supabaseComRetry(() => sb.from('boloes').update(linha).eq('id', bolao.id)));
       } else {
-        ({ error } = await sb.from('boloes').insert(linha));
+        ({ error } = await supabaseComRetry(() => sb.from('boloes').insert(linha)));
       }
       if(error){ toast('Erro ao salvar bolão: ' + error.message, 'error'); btn.disabled=false; btn.textContent=editing?'Salvar alterações':'Criar bolão'; return; }
 
       Store.log(Session.currentUser().id, editing ? `Bolão "${nome}" editado.` : `Bolão "${nome}" criado.`);
-      toast(editing ? 'Bolão atualizado!' : 'Bolão criado!');
       await Store.reloadBoloes();
+      toast(editing ? 'Bolão atualizado!' : 'Bolão criado!');
       App.closeModal();
       Pages.adminBoloes();
     };
@@ -4603,15 +4644,15 @@ const Modals = {
 
       let error;
       if(editing){
-        ({ error } = await sb.from('jogos').update(linha).eq('id', jogo.id));
+        ({ error } = await supabaseComRetry(() => sb.from('jogos').update(linha).eq('id', jogo.id)));
       } else {
-        ({ error } = await sb.from('jogos').insert(linha));
+        ({ error } = await supabaseComRetry(() => sb.from('jogos').insert(linha)));
       }
       if(error){ toast('Erro ao salvar jogo: ' + error.message, 'error'); btn.disabled=false; btn.textContent=editing?'Salvar':'Criar jogo'; return; }
 
       Store.log(Session.currentUser().id, editing ? `Jogo "${mandante} x ${visitante}" editado.` : `Jogo "${mandante} x ${visitante}" criado.`);
-      toast(editing ? 'Jogo atualizado!' : 'Jogo criado!');
       await Store.reloadJogos();
+      toast(editing ? 'Jogo atualizado!' : 'Jogo criado!');
       App.closeModal();
       Pages.adminJogos();
     };
