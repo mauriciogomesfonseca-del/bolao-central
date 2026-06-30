@@ -1483,30 +1483,24 @@ const Logic = {
     await Store.reloadPalpites();
   },
 
-  rankingDoBolao(bolaoId, periodo){
+  async rankingDoBolao(bolaoId, periodo){
     const db = Store.data;
-    const jogosDoBolao = db.jogos.filter(j => j.bolaoId === bolaoId).map(j=>j.id);
     const participantes = db.usuarios.filter(u => u.perfil === 'participante');
 
-    let palpitesConsiderados = db.palpites.filter(p => jogosDoBolao.includes(p.jogoId));
-
-    if(periodo === 'mensal'){
-      const mesAtual = new Date().toISOString().slice(0,7);
-      const jogosDoMes = db.jogos.filter(j => j.bolaoId===bolaoId && j.dataHora && j.dataHora.slice(0,7)===mesAtual).map(j=>j.id);
-      palpitesConsiderados = palpitesConsiderados.filter(p => jogosDoMes.includes(p.jogoId));
-    }
+    // Busca da view pública (sem RLS) para que participantes vejam pontos de todos
+    const { data: rankData } = await sb.from('ranking_publico')
+      .select('*')
+      .eq('bolao_id', bolaoId);
 
     const linhas = participantes.map(u => {
-      const meus = palpitesConsiderados.filter(p => p.usuarioId === u.id);
-      const jogosFinalizados = meus.filter(p => {
-        const j = db.jogos.find(jj=>jj.id===p.jogoId);
-        return j && j.status==='finalizado';
-      });
-      const acertos = jogosFinalizados.filter(p => p.pontos > 0).length;
-      const erros = jogosFinalizados.filter(p => p.pontos === 0).length;
-      const pontuacao = meus.reduce((s,p)=>s+(p.pontos||0),0);
-      const aproveitamento = jogosFinalizados.length ? Math.round((acertos/jogosFinalizados.length)*100) : 0;
-      return { usuario:u, pontuacao, acertos, erros, aproveitamento, jogosPalpitados: meus.length };
+      const r = (rankData||[]).find(x=>x.usuario_id===u.id);
+      const pontuacao = r ? Number(r.pontuacao)||0 : 0;
+      const acertos = r ? Number(r.acertos)||0 : 0;
+      const erros = r ? Number(r.erros)||0 : 0;
+      const totalPalpites = r ? Number(r.total_palpites)||0 : 0;
+      const jogosFinalizados = acertos + erros;
+      const aproveitamento = jogosFinalizados ? Math.round((acertos/jogosFinalizados)*100) : 0;
+      return { usuario:u, pontuacao, acertos, erros, aproveitamento, jogosPalpitados: totalPalpites };
     });
 
     linhas.sort((a,b)=> b.pontuacao - a.pontuacao || b.aproveitamento - a.aproveitamento);
@@ -2586,25 +2580,31 @@ Pages.adminJogos = function(){
     </div>
   `;
   Pages._bindSumulaEvents();
+  Pages._carregarGanhadoresAsync(ordenados);
 };
 
-Pages._calcularGanhadoresJogo = function(j){
-  const db = Store.data;
+Pages._calcularGanhadoresJogo = async function(j){
   if(j.status !== 'finalizado' || j.placarMandante === null || j.placarVisitante === null) return null;
-  const palpites = db.palpites.filter(p =>
-    p.jogoId === j.id &&
-    p.placarMandante === j.placarMandante &&
-    p.placarVisitante === j.placarVisitante
-  );
-  if(!palpites.length) return { ganhadores: [], premioTotal: 0, premioPorGanhador: 0, totalPalpites: db.palpites.filter(p=>p.jogoId===j.id).length };
-  const totalPalpites = db.palpites.filter(p=>p.jogoId===j.id).length;
+
+  // Busca contagem total de palpites do jogo no banco (RLS impede ver palpites alheios no cache)
+  const { data: todosPalpites } = await sb.from('palpites')
+    .select('id, usuario_id, placar_mandante, placar_visitante')
+    .eq('jogo_id', j.id);
+
+  const todos = todosPalpites || [];
+  const totalPalpites = todos.length;
+  const acertaram = todos.filter(p => p.placar_mandante === j.placarMandante && p.placar_visitante === j.placarVisitante);
+
   const VALOR_PALPITE = 10;
   const premioTotal = Math.round(totalPalpites * VALOR_PALPITE * 0.85 * 100) / 100;
-  const premioPorGanhador = Math.round((premioTotal / palpites.length) * 100) / 100;
-  const ganhadores = palpites.map(p => {
-    const u = db.usuarios.find(u=>u.id===p.usuarioId);
-    return { usuario: u, palpite: p };
+  const premioPorGanhador = acertaram.length ? Math.round((premioTotal / acertaram.length) * 100) / 100 : 0;
+
+  const db = Store.data;
+  const ganhadores = acertaram.map(p => {
+    const u = db.usuarios.find(u=>u.id===p.usuario_id);
+    return { usuario: u, palpiteId: p.id };
   });
+
   return { ganhadores, premioTotal, premioPorGanhador, totalPalpites };
 };
 
@@ -2615,35 +2615,10 @@ Pages._sumulaEditavel = function(j){
   const emAndamento = j.status==='em_andamento';
   const isLive = !finalizado && (emAndamento || (j.dataHora && new Date(j.dataHora) <= new Date()));
 
-  // Bloco de ganhadores (só exibe se finalizado)
-  let blocoGanhadores = '';
-  if(finalizado){
-    const res = Pages._calcularGanhadoresJogo(j);
-    if(res){
-      const totalPalpites = res.totalPalpites;
-      const VALOR_PALPITE = 10;
-      const premioTotal = res.premioTotal;
-      if(res.ganhadores.length === 0){
-        blocoGanhadores = `
-        <div style="padding:10px 14px;border-top:1px solid var(--linha);background:rgba(0,0,0,0.15);">
-          <div style="font-size:11px;font-weight:700;color:var(--texto-3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">🏆 Ganhadores do placar exato</div>
-          <div style="font-size:12px;color:var(--texto-3);">Ninguém acertou o placar exato · ${totalPalpites} palpite(s) · Prêmio acumulado: <strong style="color:var(--amarelo);">${fmtMoney(premioTotal)}</strong></div>
-        </div>`;
-      } else {
-        blocoGanhadores = `
-        <div style="padding:10px 14px;border-top:1px solid var(--linha);background:rgba(255,215,0,0.06);">
-          <div style="font-size:11px;font-weight:700;color:var(--amarelo);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">🏆 Ganhadores do placar exato</div>
-          <div style="font-size:12px;color:var(--texto-2);margin-bottom:6px;">${totalPalpites} palpite(s) · Prêmio total: <strong style="color:var(--verde);">${fmtMoney(premioTotal)}</strong> · <strong style="color:var(--verde);">${fmtMoney(res.premioPorGanhador)}</strong> por ganhador</div>
-          ${res.ganhadores.map(g=>`
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--linha);">
-              <span style="font-weight:700;font-size:13px;">🥇 ${escapeHtml(g.usuario?g.usuario.nome:'—')}</span>
-              <span class="font-mono" style="color:var(--verde);font-weight:700;">${fmtMoney(res.premioPorGanhador)}</span>
-            </div>
-          `).join('')}
-        </div>`;
-      }
-    }
-  }
+  // Placeholder para ganhadores — preenchido de forma async após render
+  const blocoGanhadores = finalizado
+    ? `<div id="ganhadores-${j.id}" style="padding:10px 14px;border-top:1px solid var(--linha);background:rgba(0,0,0,0.1);font-size:12px;color:var(--texto-3);">Carregando ganhadores...</div>`
+    : '';
 
   return `
   <div class="sumula">
@@ -2672,6 +2647,29 @@ Pages._sumulaEditavel = function(j){
       </span>
     </div>
   </div>`;
+};
+
+// Preenche os blocos de ganhadores de forma async após render do adminJogos
+Pages._carregarGanhadoresAsync = async function(jogos){
+  const finalizados = jogos.filter(j=>j.status==='finalizado');
+  await Promise.all(finalizados.map(async j=>{
+    const el = document.getElementById(`ganhadores-${j.id}`);
+    if(!el) return;
+    const res = await Pages._calcularGanhadoresJogo(j);
+    if(!res){ el.remove(); return; }
+    if(res.ganhadores.length===0){
+      el.style.background='rgba(0,0,0,0.15)';
+      el.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--texto-3);text-transform:uppercase;margin-bottom:4px;">🏆 Ganhadores do placar exato</div><div>Ninguém acertou · ${res.totalPalpites} palpite(s) · Prêmio acumulado: <strong style="color:var(--amarelo);">${fmtMoney(res.premioTotal)}</strong></div>`;
+    } else {
+      el.style.background='rgba(255,215,0,0.06)';
+      el.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--amarelo);text-transform:uppercase;margin-bottom:6px;">🏆 Ganhadores do placar exato</div>
+        <div style="font-size:12px;color:var(--texto-2);margin-bottom:6px;">${res.totalPalpites} palpite(s) · Prêmio total: <strong style="color:var(--verde);">${fmtMoney(res.premioTotal)}</strong> · <strong style="color:var(--verde);">${fmtMoney(res.premioPorGanhador)}</strong> por ganhador</div>
+        ${res.ganhadores.map(g=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--linha);">
+          <span style="font-weight:700;font-size:13px;">🥇 ${escapeHtml(g.usuario?g.usuario.nome:'—')}</span>
+          <span class="font-mono" style="color:var(--verde);font-weight:700;">${fmtMoney(res.premioPorGanhador)}</span>
+        </div>`).join('')}`;
+    }
+  }));
 };
 
 Pages._bindSumulaEvents = function(){
@@ -3030,7 +3028,7 @@ Pages._cardRelatorio = function(titulo, sub, key){
   </div>`;
 };
 
-Pages._exportarCSV = function(tipo){
+Pages._exportarCSV = async function(tipo){
   const db = Store.data;
   let rows = [], filename = `${tipo}.csv`;
   if(tipo==='participantes'){
@@ -3045,7 +3043,10 @@ Pages._exportarCSV = function(tipo){
   } else if(tipo==='ranking'){
     rows = [['Posição','Nome','Pontuação','Acertos','Erros','Aproveitamento %']];
     const bolao = db.boloes[0];
-    if(bolao) Logic.rankingDoBolao(bolao.id,'geral').forEach(l=> rows.push([l.posicao,l.usuario.nome,l.pontuacao,l.acertos,l.erros,l.aproveitamento]));
+    if(bolao){
+      const linhas = await Logic.rankingDoBolao(bolao.id,'geral');
+      linhas.forEach(l=> rows.push([l.posicao,l.usuario.nome,l.pontuacao,l.acertos,l.erros,l.aproveitamento]));
+    }
   } else if(tipo==='jogos'){
     rows = [['Mandante','Visitante','Placar mandante','Placar visitante','Data','Status']];
     db.jogos.forEach(j=> rows.push([j.mandante,j.visitante,j.placarMandante,j.placarVisitante,j.dataHora,j.status]));
@@ -3155,54 +3156,56 @@ Pages.partDashboard = async function(user){
 
   // Ranking: usa o bolão onde o usuário tem palpites; se não tiver, usa o ativo
   const bolaoRanking = db.boloes.find(b=>meusBolaoIds.includes(b.id)) || bolao;
-  const ranking = bolaoRanking ? Logic.rankingDoBolao(bolaoRanking.id,'geral') : [];
+  const ranking = bolaoRanking ? await Logic.rankingDoBolao(bolaoRanking.id,'geral') : [];
   const minhaLinha = ranking.find(r=>r.usuario.id===user.id);
-
-  // Busca pagamento do usuário no bolão correto
-  const meuPagamento = db.pagamentos.find(p=>p.usuarioId===user.id && p.bolaoId===bolao?.id)
-    || db.pagamentos.find(p=>p.usuarioId===user.id);
 
   const proximosJogos = db.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora)).slice(0,3);
   const minhasNotifs = db.notificacoes.filter(n=>n.usuarioId===user.id).slice(0,4);
 
   // Calcula ganhadores de jogos finalizados em todos os bolões do usuário
-  const cardGanhadores = (() => {
+  const calcularCardGanhadores = async () => {
     if(!meusBolaoIds.length) return '';
-    const blocos = meusBolaoIds.map(bid=>{
+    const blocos = await Promise.all(meusBolaoIds.map(async bid=>{
       const b = db.boloes.find(x=>x.id===bid);
       const jogosFinalizados = db.jogos.filter(j=>j.bolaoId===bid && j.status==='finalizado');
       if(!jogosFinalizados.length) return '';
-      const linhas = jogosFinalizados.map(j=>{
-        const res = Pages._calcularGanhadoresJogo(j);
+      const linhas = await Promise.all(jogosFinalizados.map(async j=>{
+        const res = await Pages._calcularGanhadoresJogo(j);
         if(!res) return '';
         const euGanhei = res.ganhadores.some(g=>g.usuario&&g.usuario.id===user.id);
         if(res.ganhadores.length===0){
           return `<div style="padding:8px 0;border-bottom:1px solid var(--linha);font-size:12px;">
             <span style="font-weight:700;">${escapeHtml(j.mandante)} ${j.placarMandante}×${j.placarVisitante} ${escapeHtml(j.visitante)}</span>
-            <span style="color:var(--texto-3);margin-left:8px;">Ninguém acertou · prêmio acumulado ${fmtMoney(res.premioTotal)}</span>
+            <span style="color:var(--texto-3);margin-left:8px;">Ninguém acertou · prêmio total ${fmtMoney(res.premioTotal)} (${res.totalPalpites} palpites)</span>
           </div>`;
         }
         return `<div style="padding:8px 0;border-bottom:1px solid var(--linha);font-size:12px;">
-          <div style="font-weight:700;margin-bottom:4px;">${escapeHtml(j.mandante)} ${j.placarMandante}×${j.placarVisitante} ${escapeHtml(j.visitante)}</div>
+          <div style="font-weight:700;margin-bottom:4px;">${escapeHtml(j.mandante)} ${j.placarMandante}×${j.placarVisitante} ${escapeHtml(j.visitante)} · ${res.totalPalpites} palpites</div>
           ${res.ganhadores.map(g=>`<div style="display:flex;justify-content:space-between;${g.usuario&&g.usuario.id===user.id?'color:var(--amarelo);font-weight:700;':'color:var(--texto-2);'}">
             <span>🏆 ${escapeHtml(g.usuario?g.usuario.nome:'—')}</span>
             <span class="font-mono">${fmtMoney(res.premioPorGanhador)}</span>
           </div>`).join('')}
           ${euGanhei?`<div style="margin-top:4px;font-size:11px;color:var(--verde);font-weight:700;">🎉 Você acertou! Aguarde o contato do organizador.</div>`:''}
         </div>`;
-      }).join('');
-      if(!linhas) return '';
+      }));
+      const linhasJoined = linhas.join('');
+      if(!linhasJoined) return '';
       return `<div style="margin-bottom:10px;">
         <div style="font-size:11px;font-weight:700;color:var(--texto-3);text-transform:uppercase;margin-bottom:6px;">${escapeHtml(b?b.nome:'Bolão')}</div>
-        ${linhas}
+        ${linhasJoined}
       </div>`;
-    }).join('');
-    if(!blocos) return '';
+    }));
+    const blocosJoined = blocos.join('');
+    if(!blocosJoined) return '';
     return `<div class="card" style="margin-bottom:18px;border-left:3px solid var(--amarelo);">
       <div class="section-title" style="margin-bottom:10px;">🏆 Resultados & Ganhadores</div>
-      ${blocos}
+      ${blocosJoined}
     </div>`;
-  })();
+  };
+  const cardGanhadores = await calcularCardGanhadores();
+
+  // Pagamento: só mostra se for do bolão ativo atual
+  const meuPagamento = db.pagamentos.find(p=>p.usuarioId===user.id && p.bolaoId===bolao?.id) || null;
 
   // Marca como lidas em segundo plano
   const naoLidas = minhasNotifs.filter(n=>!n.lida).map(n=>n.id);
@@ -3529,7 +3532,7 @@ Pages.partTurma = async function(user){
 
   const participantes = db.usuarios.filter(u=>u.perfil==='participante');
   const jogos = db.jogos.filter(j=>j.bolaoId===bolao.id).sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora));
-  const ranking = Logic.rankingDoBolao(bolao.id,'geral');
+  const ranking = await Logic.rankingDoBolao(bolao.id,'geral');
 
   // Card de participantes
   const cardPart = `
@@ -4042,17 +4045,20 @@ Pages.partPerfil = function(user){
 // =====================================================================
 // PÁGINAS COMPARTILHADAS — RANKING e SORTEIOS
 // =====================================================================
-Pages.ranking = function(user){
+Pages.ranking = async function(user){
   App.setTopbar('Ranking', 'Classificação geral dos participantes');
+  document.getElementById('content').innerHTML = '<div class="empty-state"><div class="msg">Carregando ranking...</div></div>';
   const db = Store.data;
-  const bolao = db.boloes.find(b=>b.status==='ativo') || db.boloes[0];
-  if(!bolao){
+  // Usa o bolão mais recente com jogos finalizados, ou o primeiro ativo
+  const bolaoComJogos = db.boloes.find(b=>db.jogos.some(j=>j.bolaoId===b.id && j.status==='finalizado'))
+    || db.boloes.find(b=>b.status==='ativo') || db.boloes[0];
+  if(!bolaoComJogos){
     document.getElementById('content').innerHTML = `<div class="empty-state"><div class="icon">★</div><div class="msg">Nenhum bolão cadastrado ainda</div></div>`;
     return;
   }
   let periodo = 'geral';
-  const draw = () => {
-    const linhas = Logic.rankingDoBolao(bolao.id, periodo);
+  const draw = async () => {
+    const linhas = await Logic.rankingDoBolao(bolaoComJogos.id, periodo);
     document.getElementById('content').innerHTML = `
       <div class="tabs">
         <div class="tab ${periodo==='geral'?'active':''}" data-p="geral">Geral</div>
