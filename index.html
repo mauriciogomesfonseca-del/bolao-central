@@ -427,33 +427,86 @@ body{
   border:1px solid var(--linha);
   border-radius:var(--radius);
   padding:18px;
-  transition:border-color .15s, transform .18s ease, box-shadow .18s ease;
+  transition:border-color .15s;
 }
 .card-flush{padding:0;overflow:hidden;}
 .card-flush.table-scroll{overflow-x:auto;}
 @media (max-width:860px){.card-flush.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}}
 
-/* Efeito hover sutil — só em dispositivos com mouse, não afeta toque/mobile */
-@media (hover:hover){
-  .card:hover{transform:translateY(-2px);box-shadow:0 8px 20px -8px rgba(0,0,0,0.45);border-color:var(--azul);}
-  .mini-stat:hover, .stat-card:hover, .podio-item:hover{transform:translateY(-2px);box-shadow:0 6px 16px -8px rgba(0,0,0,0.5);}
-}
-.mini-stat, .stat-card, .podio-item{transition:transform .18s ease, box-shadow .18s ease;}
+/* ===================== MÓDULO: MELHORIAS INTERNAS (não afeta login) ===================== */
+.card-hover{transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;}
+.card-hover:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.25);border-color:rgba(255,255,255,0.15);}
 
-/* Animação leve de entrada — opacity+translate, GPU-friendly, sem JS */
-@keyframes fadeInUp{
-  from{opacity:0;transform:translateY(8px);}
-  to{opacity:1;transform:translateY(0);}
+.podio-card{position:relative;border-radius:14px;padding:16px;text-align:center;overflow:hidden;}
+.podio-card.ouro{background:linear-gradient(160deg,rgba(255,215,0,0.16),rgba(255,215,0,0.02));border:1px solid rgba(255,215,0,0.35);}
+.podio-card.prata{background:linear-gradient(160deg,rgba(192,192,192,0.14),rgba(192,192,192,0.02));border:1px solid rgba(192,192,192,0.3);}
+.podio-card.bronze{background:linear-gradient(160deg,rgba(205,127,50,0.14),rgba(205,127,50,0.02));border:1px solid rgba(205,127,50,0.3);}
+.podio-medal{font-size:30px;display:block;margin-bottom:6px;}
+.podio-nome{font-weight:700;font-size:13px;margin-bottom:2px;}
+.podio-pts{font-family:'Space Mono',monospace;font-size:18px;font-weight:800;}
+
+.seta-sobe{color:var(--verde);font-size:11px;font-weight:700;}
+.seta-desce{color:var(--vermelho,#ef4444);font-size:11px;font-weight:700;}
+.seta-igual{color:var(--texto-3);font-size:11px;}
+
+.badge-medalha{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);
+  border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;
 }
-.anim-in{animation:fadeInUp .35s ease both;}
-.anim-in.d1{animation-delay:.04s;}
-.anim-in.d2{animation-delay:.08s;}
-.anim-in.d3{animation-delay:.12s;}
-.anim-in.d4{animation-delay:.16s;}
-@media (prefers-reduced-motion:reduce){
-  .anim-in{animation:none;}
-  .card:hover, .mini-stat:hover, .stat-card:hover, .podio-item:hover{transform:none;}
+.medalha-card{
+  background:var(--card);border:1px solid var(--linha);border-radius:12px;
+  padding:16px;text-align:center;transition:transform .2s, box-shadow .2s;
 }
+.medalha-card.conquistada{border-color:rgba(255,215,0,0.35);background:linear-gradient(160deg,rgba(255,215,0,0.08),transparent);}
+.medalha-card.bloqueada{opacity:0.4;filter:grayscale(1);}
+.medalha-card:hover{transform:translateY(-2px);}
+.medalha-icone{font-size:32px;margin-bottom:8px;display:block;}
+.medalha-nome{font-weight:700;font-size:12px;margin-bottom:4px;}
+.medalha-desc{font-size:10.5px;color:var(--texto-3);line-height:1.4;}
+.medalha-data{font-size:10px;color:var(--verde);margin-top:6px;font-weight:600;}
+
+.feed-item{
+  display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--linha);
+  animation:feedFadeIn .4s ease both;
+}
+@keyframes feedFadeIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+.feed-icone{font-size:18px;flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--bg-3);display:flex;align-items:center;justify-content:center;}
+.feed-texto{font-size:13px;color:var(--texto-2);}
+.feed-texto strong{color:var(--texto);}
+.feed-tempo{font-size:10.5px;color:var(--texto-3);margin-top:2px;}
+
+.progress-bar-anim{
+  width:100%;height:8px;background:var(--bg-3);border-radius:999px;overflow:hidden;
+}
+.progress-bar-anim .fill{
+  height:100%;border-radius:999px;background:linear-gradient(90deg,var(--verde),var(--azul));
+  transition:width 1s cubic-bezier(0.22,1,0.36,1);
+}
+
+.glow-sutil{box-shadow:0 0 24px rgba(37,99,235,0.12);}
+
+.btn-compartilhar{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--bg-3);border:1px solid var(--linha);border-radius:8px;
+  padding:8px 14px;font-size:12px;font-weight:600;color:var(--texto);cursor:pointer;
+  transition:background .15s, border-color .15s;
+}
+.btn-compartilhar:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.2);}
+
+.confete{position:fixed;top:-20px;width:8px;height:14px;z-index:9998;pointer-events:none;animation:cair linear forwards;}
+@keyframes cair{
+  to{ transform:translateY(110vh) rotate(540deg); opacity:0.3; }
+}
+
+.mascote-dica{
+  display:flex;align-items:center;gap:10px;
+  background:linear-gradient(135deg,rgba(37,99,235,0.1),rgba(30,215,96,0.05));
+  border:1px solid rgba(37,99,235,0.2);border-radius:10px;padding:12px 14px;margin-bottom:16px;
+  animation:mascoteDicaIn .5s ease both;
+}
+@keyframes mascoteDicaIn{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+/* ===================== FIM MÓDULO MELHORIAS INTERNAS ===================== */
 
 .stat-card{
   background:var(--card);
@@ -472,84 +525,6 @@ body{
 .stat-label{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--texto-2);font-weight:700;margin-bottom:7px;}
 .stat-value{font-family:'Space Mono',monospace;font-size:26px;font-weight:700;color:var(--texto);}
 .stat-sub{font-size:11px;color:var(--texto-3);margin-top:4px;}
-
-/* ---------- PAINEL DO BOLÃO (podium + números-chave) ---------- */
-.painel-bolao{
-  margin-bottom:18px;
-  border-left:3px solid var(--amarelo);
-}
-.podio-row{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-  margin-bottom:14px;
-}
-.podio-item{
-  background:var(--bg-3);
-  border-radius:8px;
-  padding:12px 8px;
-  text-align:center;
-  position:relative;
-  border:1px solid transparent;
-}
-.podio-item.eu{border-color:var(--azul);background:var(--azul-bg);}
-.podio-item .podio-medalha{font-size:22px;line-height:1;margin-bottom:4px;}
-.podio-item .podio-nome{font-size:11px;font-weight:700;color:var(--texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.podio-item .podio-pts{font-family:'Space Mono',monospace;font-size:13px;color:var(--texto-2);margin-top:2px;}
-.painel-numeros{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(90px,1fr));
-  gap:8px;
-}
-.painel-num-item{
-  background:var(--bg-3);
-  border-radius:8px;
-  padding:9px 8px;
-  text-align:center;
-}
-.painel-num-item .num-label{font-size:9.5px;text-transform:uppercase;letter-spacing:0.03em;color:var(--texto-3);font-weight:700;margin-bottom:3px;white-space:nowrap;}
-.painel-num-item .num-valor{font-family:'Space Mono',monospace;font-size:15px;font-weight:800;color:var(--texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
-/* Regulamento recolhível — usa <details> nativo, sem JS extra */
-.regulamento-toggle summary{cursor:pointer;list-style:none;}
-.regulamento-toggle summary::-webkit-details-marker{display:none;}
-.regulamento-toggle summary .seta{display:inline-block;transition:transform .15s ease;font-size:11px;color:var(--texto-3);}
-.regulamento-toggle[open] summary .seta{transform:rotate(90deg);}
-
-/* ---------- MINI-STATS COMPACTOS (dashboard) ---------- */
-.mini-stats{
-  display:flex;
-  gap:10px;
-  overflow-x:auto;
-  -webkit-overflow-scrolling:touch;
-  scrollbar-width:none;
-  margin-bottom:18px;
-  padding-bottom:2px;
-}
-.mini-stats::-webkit-scrollbar{display:none;}
-.mini-stat{
-  flex:1 1 0;
-  min-width:78px;
-  background:var(--card);
-  border:1px solid var(--linha);
-  border-radius:var(--radius);
-  padding:9px 10px;
-  position:relative;
-  overflow:hidden;
-  text-align:center;
-}
-.mini-stat::before{
-  content:"";position:absolute;top:0;left:0;width:100%;height:2px;
-  background:var(--azul);
-}
-.mini-stat.alert::before{background:var(--vermelho);}
-.mini-stat.good::before{background:var(--verde);}
-.mini-stat .mini-label{font-size:9px;text-transform:uppercase;letter-spacing:0.04em;color:var(--texto-3);font-weight:700;margin-bottom:3px;white-space:nowrap;}
-.mini-stat .mini-value{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--texto);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-@media (max-width:480px){
-  .mini-stat{min-width:68px;padding:8px 6px;}
-  .mini-stat .mini-value{font-size:13px;}
-}
 
 .section-title{
   font-family:'Archivo Black',sans-serif;
@@ -1134,39 +1109,6 @@ const Map_ = {
 };
 
 // ---------------------------------------------------------------------
-// CORREÇÃO DE BUG RECORRENTE: as funções Store.reload* abaixo buscam dados
-// frescos do Supabase depois de toda escrita (salvar bolão, jogo, excluir
-// notificação, etc). Quando a sessão expira/renova no meio do uso, essa
-// LEITURA pode falhar (token ainda não revalidado) mesmo que a ESCRITA
-// anterior tenha funcionado — e antes isso era só um console.error
-// silencioso: a tela continuava mostrando dados antigos, dando a falsa
-// impressão de que "não salvou", quando na verdade salvou no Supabase e
-// só a tela não atualizou. As pessoas vinham contornando isso fazendo
-// logout/login manual. Agora isso é tratado automaticamente:
-// 1) se a leitura falhar por sinal de sessão/token, tenta renovar e
-//    refazer a leitura uma vez antes de desistir;
-// 2) se mesmo assim falhar, avisa com um toast (em vez de ficar mudo) e
-//    aciona a verificação de saúde da sessão imediatamente.
-async function supabaseComRetry(fn){
-  let resultado = await fn();
-  if(resultado && resultado.error){
-    const msg = `${resultado.error.message||''} ${resultado.error.code||''}`.toLowerCase();
-    if(/jwt|token|expired|invalid|401|403|pgrst301/.test(msg)){
-      const { error: refreshErr } = await sb.auth.refreshSession();
-      if(!refreshErr) resultado = await fn();
-    }
-  }
-  return resultado;
-}
-// Handler comum: loga, avisa a pessoa e força a checagem de sessão —
-// usado por todas as funções reload* abaixo em vez de um retorno mudo.
-function Store_tratarErroReload(label, error){
-  console.error(`Erro ao carregar ${label}:`, error);
-  toast(`Não foi possível atualizar "${label}". Verificando sua sessão...`, 'error');
-  if(typeof verificarSaudeDaSessao === 'function') verificarSaudeDaSessao();
-}
-
-// ---------------------------------------------------------------------
 // STORE — cache local em memória, sincronizado com o Supabase.
 // O resto do app lê Store.data.X de forma síncrona (igual antes);
 // as funções abaixo são responsáveis por buscar do Supabase e
@@ -1204,37 +1146,35 @@ const Store = {
   },
 
   async reloadUsuarios(){
-    const { data, error } = await supabaseComRetry(() => sb.from('perfis').select('*').order('criado_em'));
-    if(error){ Store_tratarErroReload('usuários', error); return; }
+    const { data, error } = await sb.from('perfis').select('*').order('criado_em');
+    if(error){ console.error('Erro ao carregar usuários:', error); return; }
     this.data.usuarios = (data||[]).map(Map_.usuario);
   },
 
   async reloadBoloes(){
-    const { data, error } = await supabaseComRetry(() => sb.from('boloes').select('*').order('criado_em'));
-    if(error){ Store_tratarErroReload('bolões', error); return; }
+    const { data, error } = await sb.from('boloes').select('*').order('criado_em');
+    if(error){ console.error('[BOLAO] Erro ao carregar bolões:', error); return; }
     this.data.boloes = (data||[]).map(Map_.bolao);
   },
 
   async reloadJogos(){
-    const { data, error } = await supabaseComRetry(() => sb.from('jogos').select('*').order('data_hora'));
-    if(error){ Store_tratarErroReload('jogos', error); return; }
+    const { data, error } = await sb.from('jogos').select('*').order('data_hora');
+    if(error){ console.error('Erro ao carregar jogos:', error); return; }
     this.data.jogos = (data||[]).map(Map_.jogo);
   },
 
   async reloadPalpites(){
-    const { data, error } = await supabaseComRetry(() => sb.from('palpites').select('*'));
-    if(error){ Store_tratarErroReload('palpites', error); return; }
+    const { data, error } = await sb.from('palpites').select('*');
+    if(error){ console.error('Erro ao carregar palpites:', error); return; }
     this.data.palpites = (data||[]).map(Map_.palpite);
   },
 
   async reloadNotificacoes(){
-    const { data, error } = await supabaseComRetry(() => sb.from('notificacoes').select('*').order('criado_em', { ascending: false }));
+    const { data, error } = await sb.from('notificacoes').select('*').order('criado_em', { ascending: false });
     if(error){
       console.error('Erro ao carregar notificações:', error);
       this.ultimoErroNotificacoes = error.message;
       this.data.notificacoes = this.data.notificacoes || []; // nunca deixa undefined
-      toast('Não foi possível atualizar as notificações. Verificando sua sessão...', 'error');
-      if(typeof verificarSaudeDaSessao === 'function') verificarSaudeDaSessao();
       return;
     }
     this.ultimoErroNotificacoes = null;
@@ -1249,14 +1189,14 @@ const Store = {
   },
 
   async reloadPagamentos(){
-    const { data, error } = await supabaseComRetry(() => sb.from('pagamentos').select('*'));
-    if(error){ Store_tratarErroReload('pagamentos', error); return; }
+    const { data, error } = await sb.from('pagamentos').select('*');
+    if(error){ console.error('Erro ao carregar pagamentos:', error); return; }
     this.data.pagamentos = (data||[]).map(Map_.pagamento);
   },
 
   async reloadSorteios(){
-    const { data: sorteios, error } = await supabaseComRetry(() => sb.from('sorteios').select('*').order('criado_em'));
-    if(error){ Store_tratarErroReload('sorteios', error); return; }
+    const { data: sorteios, error } = await sb.from('sorteios').select('*').order('criado_em');
+    if(error){ console.error('Erro ao carregar sorteios:', error); return; }
     const { data: cotas } = await sb.from('cotas').select('*');
     this.data.sorteios = (sorteios||[]).map(s => Map_.sorteio(s, (cotas||[]).filter(c=>c.sorteio_id===s.id)));
   },
@@ -1749,6 +1689,10 @@ const App = {
     { key:'ranking', label:'Ranking', icon:'★' },
     { key:'pagamentos', label:'Meu Pagamento', icon:'$' },
     { key:'sorteios', label:'Sorteios & Rifas', icon:'⊙' },
+    { section: 'Comunidade' },
+    { key:'hall', label:'Hall da Fama', icon:'🏛️' },
+    { key:'conquistas', label:'Minhas Conquistas', icon:'🎖️' },
+    { key:'feed', label:'Atividades', icon:'📰' },
     { section:'🎉 Diversão' },
     { key:'diversao', label:'Modo Diversão', icon:'🎉' },
     { section:'Conta' },
@@ -1938,6 +1882,9 @@ const App = {
       pagamentos: Pages.partPagamentos,
       sorteios: Pages.sorteios,
       diversao: Pages.modoDiversao,
+      hall: Pages.hallDaFama,
+      conquistas: Pages.conquistas,
+      feed: Pages.feedAtividades,
       perfil: Pages.partPerfil,
     };
 
@@ -2590,12 +2537,10 @@ Pages.adminNotificacoes = async function(){
           : 'Excluir esta notificação? Essa ação não pode ser desfeita.';
         if(!confirm(confirmMsg)) return;
         btn.disabled = true;
-        const { error } = await supabaseComRetry(() => sb.from('notificacoes').delete().in('id', ids));
+        const { error } = await sb.from('notificacoes').delete().in('id', ids);
         if(error){ toast('Erro ao excluir: ' + error.message, 'error'); btn.disabled = false; return; }
+        toast(ids.length > 1 ? `Notificação excluída (${ids.length} cópias removidas).` : 'Notificação excluída.');
         await Store.reloadNotificacoes();
-        if(!Store.ultimoErroNotificacoes){
-          toast(ids.length > 1 ? `Notificação excluída (${ids.length} cópias removidas).` : 'Notificação excluída.');
-        }
         render();
       };
     });
@@ -3298,22 +3243,6 @@ Pages.partDashboard = async function(user){
   const ranking = bolaoRanking ? await Logic.rankingDoBolao(bolaoRanking.id,'geral') : [];
   const minhaLinha = ranking.find(r=>r.usuario.id===user.id);
 
-  // ---- Dados do "Painel do Bolão" (visão geral leve, sem custo extra de rede) ----
-  const jogosDoBolaoAtual = bolaoRanking ? db.jogos.filter(j=>j.bolaoId===bolaoRanking.id) : [];
-  const jogosEncerrados = jogosDoBolaoAtual.filter(j=>j.status==='finalizado').length;
-  const jogosRestantes = jogosDoBolaoAtual.length - jogosEncerrados;
-  const proxJogoBolao = jogosDoBolaoAtual.filter(j=>j.status!=='finalizado')
-    .sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora))[0];
-  const ultimoFinalizadoBolao = jogosDoBolaoAtual.filter(j=>j.status==='finalizado')
-    .sort((a,b)=>new Date(b.dataHora)-new Date(a.dataHora))[0];
-  const rodadaAtual = (proxJogoBolao && proxJogoBolao.rodada) || (ultimoFinalizadoBolao && ultimoFinalizadoBolao.rodada) || '—';
-  const finBolao = bolaoRanking ? Logic.resumoFinanceiro(bolaoRanking.id) : {totalArrecadado:0};
-  // "Premiação" é um campo de texto definido pelo admin no cadastro do bolão
-  // (ex: "1º lugar: R$300, 2º: R$150...") — não um valor calculado.
-  // Antes essa caixa mostrava 85% do arrecadado, um número inventado que não
-  // refletia a premiação real cadastrada. Corrigido para usar o valor real.
-  const premiacaoTexto = (bolaoRanking && bolaoRanking.premiacao) ? bolaoRanking.premiacao : 'Não definida';
-
   const proximosJogos = db.jogos.filter(j=>j.status==='agendado').sort((a,b)=>new Date(a.dataHora)-new Date(b.dataHora)).slice(0,3);
   const minhasNotifs = db.notificacoes.filter(n=>n.usuarioId===user.id).slice(0,4);
 
@@ -3352,7 +3281,7 @@ Pages.partDashboard = async function(user){
     }));
     const blocosJoined = blocos.join('');
     if(!blocosJoined) return '';
-    return `<div class="card anim-in" style="margin-bottom:18px;border-left:3px solid var(--amarelo);">
+    return `<div class="card" style="margin-bottom:18px;border-left:3px solid var(--amarelo);">
       <div class="section-title" style="margin-bottom:10px;">🏆 Resultados & Ganhadores</div>
       ${blocosJoined}
     </div>`;
@@ -3371,22 +3300,26 @@ Pages.partDashboard = async function(user){
   document.getElementById('content').innerHTML = `
     <div id="card-instalar-app"></div>
     ${cardGanhadores}
-    <div class="mini-stats anim-in">
-      <div class="mini-stat">
-        <div class="mini-label">Posição</div>
-        <div class="mini-value">${minhaLinha ? '#'+minhaLinha.posicao : '—'}</div>
+    <div class="grid grid-4" style="margin-bottom:22px;">
+      <div class="stat-card">
+        <div class="stat-label">Minha posição</div>
+        <div class="stat-value">${minhaLinha ? '#'+minhaLinha.posicao : '—'}</div>
+        <div class="stat-sub">${bolaoRanking?bolaoRanking.nome:'Nenhum bolão ativo'}</div>
       </div>
-      <div class="mini-stat good">
-        <div class="mini-label">Pontos</div>
-        <div class="mini-value">${minhaLinha ? minhaLinha.pontuacao : 0}</div>
+      <div class="stat-card good">
+        <div class="stat-label">Pontuação</div>
+        <div class="stat-value">${minhaLinha ? minhaLinha.pontuacao : 0}</div>
+        <div class="stat-sub">${minhaLinha?minhaLinha.acertos+' acerto(s)':''}</div>
       </div>
-      <div class="mini-stat ${meuPagamento && meuPagamento.status!=='pago' ? 'alert':''}">
-        <div class="mini-label">Inscrição</div>
-        <div class="mini-value" style="font-size:12px;">${meuPagamento ? Pages._badgePagamento(meuPagamento.status) : '—'}</div>
+      <div class="stat-card ${meuPagamento && meuPagamento.status!=='pago' ? 'alert':''}">
+        <div class="stat-label">Minha inscrição</div>
+        <div class="stat-value" style="font-size:18px;">${meuPagamento ? Pages._badgePagamento(meuPagamento.status) : '<span style="font-size:12px;color:var(--texto-3);">Sem palpite ainda</span>'}</div>
+        <div class="stat-sub">${meuPagamento? fmtMoney(meuPagamento.valorInscricao) : (bolao?escapeHtml(bolao.nome):'')}</div>
       </div>
-      <div class="mini-stat">
-        <div class="mini-label">Aprovei.</div>
-        <div class="mini-value">${minhaLinha?minhaLinha.aproveitamento:0}%</div>
+      <div class="stat-card">
+        <div class="stat-label">Aproveitamento</div>
+        <div class="stat-value">${minhaLinha?minhaLinha.aproveitamento:0}%</div>
+        <div class="stat-sub">${minhaLinha?minhaLinha.jogosPalpitados+' palpite(s) enviados':''}</div>
       </div>
     </div>
     <!-- Card Copa do Mundo 2026 -->
@@ -3396,7 +3329,7 @@ Pages.partDashboard = async function(user){
       const brasilGrupo = COPA_2026_GRUPOS.find(g=>g.grupo==='C');
       const brasilPos = brasilGrupo ? brasilGrupo.seleções.findIndex(s=>s.sigla==='BRA')+1 : null;
       return `
-      <div class="card anim-in d2" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(0,40,80,0.6),rgba(0,20,50,0.4));border:1px solid rgba(255,215,0,0.2);position:relative;overflow:hidden;">
+      <div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(0,40,80,0.6),rgba(0,20,50,0.4));border:1px solid rgba(255,215,0,0.2);position:relative;overflow:hidden;">
         <div style="position:absolute;top:-10px;right:-10px;font-size:80px;opacity:0.06;pointer-events:none;">🏆</div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;align-items:center;gap:10px;">
@@ -3417,67 +3350,53 @@ Pages.partDashboard = async function(user){
     })()}
 
     ${bolaoRanking && bolaoRanking.descricao ? `
-    <details class="card regulamento-toggle anim-in" style="margin-bottom:18px;border-left:3px solid var(--azul);">
-      <summary class="section-title" style="margin-bottom:0;display:flex;align-items:center;gap:6px;"><span class="seta">▶</span> 📋 Regulamento — ${escapeHtml(bolaoRanking.nome)}</summary>
-      <div style="font-size:13px;color:var(--texto-2);line-height:1.8;white-space:pre-wrap;margin-top:12px;">${escapeHtml(bolaoRanking.descricao)}</div>
-    </details>` : ''}
+    <div class="card" style="margin-bottom:18px;border-left:3px solid var(--azul);">
+      <div class="section-title" style="margin-bottom:10px;">📋 Regulamento — ${escapeHtml(bolaoRanking.nome)}</div>
+      <div style="font-size:13px;color:var(--texto-2);line-height:1.8;white-space:pre-wrap;">${escapeHtml(bolaoRanking.descricao)}</div>
+    </div>` : ''}
 
     ${(()=>{
       if(!bolaoRanking) return '';
       const top3 = ranking.slice(0,3);
-      const medals = ['🥇','🥈','🥉'];
+      const lider = top3[0];
+      const minhaPosicao = minhaLinha ? minhaLinha.posicao : null;
+      const diffLider = lider && minhaLinha ? lider.pontuacao - minhaLinha.pontuacao : 0;
       const totalPart = ranking.length;
       return `
-      <div class="card painel-bolao anim-in d1">
-        <div class="section-title" style="margin-bottom:12px;">🏆 Painel do Bolão — ${escapeHtml(bolaoRanking.nome)} <span class="right"><a href="#" id="link-turma" style="font-size:12px;">ver turma →</a></span></div>
-
-        <div class="podio-row">
-          ${[0,1,2].map(i=>{
-            const r = top3[i];
-            if(!r) return `<div class="podio-item" style="opacity:0.4;"><div class="podio-medalha">${medals[i]}</div><div class="podio-nome">—</div><div class="podio-pts">0 pts</div></div>`;
-            const isMe = r.usuario.id === user.id;
-            return `<div class="podio-item ${isMe?'eu':''}">
-              <div class="podio-medalha">${medals[i]}</div>
-              <div class="podio-nome">${escapeHtml(r.usuario.nome.split(' ')[0])}${isMe?' (você)':''}</div>
-              <div class="podio-pts">${r.pontuacao} pts</div>
-            </div>`;
-          }).join('')}
-        </div>
-
-        <div class="painel-numeros">
-          <div class="painel-num-item">
-            <div class="num-label">Participantes</div>
-            <div class="num-valor">${totalPart}</div>
+      <div class="card" style="margin-bottom:18px;border-left:3px solid var(--amarelo);">
+        <div class="section-title" style="margin-bottom:12px;">🏆 Placar ao vivo — ${escapeHtml(bolaoRanking.nome)} <span class="right"><a href="#" id="link-turma" style="font-size:12px;">ver turma →</a></span></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <div style="flex:1;min-width:100px;background:var(--bg-3);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:11px;color:var(--texto-3);margin-bottom:4px;">Participantes</div>
+            <div style="font-size:22px;font-weight:800;">${totalPart}</div>
           </div>
-          <div class="painel-num-item">
-            <div class="num-label">Arrecadado</div>
-            <div class="num-valor" style="color:var(--verde);">${fmtMoney(finBolao.totalArrecadado)}</div>
+          <div style="flex:1;min-width:100px;background:var(--bg-3);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:11px;color:var(--texto-3);margin-bottom:4px;">Minha posição</div>
+            <div style="font-size:22px;font-weight:800;color:var(--azul);">${minhaPosicao ? '#'+minhaPosicao : '—'}</div>
           </div>
-          <div class="painel-num-item" style="${premiacaoTexto.length>14?'grid-column:span 2;':''}">
-            <div class="num-label">Premiação</div>
-            <div class="num-valor" style="color:var(--amarelo);font-size:${premiacaoTexto.length>14?'11px':'13px'};white-space:normal;line-height:1.3;">${escapeHtml(premiacaoTexto)}</div>
-          </div>
-          <div class="painel-num-item">
-            <div class="num-label">Encerrados</div>
-            <div class="num-valor">${jogosEncerrados}</div>
-          </div>
-          <div class="painel-num-item">
-            <div class="num-label">Restantes</div>
-            <div class="num-valor">${jogosRestantes}</div>
-          </div>
-          <div class="painel-num-item">
-            <div class="num-label">Rodada</div>
-            <div class="num-valor" style="font-size:12px;">${escapeHtml(String(rodadaAtual))}</div>
+          <div style="flex:1;min-width:100px;background:var(--bg-3);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:11px;color:var(--texto-3);margin-bottom:4px;">Distância do líder</div>
+            <div style="font-size:22px;font-weight:800;color:${diffLider===0?'var(--verde)':'var(--amarelo)'};">${diffLider===0&&minhaLinha?'👑':'-'+diffLider+' pts'}</div>
           </div>
         </div>
+        <div style="font-size:12px;color:var(--texto-3);margin-bottom:6px;">Top 3</div>
+        ${top3.map((r,i)=>{
+          const medals = ['🥇','🥈','🥉'];
+          const isMe = r.usuario.id === user.id;
+          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--linha);${isMe?'font-weight:700;color:var(--azul);':''}">
+            <span style="font-size:16px;">${medals[i]}</span>
+            <span style="flex:1;">${escapeHtml(r.usuario.nome)}${isMe?' (você)':''}</span>
+            <span class="font-mono">${r.pontuacao} pts</span>
+          </div>`;
+        }).join('')}
       </div>`;
     })()}
     <div class="grid grid-2">
-      <div class="card anim-in d3">
+      <div class="card">
         <div class="section-title">Próximos jogos para palpitar <span class="right"><a href="#" id="link-palpitar">palpitar →</a></span></div>
         ${proximosJogos.length ? proximosJogos.map(j=>Pages._sumulaMini(j)).join('') : `<div class="empty-state"><div class="icon">⚽</div><div class="msg">Nenhum jogo agendado</div></div>`}
       </div>
-      <div class="card anim-in d4">
+      <div class="card">
         <div class="section-title">Notificações</div>
         ${minhasNotifs.length ? minhasNotifs.map(n=>`
           <div style="padding:10px 0;border-bottom:1px solid var(--linha);">
@@ -4134,6 +4053,185 @@ Pages.modoDiversao = function(user){
   });
 };
 
+// ===================== MÓDULO: HALL DA FAMA =====================
+Pages.hallDaFama = async function(user){
+  App.setTopbar('🏛️ Hall da Fama', 'Os maiores destaques da história do Bolão Central');
+  document.getElementById('content').innerHTML = '<div class="empty-state"><div class="msg">Carregando estatísticas...</div></div>';
+  const db = Store.data;
+
+  // Agrega estatísticas históricas usando a view pública (todos os bolões)
+  const { data: rankGeral } = await sb.from('ranking_publico').select('*');
+  const linhas = rankGeral || [];
+
+  if(!linhas.length){
+    document.getElementById('content').innerHTML = `<div class="empty-state"><div class="icon">🏛️</div><div class="msg">Ainda não há dados suficientes</div><div class="hint">O Hall da Fama se preenche conforme os bolões são jogados.</div></div>`;
+    return;
+  }
+
+  // Maior pontuação somada (todos os bolões)
+  const porUsuario = {};
+  linhas.forEach(l=>{
+    if(!porUsuario[l.usuario_id]) porUsuario[l.usuario_id] = { nome:l.nome, pontuacao:0, acertos:0, palpites:0 };
+    porUsuario[l.usuario_id].pontuacao += Number(l.pontuacao)||0;
+    porUsuario[l.usuario_id].acertos += Number(l.acertos)||0;
+    porUsuario[l.usuario_id].palpites += Number(l.total_palpites)||0;
+  });
+  const lista = Object.values(porUsuario);
+
+  const maiorPontuacao = lista.reduce((a,b)=> b.pontuacao>(a?a.pontuacao:-1)?b:a, null);
+  const maisAcertos = lista.reduce((a,b)=> b.acertos>(a?a.acertos:-1)?b:a, null);
+  const maisAtivo = lista.reduce((a,b)=> b.palpites>(a?a.palpites:-1)?b:a, null);
+
+  // Participante mais antigo
+  const maisAntigo = [...db.usuarios].filter(u=>u.perfil==='participante')
+    .sort((a,b)=> new Date(a.dataCadastro)-new Date(b.dataCadastro))[0];
+
+  // Maior prêmio recebido (somando ganhadores de jogos finalizados)
+  const jogosFinalizados = db.jogos.filter(j=>j.status==='finalizado');
+  const premiosPorUsuario = {};
+  await Promise.all(jogosFinalizados.map(async j=>{
+    const res = await Pages._calcularGanhadoresJogo(j);
+    if(res && res.ganhadores.length){
+      res.ganhadores.forEach(g=>{
+        if(!g.usuario) return;
+        premiosPorUsuario[g.usuario.id] = (premiosPorUsuario[g.usuario.id]||{nome:g.usuario.nome,total:0});
+        premiosPorUsuario[g.usuario.id].total += res.premioPorGanhador;
+      });
+    }
+  }));
+  const maiorPremiado = Object.values(premiosPorUsuario).sort((a,b)=>b.total-a.total)[0];
+
+  const cards = [
+    { icone:'👑', titulo:'Maior Pontuação', nome: maiorPontuacao?maiorPontuacao.nome:'—', valor: maiorPontuacao?maiorPontuacao.pontuacao+' pts':'—' },
+    { icone:'🎯', titulo:'Mais Acertos', nome: maisAcertos?maisAcertos.nome:'—', valor: maisAcertos?maisAcertos.acertos+' acerto(s)':'—' },
+    { icone:'💰', titulo:'Maior Prêmio Recebido', nome: maiorPremiado?maiorPremiado.nome:'—', valor: maiorPremiado?fmtMoney(maiorPremiado.total):'—' },
+    { icone:'🔥', titulo:'Mais Ativo', nome: maisAtivo?maisAtivo.nome:'—', valor: maisAtivo?maisAtivo.palpites+' palpite(s)':'—' },
+    { icone:'📅', titulo:'Membro Mais Antigo', nome: maisAntigo?maisAntigo.nome:'—', valor: maisAntigo?fmtDate(maisAntigo.dataCadastro):'—' },
+    { icone:'🏆', titulo:'Bolões Disputados', nome: db.boloes.filter(b=>b.status==='encerrado').length+' encerrado(s)', valor: db.boloes.length+' no total' },
+  ];
+
+  document.getElementById('content').innerHTML = `
+    <div class="grid grid-3">
+      ${cards.map(c=>`
+        <div class="card card-hover" style="text-align:center;padding:24px 16px;">
+          <div style="font-size:36px;margin-bottom:10px;">${c.icone}</div>
+          <div style="font-size:11px;color:var(--texto-3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">${c.titulo}</div>
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px;">${escapeHtml(c.nome)}</div>
+          <div class="font-mono" style="color:var(--amarelo);font-weight:700;">${escapeHtml(String(c.valor))}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+};
+
+// ===================== MÓDULO: CONQUISTAS / MEDALHAS =====================
+Pages._DEFINICAO_MEDALHAS = [
+  { id:'primeiro_exato', icone:'🎯', nome:'Primeiro Placar Exato', desc:'Acertou o placar exato de um jogo pela primeira vez' },
+  { id:'dez_exatos', icone:'⚽', nome:'Artilheiro', desc:'10 placares exatos acertados' },
+  { id:'cinco_seguidos', icone:'🔥', nome:'Em Chamas', desc:'5 acertos consecutivos' },
+  { id:'lider_3_rodadas', icone:'👑', nome:'Reinado', desc:'Líder do ranking por 3 rodadas seguidas' },
+  { id:'primeiro_premio', icone:'💰', nome:'Primeira Grana', desc:'Ganhou seu primeiro prêmio em dinheiro' },
+  { id:'cinco_boloes', icone:'⭐', nome:'Veterano', desc:'Participou de 5 bolões diferentes' },
+];
+
+Pages._calcularMinhasConquistas = async function(user){
+  const db = Store.data;
+  const { data: meusDados } = await sb.from('ranking_publico').select('*').eq('usuario_id', user.id);
+  const linhas = meusDados || [];
+  const totalAcertos = linhas.reduce((s,l)=>s+(Number(l.acertos)||0),0);
+  const boloesDistintos = new Set(linhas.map(l=>l.bolao_id)).size;
+
+  // Verifica prêmios ganhos
+  const jogosFinalizados = db.jogos.filter(j=>j.status==='finalizado');
+  let temPremio = false;
+  for(const j of jogosFinalizados){
+    const res = await Pages._calcularGanhadoresJogo(j);
+    if(res && res.ganhadores.some(g=>g.usuario && g.usuario.id===user.id)){ temPremio = true; break; }
+  }
+
+  const conquistadas = {};
+  if(totalAcertos >= 1) conquistadas.primeiro_exato = true;
+  if(totalAcertos >= 10) conquistadas.dez_exatos = true;
+  if(temPremio) conquistadas.primeiro_premio = true;
+  if(boloesDistintos >= 5) conquistadas.cinco_boloes = true;
+  // cinco_seguidos e lider_3_rodadas exigem histórico sequencial — fica como meta futura
+  return conquistadas;
+};
+
+Pages.conquistas = async function(user){
+  App.setTopbar('🎖️ Minhas Conquistas', 'Medalhas e marcos alcançados no Bolão Central');
+  document.getElementById('content').innerHTML = '<div class="empty-state"><div class="msg">Calculando suas conquistas...</div></div>';
+  const conquistadas = await Pages._calcularMinhasConquistas(user);
+  const totalConquistadas = Object.keys(conquistadas).length;
+
+  document.getElementById('content').innerHTML = `
+    <div class="badge-medalha" style="margin-bottom:18px;">🎖️ ${totalConquistadas}/${Pages._DEFINICAO_MEDALHAS.length} medalhas conquistadas</div>
+    <div class="grid grid-3">
+      ${Pages._DEFINICAO_MEDALHAS.map(m=>{
+        const ok = !!conquistadas[m.id];
+        return `<div class="medalha-card ${ok?'conquistada':'bloqueada'}">
+          <span class="medalha-icone">${m.icone}</span>
+          <div class="medalha-nome">${escapeHtml(m.nome)}</div>
+          <div class="medalha-desc">${escapeHtml(m.desc)}</div>
+          ${ok ? `<div class="medalha-data">✓ Conquistada</div>` : `<div class="medalha-data" style="color:var(--texto-3);">🔒 Bloqueada</div>`}
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+};
+
+// ===================== MÓDULO: FEED DE ATIVIDADES =====================
+Pages.feedAtividades = async function(user){
+  App.setTopbar('📰 Atividades', 'O que está rolando no Bolão Central');
+  document.getElementById('content').innerHTML = '<div class="empty-state"><div class="msg">Carregando atividades...</div></div>';
+  const db = Store.data;
+
+  const eventos = [];
+
+  // Pagamentos confirmados recentes
+  [...db.pagamentos].filter(p=>p.status==='pago').forEach(p=>{
+    const u = db.usuarios.find(x=>x.id===p.usuarioId);
+    if(u) eventos.push({ icone:'💳', texto:`<strong>${escapeHtml(u.nome)}</strong> confirmou pagamento`, data: p.dataPagamento || null, ts: p.dataPagamento ? new Date(p.dataPagamento).getTime() : 0 });
+  });
+
+  // Jogos finalizados (resultado disponível)
+  db.jogos.filter(j=>j.status==='finalizado').forEach(j=>{
+    eventos.push({ icone:'⚽', texto:`Resultado disponível: <strong>${escapeHtml(j.mandante)} ${j.placarMandante}×${j.placarVisitante} ${escapeHtml(j.visitante)}</strong>`, data: j.resultadoLancadoEm||j.dataHora, ts: j.resultadoLancadoEm ? new Date(j.resultadoLancadoEm).getTime() : (j.dataHora?new Date(j.dataHora).getTime():0) });
+  });
+
+  // Novos participantes (últimos cadastrados)
+  [...db.usuarios].filter(u=>u.perfil==='participante').sort((a,b)=>new Date(b.dataCadastro)-new Date(a.dataCadastro)).slice(0,10).forEach(u=>{
+    eventos.push({ icone:'👋', texto:`<strong>${escapeHtml(u.nome)}</strong> entrou no bolão`, data:u.dataCadastro, ts: u.dataCadastro?new Date(u.dataCadastro).getTime():0 });
+  });
+
+  // Ganhadores de jogos finalizados
+  for(const j of db.jogos.filter(jj=>jj.status==='finalizado')){
+    const res = await Pages._calcularGanhadoresJogo(j);
+    if(res && res.ganhadores.length){
+      res.ganhadores.forEach(g=>{
+        if(!g.usuario) return;
+        eventos.push({ icone:'🎯', texto:`<strong>${escapeHtml(g.usuario.nome)}</strong> acertou o placar exato de ${escapeHtml(j.mandante)} x ${escapeHtml(j.visitante)}!`, data:j.resultadoLancadoEm, ts: j.resultadoLancadoEm?new Date(j.resultadoLancadoEm).getTime():0 });
+      });
+    }
+  }
+
+  eventos.sort((a,b)=> b.ts - a.ts);
+
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      ${eventos.length ? eventos.slice(0,30).map(e=>`
+        <div class="feed-item">
+          <div class="feed-icone">${e.icone}</div>
+          <div>
+            <div class="feed-texto">${e.texto}</div>
+            <div class="feed-tempo">${e.data ? new Date(e.data).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}</div>
+          </div>
+        </div>
+      `).join('') : `<div class="empty-state"><div class="icon">📰</div><div class="msg">Nenhuma atividade ainda</div></div>`}
+    </div>
+  `;
+};
+
 Pages.partPerfil = function(user){
   App.setTopbar('Meu Perfil', 'Atualize seus dados pessoais');
   document.getElementById('content').innerHTML = `
@@ -4221,38 +4319,75 @@ Pages.ranking = async function(user){
     document.getElementById('content').innerHTML = `<div class="empty-state"><div class="icon">★</div><div class="msg">Nenhum bolão cadastrado ainda</div></div>`;
     return;
   }
+
+  // Histórico de posições em localStorage para calcular seta de variação (sobe/desce)
+  const CHAVE_HIST = 'ranking_posicoes_anteriores_'+bolaoComJogos.id;
+  function lerHistorico(){
+    try{ return JSON.parse(localStorage.getItem(CHAVE_HIST)||'{}'); }catch(e){ return {}; }
+  }
+  function salvarHistorico(posicoesAtuais){
+    try{ localStorage.setItem(CHAVE_HIST, JSON.stringify(posicoesAtuais)); }catch(e){}
+  }
+
   let periodo = 'geral';
   const draw = async () => {
     const linhas = await Logic.rankingDoBolao(bolaoComJogos.id, periodo);
+    const historico = lerHistorico();
+
+    const setaVariacao = (l) => {
+      const posAnterior = historico[l.usuario.id];
+      if(posAnterior === undefined) return '';
+      if(posAnterior > l.posicao) return `<span class="seta-sobe">▲ ${posAnterior - l.posicao}</span>`;
+      if(posAnterior < l.posicao) return `<span class="seta-desce">▼ ${l.posicao - posAnterior}</span>`;
+      return `<span class="seta-igual">—</span>`;
+    };
+
+    const top3 = linhas.slice(0,3);
+    const podio = top3.length ? `
+      <div class="grid grid-3" style="margin-bottom:20px;">
+        ${top3[1] ? `<div class="podio-card prata card-hover"><span class="podio-medal">🥈</span><div class="podio-nome">${escapeHtml(top3[1].usuario.nome)}</div><div class="podio-pts">${top3[1].pontuacao} pts</div></div>` : '<div></div>'}
+        ${top3[0] ? `<div class="podio-card ouro card-hover" style="transform:scale(1.04);"><span class="podio-medal">🥇</span><div class="podio-nome">${escapeHtml(top3[0].usuario.nome)}</div><div class="podio-pts">${top3[0].pontuacao} pts</div></div>` : '<div></div>'}
+        ${top3[2] ? `<div class="podio-card bronze card-hover"><span class="podio-medal">🥉</span><div class="podio-nome">${escapeHtml(top3[2].usuario.nome)}</div><div class="podio-pts">${top3[2].pontuacao} pts</div></div>` : '<div></div>'}
+      </div>` : '';
+
     document.getElementById('content').innerHTML = `
+      ${podio}
       <div class="tabs">
         <div class="tab ${periodo==='geral'?'active':''}" data-p="geral">Geral</div>
         <div class="tab ${periodo==='mensal'?'active':''}" data-p="mensal">Mensal</div>
       </div>
       <div class="card card-flush">
         <table>
-          <thead><tr><th>#</th><th>Participante</th><th>Pontuação</th><th>Acertos</th><th>Erros</th><th>Aproveitamento</th></tr></thead>
+          <thead><tr><th>#</th><th></th><th>Participante</th><th>Pontuação</th><th>Acertos</th><th>Erros</th><th>Aproveitamento</th></tr></thead>
           <tbody>
             ${linhas.length ? linhas.map(l=>`
               <tr class="${l.posicao<=3?'rank-'+l.posicao:''}">
                 <td><span class="pos-badge">${l.posicao}</span></td>
-                <td style="font-weight:600;${user && l.usuario.id===user.id?'color:var(--amarelo);':''}">${escapeHtml(l.usuario.nome)}${user && l.usuario.id===user.id ? ' (você)' : ''}</td>
+                <td>${setaVariacao(l)}</td>
+                <td style="font-weight:600;${user && l.usuario.id===user.id?'color:var(--amarelo);':''}">${l.posicao===1?'🥇 ':l.posicao===2?'🥈 ':l.posicao===3?'🥉 ':''}${escapeHtml(l.usuario.nome)}${user && l.usuario.id===user.id ? ' (você)' : ''}</td>
                 <td><span class="pts-pill">${l.pontuacao}</span></td>
                 <td class="font-mono">${l.acertos}</td>
                 <td class="font-mono">${l.erros}</td>
                 <td>
                   <div class="flex-row" style="gap:8px;">
-                    <div class="progress-bar" style="width:70px;"><div class="progress-fill" style="width:${l.aproveitamento}%;"></div></div>
+                    <div class="progress-bar-anim" style="width:70px;"><div class="fill" style="width:${l.aproveitamento}%;"></div></div>
                     <span class="font-mono" style="font-size:12px;">${l.aproveitamento}%</span>
                   </div>
                 </td>
               </tr>
-            `).join('') : `<tr><td colspan="6"><div class="empty-state"><div class="msg">Sem dados de ranking ainda</div></div></td></tr>`}
+            `).join('') : `<tr><td colspan="7"><div class="empty-state"><div class="msg">Sem dados de ranking ainda</div></div></td></tr>`}
           </tbody>
         </table>
       </div>
     `;
     document.querySelectorAll('[data-p]').forEach(t=> t.onclick = () => { periodo = t.dataset.p; draw(); });
+
+    // Salva posições atuais para comparação na próxima visita (seta sobe/desce)
+    if(periodo === 'geral'){
+      const novoHistorico = {};
+      linhas.forEach(l=> novoHistorico[l.usuario.id] = l.posicao);
+      salvarHistorico(novoHistorico);
+    }
   };
   draw();
 };
@@ -4587,15 +4722,15 @@ const Modals = {
 
       let error;
       if(editing){
-        ({ error } = await supabaseComRetry(() => sb.from('boloes').update(linha).eq('id', bolao.id)));
+        ({ error } = await sb.from('boloes').update(linha).eq('id', bolao.id));
       } else {
-        ({ error } = await supabaseComRetry(() => sb.from('boloes').insert(linha)));
+        ({ error } = await sb.from('boloes').insert(linha));
       }
       if(error){ toast('Erro ao salvar bolão: ' + error.message, 'error'); btn.disabled=false; btn.textContent=editing?'Salvar alterações':'Criar bolão'; return; }
 
       Store.log(Session.currentUser().id, editing ? `Bolão "${nome}" editado.` : `Bolão "${nome}" criado.`);
-      await Store.reloadBoloes();
       toast(editing ? 'Bolão atualizado!' : 'Bolão criado!');
+      await Store.reloadBoloes();
       App.closeModal();
       Pages.adminBoloes();
     };
@@ -4644,15 +4779,15 @@ const Modals = {
 
       let error;
       if(editing){
-        ({ error } = await supabaseComRetry(() => sb.from('jogos').update(linha).eq('id', jogo.id)));
+        ({ error } = await sb.from('jogos').update(linha).eq('id', jogo.id));
       } else {
-        ({ error } = await supabaseComRetry(() => sb.from('jogos').insert(linha)));
+        ({ error } = await sb.from('jogos').insert(linha));
       }
       if(error){ toast('Erro ao salvar jogo: ' + error.message, 'error'); btn.disabled=false; btn.textContent=editing?'Salvar':'Criar jogo'; return; }
 
       Store.log(Session.currentUser().id, editing ? `Jogo "${mandante} x ${visitante}" editado.` : `Jogo "${mandante} x ${visitante}" criado.`);
-      await Store.reloadJogos();
       toast(editing ? 'Jogo atualizado!' : 'Jogo criado!');
+      await Store.reloadJogos();
       App.closeModal();
       Pages.adminJogos();
     };
