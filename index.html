@@ -2586,13 +2586,15 @@ Pages.adminJogos = function(){
 Pages._calcularGanhadoresJogo = async function(j){
   if(j.status !== 'finalizado' || j.placarMandante === null || j.placarVisitante === null) return null;
 
-  // Busca contagem total de palpites do jogo no banco (RLS impede ver palpites alheios no cache)
-  const { data: todosPalpites } = await sb.from('palpites')
-    .select('id, usuario_id, placar_mandante, placar_visitante')
+  // Busca via view pública (sem RLS) para ver todos os palpites do jogo, não só os do usuário logado
+  const { data: todosPalpites, error } = await sb.from('palpites_contagem_publica')
+    .select('*')
     .eq('jogo_id', j.id);
 
+  if(error){ console.error('Erro ao buscar palpites_contagem_publica:', error); return null; }
+
   const todos = todosPalpites || [];
-  const totalPalpites = todos.length;
+  const totalPalpites = todos.length ? Number(todos[0].total_no_jogo) || todos.length : 0;
   const acertaram = todos.filter(p => p.placar_mandante === j.placarMandante && p.placar_visitante === j.placarVisitante);
 
   const VALOR_PALPITE = 10;
@@ -3229,8 +3231,8 @@ Pages.partDashboard = async function(user){
       </div>
       <div class="stat-card ${meuPagamento && meuPagamento.status!=='pago' ? 'alert':''}">
         <div class="stat-label">Minha inscrição</div>
-        <div class="stat-value" style="font-size:18px;">${meuPagamento ? Pages._badgePagamento(meuPagamento.status) : '—'}</div>
-        <div class="stat-sub">${meuPagamento? fmtMoney(meuPagamento.valorInscricao):''}</div>
+        <div class="stat-value" style="font-size:18px;">${meuPagamento ? Pages._badgePagamento(meuPagamento.status) : '<span style="font-size:12px;color:var(--texto-3);">Sem palpite ainda</span>'}</div>
+        <div class="stat-sub">${meuPagamento? fmtMoney(meuPagamento.valorInscricao) : (bolao?escapeHtml(bolao.nome):'')}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Aproveitamento</div>
