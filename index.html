@@ -2540,6 +2540,8 @@ Pages.adminNotificacoes = async function(){
         const { error } = await sb.from('notificacoes').delete().in('id', ids);
         if(error){ toast('Erro ao excluir: ' + error.message, 'error'); btn.disabled = false; return; }
         toast(ids.length > 1 ? `Notificação excluída (${ids.length} cópias removidas).` : 'Notificação excluída.');
+        // Remove do array local imediatamente
+        Store.data.notificacoes = Store.data.notificacoes.filter(n=>!ids.includes(n.id));
         await Store.reloadNotificacoes();
         render();
       };
@@ -2850,7 +2852,10 @@ Pages._bindSumulaEvents = function(){
       }
       Store.log(Session.currentUser().id, `Jogo "${jogo.mandante} x ${jogo.visitante}" excluído.`);
       toast('Jogo excluído.');
-      await Store.loadAll();
+      // Remove do array local imediatamente para refletir na UI
+      Store.data.jogos = Store.data.jogos.filter(j=>j.id!==jogo.id);
+      Store.data.palpites = Store.data.palpites.filter(p=>p.jogoId!==jogo.id);
+      await Store.reloadJogos();
       Pages.adminJogos();
     };
   });
@@ -3300,26 +3305,35 @@ Pages.partDashboard = async function(user){
   document.getElementById('content').innerHTML = `
     <div id="card-instalar-app"></div>
     ${cardGanhadores}
-    <div class="grid grid-4" style="margin-bottom:22px;">
-      <div class="stat-card">
-        <div class="stat-label">Minha posição</div>
-        <div class="stat-value">${minhaLinha ? '#'+minhaLinha.posicao : '—'}</div>
-        <div class="stat-sub">${bolaoRanking?bolaoRanking.nome:'Nenhum bolão ativo'}</div>
+    <!-- Stats recolhíveis -->
+    <div class="card" style="margin-bottom:18px;padding:0;">
+      <div id="btn-toggle-stats" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;user-select:none;">
+        <span style="font-size:13px;font-weight:700;">📊 Meus Stats — ${bolaoRanking?escapeHtml(bolaoRanking.nome):''}</span>
+        <span id="seta-stats" style="font-size:14px;transition:transform .3s;">▼</span>
       </div>
-      <div class="stat-card good">
-        <div class="stat-label">Pontuação</div>
-        <div class="stat-value">${minhaLinha ? minhaLinha.pontuacao : 0}</div>
-        <div class="stat-sub">${minhaLinha?minhaLinha.acertos+' acerto(s)':''}</div>
-      </div>
-      <div class="stat-card ${meuPagamento && meuPagamento.status!=='pago' ? 'alert':''}">
-        <div class="stat-label">Minha inscrição</div>
-        <div class="stat-value" style="font-size:18px;">${meuPagamento ? Pages._badgePagamento(meuPagamento.status) : '<span style="font-size:12px;color:var(--texto-3);">Sem palpite ainda</span>'}</div>
-        <div class="stat-sub">${meuPagamento? fmtMoney(meuPagamento.valorInscricao) : (bolao?escapeHtml(bolao.nome):'')}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Aproveitamento</div>
-        <div class="stat-value">${minhaLinha?minhaLinha.aproveitamento:0}%</div>
-        <div class="stat-sub">${minhaLinha?minhaLinha.jogosPalpitados+' palpite(s) enviados':''}</div>
+      <div id="painel-stats" style="display:none;padding:0 16px 16px;border-top:1px solid var(--linha);">
+        <div class="grid grid-4" style="margin-top:14px;">
+          <div class="stat-card">
+            <div class="stat-label">Minha posição</div>
+            <div class="stat-value">${minhaLinha ? '#'+minhaLinha.posicao : '—'}</div>
+            <div class="stat-sub">${bolaoRanking?bolaoRanking.nome:'Nenhum bolão ativo'}</div>
+          </div>
+          <div class="stat-card good">
+            <div class="stat-label">Pontuação</div>
+            <div class="stat-value">${minhaLinha ? minhaLinha.pontuacao : 0}</div>
+            <div class="stat-sub">${minhaLinha?minhaLinha.acertos+' acerto(s)':''}</div>
+          </div>
+          <div class="stat-card ${meuPagamento && meuPagamento.status!=='pago' ? 'alert':''}">
+            <div class="stat-label">Minha inscrição</div>
+            <div class="stat-value" style="font-size:18px;">${meuPagamento ? Pages._badgePagamento(meuPagamento.status) : '<span style="font-size:12px;color:var(--texto-3);">Sem palpite ainda</span>'}</div>
+            <div class="stat-sub">${meuPagamento? fmtMoney(meuPagamento.valorInscricao) : (bolao?escapeHtml(bolao.nome):'')}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Aproveitamento</div>
+            <div class="stat-value">${minhaLinha?minhaLinha.aproveitamento:0}%</div>
+            <div class="stat-sub">${minhaLinha?minhaLinha.jogosPalpitados+' palpite(s) enviados':''}</div>
+          </div>
+        </div>
       </div>
     </div>
     <!-- Card Copa do Mundo 2026 -->
@@ -3350,9 +3364,14 @@ Pages.partDashboard = async function(user){
     })()}
 
     ${bolaoRanking && bolaoRanking.descricao ? `
-    <div class="card" style="margin-bottom:18px;border-left:3px solid var(--azul);">
-      <div class="section-title" style="margin-bottom:10px;">📋 Regulamento — ${escapeHtml(bolaoRanking.nome)}</div>
-      <div style="font-size:13px;color:var(--texto-2);line-height:1.8;white-space:pre-wrap;">${escapeHtml(bolaoRanking.descricao)}</div>
+    <div class="card" style="margin-bottom:18px;border-left:3px solid var(--azul);padding:0;">
+      <div id="btn-toggle-reg" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;user-select:none;">
+        <span style="font-size:13px;font-weight:700;">📋 Regulamento — ${escapeHtml(bolaoRanking.nome)}</span>
+        <span id="seta-reg" style="font-size:14px;transition:transform .3s;">▼</span>
+      </div>
+      <div id="painel-reg" style="display:none;padding:0 16px 16px;border-top:1px solid var(--linha);">
+        <div style="font-size:13px;color:var(--texto-2);line-height:1.8;white-space:pre-wrap;margin-top:12px;">${escapeHtml(bolaoRanking.descricao)}</div>
+      </div>
     </div>` : ''}
 
     ${(()=>{
@@ -3411,8 +3430,27 @@ Pages.partDashboard = async function(user){
   const lt = document.getElementById('link-turma'); if(lt) lt.onclick=(e)=>{e.preventDefault(); App.navigate('turma');};
   const lc = document.getElementById('link-copa'); if(lc) lc.onclick=(e)=>{e.preventDefault(); App.navigate('copa');};
   App.atualizarBotaoInstalar();
-  // Atualiza o ticker com dados frescos após os reloads
   if(App._atualizarTicker) App._atualizarTicker();
+
+  // Toggle stats recolhíveis
+  const btnStats = document.getElementById('btn-toggle-stats');
+  const painelStats = document.getElementById('painel-stats');
+  const setaStats = document.getElementById('seta-stats');
+  if(btnStats) btnStats.onclick = () => {
+    const aberto = painelStats.style.display !== 'none';
+    painelStats.style.display = aberto ? 'none' : 'block';
+    setaStats.style.transform = aberto ? 'rotate(0deg)' : 'rotate(180deg)';
+  };
+
+  // Toggle regulamento recolhível
+  const btnReg = document.getElementById('btn-toggle-reg');
+  const painelReg = document.getElementById('painel-reg');
+  const setaReg = document.getElementById('seta-reg');
+  if(btnReg) btnReg.onclick = () => {
+    const aberto = painelReg.style.display !== 'none';
+    painelReg.style.display = aberto ? 'none' : 'block';
+    setaReg.style.transform = aberto ? 'rotate(0deg)' : 'rotate(180deg)';
+  };
 };
 
 // ---- RESOLUÇÃO DO CHAVEAMENTO DO MATA-MATA --------------------------------
