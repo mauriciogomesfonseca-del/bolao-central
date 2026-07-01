@@ -2005,6 +2005,24 @@ async function notificacoesVerificarNovas(){
     vistos.add(n.id);
   });
   notifIdsVistosSalvar(vistos);
+
+  // Atualiza o card de notificações do dashboard se estiver visível
+  const cardNotif = document.getElementById('card-notif-dashboard');
+  if(cardNotif){
+    const user2 = Session.currentUser ? Session.currentUser() : null;
+    if(user2){
+      const minhasAtual = Store.data.notificacoes.filter(n=>n.usuarioId===user2.id).slice(0,4);
+      cardNotif.innerHTML = `
+        <div class="section-title">Notificações</div>
+        ${minhasAtual.length ? minhasAtual.map(n=>`
+          <div style="padding:10px 0;border-bottom:1px solid var(--linha);">
+            <div style="font-weight:600;font-size:13px;">${escapeHtml(n.titulo)}</div>
+            <div class="text-muted">${escapeHtml(n.mensagem)}</div>
+          </div>
+        `).join('') : '<div class="empty-state"><div class="icon">🔔</div><div class="msg">Sem notificações</div></div>'}
+      `;
+    }
+  }
 }
 
 function notificacoesPollingIniciar(){
@@ -3218,7 +3236,7 @@ Pages.configuracoes = function(){
 // =====================================================================
 
 Pages.partDashboard = async function(user){
-  App.setTopbar(`⚽ Olá, ${user.nome.split(' ')[0]}!`, 'Confira o Bolão de hoje.');
+  App.setTopbar(`Olá, ${user.nome.split(' ')[0]}! ⚽`, 'Confira o Bolão de hoje.');
   document.getElementById('content').innerHTML = '<div class="empty-state"><div class="msg">Carregando...</div></div>';
 
   // Força reload de tudo para garantir dados frescos
@@ -3296,11 +3314,7 @@ Pages.partDashboard = async function(user){
   // Pagamento: só mostra se for do bolão ativo atual
   const meuPagamento = db.pagamentos.find(p=>p.usuarioId===user.id && p.bolaoId===bolao?.id) || null;
 
-  // Marca como lidas em segundo plano
-  const naoLidas = minhasNotifs.filter(n=>!n.lida).map(n=>n.id);
-  if(naoLidas.length) sb.from('notificacoes').update({lida:true}).in('id',naoLidas).then(()=>{
-    naoLidas.forEach(id=>{ const n=db.notificacoes.find(x=>x.id===id); if(n) n.lida=true; });
-  });
+  // Notificações são marcadas como lidas apenas quando o polling confirma exibição do popup.
 
   document.getElementById('content').innerHTML = `
     <div id="card-instalar-app"></div>
@@ -3308,32 +3322,64 @@ Pages.partDashboard = async function(user){
     <!-- Stats recolhíveis -->
     <div class="card" style="margin-bottom:18px;padding:0;">
       <div id="btn-toggle-stats" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;user-select:none;">
-        <span style="font-size:13px;font-weight:700;">📊 Meus Stats — ${bolaoRanking?escapeHtml(bolaoRanking.nome):''}</span>
-        <span id="seta-stats" style="font-size:14px;transition:transform .3s;">▼</span>
+        <span style="font-size:13px;font-weight:700;">📊 Minhas Estatísticas${bolaoRanking?' — '+escapeHtml(bolaoRanking.nome):''}</span>
+        <span id="seta-stats" style="font-size:14px;transition:transform .3s;">▲</span>
       </div>
-      <div id="painel-stats" style="display:none;padding:0 16px 16px;border-top:1px solid var(--linha);">
-        <div class="grid grid-4" style="margin-top:14px;">
-          <div class="stat-card">
-            <div class="stat-label">Minha posição</div>
-            <div class="stat-value">${minhaLinha ? '#'+minhaLinha.posicao : '—'}</div>
-            <div class="stat-sub">${bolaoRanking?bolaoRanking.nome:'Nenhum bolão ativo'}</div>
+      <div id="painel-stats" style="display:block;padding:0 16px 16px;border-top:1px solid var(--linha);">
+        ${(()=>{
+          const jogosPorId = Object.fromEntries(db.jogos.map(j=>[j.id,j]));
+          const meusPalp = db.palpites.filter(p=>p.usuarioId===user.id);
+          const finalizados = meusPalp.filter(p=> jogosPorId[p.jogoId] && jogosPorId[p.jogoId].status==='finalizado');
+          const sinal = x => x>0?1:(x<0?-1:0);
+          const acertosResultado = finalizados.filter(p=>{ const j=jogosPorId[p.jogoId]; return sinal(p.placarMandante-p.placarVisitante)===sinal(j.placarMandante-j.placarVisitante); }).length;
+          const placaresExatos = finalizados.filter(p=>{ const j=jogosPorId[p.jogoId]; return j.placarMandante===p.placarMandante && j.placarVisitante===p.placarVisitante; }).length;
+          const erros = finalizados.length - acertosResultado;
+          const aprov = minhaLinha ? minhaLinha.aproveitamento : 0;
+          let seqAtual=0, melhorSeq=0;
+          [...finalizados].sort((a,b)=>new Date(a.criadoEm||0)-new Date(b.criadoEm||0)).forEach(p=>{
+            const j=jogosPorId[p.jogoId];
+            if(sinal(p.placarMandante-p.placarVisitante)===sinal(j.placarMandante-j.placarVisitante)){seqAtual++;melhorSeq=Math.max(melhorSeq,seqAtual);}else seqAtual=0;
+          });
+          return `
+          <div class="grid grid-4" style="margin-top:14px;">
+            <div class="stat-card">
+              <div class="stat-label">Posição atual</div>
+              <div class="stat-value">${minhaLinha ? '#'+minhaLinha.posicao : '—'}</div>
+              <div class="stat-sub">${bolaoRanking?escapeHtml(bolaoRanking.nome):'Nenhum bolão'}</div>
+            </div>
+            <div class="stat-card good">
+              <div class="stat-label">Pontuação</div>
+              <div class="stat-value">${minhaLinha ? minhaLinha.pontuacao : 0}</div>
+              <div class="stat-sub">${minhaLinha ? minhaLinha.jogosPalpitados+' palpite(s)' : ''}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Placares exatos</div>
+              <div class="stat-value" style="color:var(--amarelo);">${placaresExatos}</div>
+              <div class="stat-sub">${acertosResultado} resultado(s) certo(s)</div>
+            </div>
+            <div class="stat-card ${erros>acertosResultado?'alert':''}">
+              <div class="stat-label">Erros</div>
+              <div class="stat-value">${erros}</div>
+              <div class="stat-sub">Melhor sequência: ${melhorSeq}</div>
+            </div>
           </div>
-          <div class="stat-card good">
-            <div class="stat-label">Pontuação</div>
-            <div class="stat-value">${minhaLinha ? minhaLinha.pontuacao : 0}</div>
-            <div class="stat-sub">${minhaLinha?minhaLinha.acertos+' acerto(s)':''}</div>
+          <div style="margin-top:12px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--texto-3);margin-bottom:5px;">
+              <span>Aproveitamento geral</span>
+              <span style="font-weight:700;color:${aprov>=50?'var(--verde)':'var(--amarelo)'};">${aprov}%</span>
+            </div>
+            <div style="background:var(--bg-3);border-radius:999px;height:8px;overflow:hidden;">
+              <div style="height:100%;border-radius:999px;background:linear-gradient(90deg,var(--verde-2,#1a9e4e),var(--verde,#1ED760));width:${aprov}%;transition:width .6s ease;"></div>
+            </div>
           </div>
-          <div class="stat-card ${meuPagamento && meuPagamento.status!=='pago' ? 'alert':''}">
-            <div class="stat-label">Minha inscrição</div>
-            <div class="stat-value" style="font-size:18px;">${meuPagamento ? Pages._badgePagamento(meuPagamento.status) : '<span style="font-size:12px;color:var(--texto-3);">Sem palpite ainda</span>'}</div>
-            <div class="stat-sub">${meuPagamento? fmtMoney(meuPagamento.valorInscricao) : (bolao?escapeHtml(bolao.nome):'')}</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Aproveitamento</div>
-            <div class="stat-value">${minhaLinha?minhaLinha.aproveitamento:0}%</div>
-            <div class="stat-sub">${minhaLinha?minhaLinha.jogosPalpitados+' palpite(s) enviados':''}</div>
-          </div>
-        </div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:120px;background:var(--bg-3);border-radius:8px;padding:8px 12px;border-left:3px solid var(--verde);">
+              <div style="font-size:10px;color:var(--texto-3);text-transform:uppercase;letter-spacing:.04em;">Inscrição</div>
+              <div style="font-size:13px;font-weight:700;margin-top:3px;">${meuPagamento ? Pages._badgePagamento(meuPagamento.status) : '<span style="color:var(--texto-3);">Sem palpite</span>'}</div>
+              <div style="font-size:11px;color:var(--texto-2);">${meuPagamento ? fmtMoney(meuPagamento.valorInscricao) : ''}</div>
+            </div>
+          </div>`;
+        })()}
       </div>
     </div>
     <!-- Card Copa do Mundo 2026 -->
@@ -3415,7 +3461,7 @@ Pages.partDashboard = async function(user){
         <div class="section-title">Próximos jogos para palpitar <span class="right"><a href="#" id="link-palpitar">palpitar →</a></span></div>
         ${proximosJogos.length ? proximosJogos.map(j=>Pages._sumulaMini(j)).join('') : `<div class="empty-state"><div class="icon">⚽</div><div class="msg">Nenhum jogo agendado</div></div>`}
       </div>
-      <div class="card">
+      <div class="card" id="card-notif-dashboard">
         <div class="section-title">Notificações</div>
         ${minhasNotifs.length ? minhasNotifs.map(n=>`
           <div style="padding:10px 0;border-bottom:1px solid var(--linha);">
