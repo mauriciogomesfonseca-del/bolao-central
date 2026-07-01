@@ -2005,6 +2005,25 @@ async function notificacoesVerificarNovas(){
     vistos.add(n.id);
   });
   notifIdsVistosSalvar(vistos);
+
+  // Se o card de notificações do dashboard estiver visível na tela,
+  // atualiza-o com as notificações mais recentes sem re-renderizar a página.
+  const cardNotif = document.getElementById('card-notif-dashboard');
+  if(cardNotif){
+    const user2 = Session.currentUser ? Session.currentUser() : null;
+    if(user2){
+      const minhasAtual = Store.data.notificacoes.filter(n=>n.usuarioId===user2.id).slice(0,4);
+      cardNotif.innerHTML = `
+        <div class="section-title">Notificações</div>
+        ${minhasAtual.length ? minhasAtual.map(n=>`
+          <div style="padding:10px 0;border-bottom:1px solid var(--linha);">
+            <div style="font-weight:600;font-size:13px;">${escapeHtml(n.titulo)}</div>
+            <div class="text-muted">${escapeHtml(n.mensagem)}</div>
+          </div>
+        `).join('') : '<div class="empty-state"><div class="icon">🔔</div><div class="msg">Sem notificações</div></div>'}
+      `;
+    }
+  }
 }
 
 function notificacoesPollingIniciar(){
@@ -3296,11 +3315,9 @@ Pages.partDashboard = async function(user){
   // Pagamento: só mostra se for do bolão ativo atual
   const meuPagamento = db.pagamentos.find(p=>p.usuarioId===user.id && p.bolaoId===bolao?.id) || null;
 
-  // Marca como lidas em segundo plano
-  const naoLidas = minhasNotifs.filter(n=>!n.lida).map(n=>n.id);
-  if(naoLidas.length) sb.from('notificacoes').update({lida:true}).in('id',naoLidas).then(()=>{
-    naoLidas.forEach(id=>{ const n=db.notificacoes.find(x=>x.id===id); if(n) n.lida=true; });
-  });
+  // Marca como lidas em segundo plano — só após o usuário ver a lista na tela de Notificações,
+  // não automaticamente no dashboard (isso fazia sumirem antes de serem vistas).
+  // A marcação ocorre agora apenas em notificacoesVerificarNovas(), após exibir o popup.
 
   document.getElementById('content').innerHTML = `
     <div id="card-instalar-app"></div>
@@ -3415,7 +3432,7 @@ Pages.partDashboard = async function(user){
         <div class="section-title">Próximos jogos para palpitar <span class="right"><a href="#" id="link-palpitar">palpitar →</a></span></div>
         ${proximosJogos.length ? proximosJogos.map(j=>Pages._sumulaMini(j)).join('') : `<div class="empty-state"><div class="icon">⚽</div><div class="msg">Nenhum jogo agendado</div></div>`}
       </div>
-      <div class="card">
+      <div class="card" id="card-notif-dashboard">
         <div class="section-title">Notificações</div>
         ${minhasNotifs.length ? minhasNotifs.map(n=>`
           <div style="padding:10px 0;border-bottom:1px solid var(--linha);">
